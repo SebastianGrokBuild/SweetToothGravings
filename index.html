@@ -184,6 +184,20 @@
     #modal-flavor-fillings {
       touch-action: pan-y;
     }
+
+    /* Mobile Quick Order bottom sheet - strong tap targets + selected states */
+    #mobile-quick-order .mobile-tier,
+    #mobile-quick-order button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    #mobile-quick-order .mobile-tier {
+      min-height: 56px;
+    }
+    #mobile-quick-order button {
+      min-height: 40px;
+    }
   </style>
 </head>
 <body class="bg-[#FDF8F5] text-[#3F2A2B] antialiased">
@@ -3005,6 +3019,7 @@ Please confirm receipt.`;
     // ==================== DEDICATED MOBILE QUICK ORDER FLOW ====================
 
     // Create a super clean, fast mobile-only Quick Order bottom sheet
+    // Now with complete flavor + filling + topping support that actually shows and gates the Add button.
     function openMobileQuickOrder(productId) {
       const product = products.find(p => p.id === productId);
       if (!product) return;
@@ -3013,14 +3028,36 @@ Please confirm receipt.`;
       const existing = document.getElementById('mobile-quick-order');
       if (existing) existing.remove();
 
+      // Reset mobile selection state
+      window.mobileSelectedTierIndex = null;
+      window.mobileSelectedFlavor = null;
+      window.mobileSelectedFillings = [];
+      window.mobileSelectedToppings = [];
+      window.currentMobileProduct = product;
+
+      // If editing from cart, pre-fill everything (this makes "edit" on mobile actually work)
+      if (editingCartIndex !== null) {
+        const editItem = cart[editingCartIndex];
+        if (editItem && editItem.id === productId) {
+          window.mobileSelectedFlavor = editItem.customizations.flavor || null;
+          window.mobileSelectedFillings = editItem.customizations.fillings ? [...editItem.customizations.fillings] : [];
+          window.mobileSelectedToppings = editItem.customizations.toppings ? [...editItem.customizations.toppings] : [];
+          if (editItem.customizations.tier && product.tiers) {
+            const idx = product.tiers.findIndex(t => t.label === editItem.customizations.tier);
+            window.mobileSelectedTierIndex = idx >= 0 ? idx : null;
+          }
+        }
+      }
+
       const tiers = product.tiers || [{ label: 'Standard', price: product.price }];
 
+      // New structure: everything scrollable except sticky Add bar at bottom
       let html = `
         <div id="mobile-quick-order" class="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-end md:hidden">
-          <div class="w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl" style="transform: translateY(0); transition: transform 0.3s ease;">
+          <div class="w-full bg-white rounded-t-3xl max-h-[88vh] flex flex-col shadow-2xl" style="transform: translateY(0); transition: transform 0.3s ease;">
             
             <!-- Header -->
-            <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b">
+            <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
               <div class="flex items-center gap-x-3">
                 <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" alt="">
                 <div>
@@ -3031,60 +3068,97 @@ Please confirm receipt.`;
               <button onclick="closeMobileQuickOrder()" class="text-3xl text-[#8B6F6F] px-2 leading-none">×</button>
             </div>
 
-            <!-- Options -->
-            <div class="flex-1 overflow-y-auto p-5 space-y-2">
-              <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2 px-1">Choose your option</div>
-      `;
+            <!-- Scrollable: tiers + options + notes -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-4" id="mobile-scroll-area">
+              <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1 px-1">Choose your option</div>
+              <div id="mobile-tiers-list" class="space-y-2"></div>
 
-      tiers.forEach((tier, index) => {
-        html += `
-          <div onclick="addTierFromMobileQuickOrder(${productId}, ${index}, this)" 
-               class="flex items-center justify-between bg-white border border-[#EDE4DC] active:border-[#C9A9E8] rounded-2xl px-4 py-4 cursor-pointer transition">
-            <div>
-              <div class="font-medium">${tier.label}</div>
-              ${tier.serves ? `<div class="text-xs text-[#8B6F6F]">${tier.serves}</div>` : ''}
-            </div>
-            <div class="font-semibold text-lg text-[#C9A9E8]">$${tier.price}</div>
-          </div>
-        `;
-      });
+              <!-- Populated dynamically with flavors/fillings/toppings -->
+              <div id="mobile-options-container" class="pt-1"></div>
 
-      html += `
+              <!-- Quick Notes -->
+              <div class="pt-2">
+                <div class="text-xs text-[#6B5B5F] mb-1.5">Quick note (optional)</div>
+                <input id="mobile-quick-notes" type="text" 
+                       class="w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm" 
+                       placeholder="Any special requests?">
+              </div>
             </div>
 
-            <!-- Flavor / Toppings / Fillings (for products that support them) -->
-            <div id="mobile-options-container" class="px-5 pb-2"></div>
-
-            <!-- Quick Notes -->
-            <div class="px-5 pb-5">
-              <div class="text-xs text-[#6B5B5F] mb-1.5">Quick note (optional)</div>
-              <input id="mobile-quick-notes" type="text" 
-                     class="w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm" 
-                     placeholder="Any special requests?">
+            <!-- Sticky Add / Update bar -->
+            <div class="border-t p-4 bg-white flex-shrink-0">
+              <button id="mobile-add-btn"
+                      onclick="addFromMobileQuickOrder()"
+                      class="w-full h-12 rounded-2xl bg-[#C9A9E8] text-white font-semibold text-base active:bg-[#B48AE0] transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Add to Order
+              </button>
+              <div id="mobile-add-hint" class="text-[10px] text-center text-[#8B6F6F] mt-1.5 min-h-[14px]"></div>
             </div>
 
-            <div class="h-4"></div>
           </div>
         </div>
       `;
 
       document.body.insertAdjacentHTML('beforeend', html);
 
-      // Render flavor / toppings / fillings for mobile if the product supports them
-      const optionsContainer = document.getElementById('mobile-options-container');
-      if (optionsContainer && (product.flavors || product.fillings || product.toppings)) {
-        let optionsHTML = '';
+      // Wire the dynamic tier rows (highlight + state)
+      const tiersList = document.getElementById('mobile-tiers-list');
 
-        // Store selections on the window for this mobile flow
-        window.mobileSelectedFlavor = null;
-        window.mobileSelectedFillings = [];
-        window.mobileSelectedToppings = [];
+      function renderMobileTiers() {
+        if (!tiersList) return;
+        tiersList.innerHTML = '';
+        (product.tiers || []).forEach((tier, index) => {
+          const isSelected = window.mobileSelectedTierIndex === index;
+          const tierEl = document.createElement('div');
+          tierEl.className = `mobile-tier flex items-center justify-between bg-white border rounded-2xl px-4 py-4 cursor-pointer transition ${
+            isSelected 
+              ? 'border-[#C9A9E8] bg-[#F9F1EB] ring-1 ring-[#C9A9E8]/30' 
+              : 'border-[#EDE4DC] active:border-[#C9A9E8]'
+          }`;
+          tierEl.innerHTML = `
+            <div class="flex-1 min-w-0">
+              <div class="font-medium">${tier.label}</div>
+              ${tier.serves ? `<div class="text-xs text-[#8B6F6F]">${tier.serves}</div>` : ''}
+            </div>
+            <div class="flex items-center">
+              <div class="font-semibold text-lg text-[#C9A9E8]">$${tier.price}</div>
+              ${isSelected ? `<i class="fa-solid fa-check text-[#C9A9E8] text-lg ml-2.5"></i>` : ''}
+            </div>
+          `;
+          tierEl.onclick = () => {
+            window.mobileSelectedTierIndex = index;
+            renderMobileTiers();
+            if (typeof updateMobileAddButton === 'function') updateMobileAddButton();
+          };
+          tiersList.appendChild(tierEl);
+        });
+      }
+
+      renderMobileTiers();
+
+      // Render ALL options (flavors + the previously missing fillings + toppings)
+      const optionsContainer = document.getElementById('mobile-options-container');
+      if (optionsContainer && ((product.flavors && product.flavors.length) || (product.fillings && product.fillings.length) || (product.toppings && product.toppings.length))) {
+        let optionsHTML = '';
 
         if (product.flavors && product.flavors.length > 0) {
           optionsHTML += `<div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1.5">Flavor</div>`;
           optionsHTML += `<div class="flex flex-wrap gap-2 mb-4" id="mobile-flavor-pills">`;
           product.flavors.forEach(flavor => {
-            optionsHTML += `<button onclick="selectMobileFlavor('${flavor}', this)" class="px-3 py-1.5 text-sm rounded-2xl border border-[#EDE4DC] active:bg-[#C9A9E8] active:text-white">${flavor}</button>`;
+            const active = window.mobileSelectedFlavor === flavor;
+            const cls = active ? 'bg-[#C9A9E8] text-white border-[#C9A9E8]' : 'border-[#EDE4DC]';
+            optionsHTML += `<button onclick="selectMobileFlavor('${flavor}', this)" class="px-3.5 py-1.5 text-sm rounded-2xl border ${cls} active:bg-[#C9A9E8] active:text-white">${flavor}</button>`;
+          });
+          optionsHTML += `</div>`;
+        }
+
+        if (product.fillings && product.fillings.length > 0) {
+          optionsHTML += `<div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1.5">Filling</div>`;
+          optionsHTML += `<div class="flex flex-wrap gap-2 mb-4" id="mobile-filling-pills">`;
+          product.fillings.forEach(filling => {
+            const active = (window.mobileSelectedFillings || []).indexOf(filling) !== -1;
+            const cls = active ? 'bg-[#C9A9E8] text-white border-[#C9A9E8]' : 'border-[#EDE4DC]';
+            optionsHTML += `<button onclick="selectMobileFilling('${filling}', this)" class="px-3.5 py-1.5 text-sm rounded-2xl border ${cls} active:bg-[#C9A9E8] active:text-white">${filling}</button>`;
           });
           optionsHTML += `</div>`;
         }
@@ -3093,7 +3167,9 @@ Please confirm receipt.`;
           optionsHTML += `<div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1.5">Toppings (optional)</div>`;
           optionsHTML += `<div class="flex flex-wrap gap-2 mb-4" id="mobile-topping-pills">`;
           product.toppings.forEach(topping => {
-            optionsHTML += `<button onclick="toggleMobileTopping('${topping}', this)" class="px-3 py-1.5 text-sm rounded-2xl border border-[#EDE4DC] active:bg-[#C9A9E8] active:text-white">${topping}</button>`;
+            const active = (window.mobileSelectedToppings || []).indexOf(topping) !== -1;
+            const cls = active ? 'bg-[#C9A9E8] text-white border-[#C9A9E8]' : 'border-[#EDE4DC]';
+            optionsHTML += `<button onclick="toggleMobileTopping('${topping}', this)" class="px-3.5 py-1.5 text-sm rounded-2xl border ${cls} active:bg-[#C9A9E8] active:text-white">${topping}</button>`;
           });
           optionsHTML += `</div>`;
         }
@@ -3101,22 +3177,83 @@ Please confirm receipt.`;
         optionsContainer.innerHTML = optionsHTML;
       }
 
-      // Add swipe to close on the new sheet
-      const sheet = document.getElementById('mobile-quick-order');
-      const content = sheet.querySelector('.w-full.bg-white');
+      // Set initial button state (and hint) right after render
+      if (typeof updateMobileAddButton === 'function') {
+        // small delay so DOM is ready
+        setTimeout(() => updateMobileAddButton(), 10);
+      }
 
-      let startY = 0;
-      content.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
-      content.addEventListener('touchend', (e) => {
-        const endY = e.changedTouches[0].clientY;
-        if (endY - startY > 80) {
-          closeMobileQuickOrder();
-        }
-      });
+      // Swipe to dismiss (only on the white sheet, not on interactive pills)
+      const sheet = document.getElementById('mobile-quick-order');
+      const content = sheet ? sheet.querySelector('.w-full.bg-white') : null;
+      if (content) {
+        let startY = 0;
+        content.addEventListener('touchstart', (e) => {
+          // don't swipe if tapping inside option pills or tier rows
+          if (e.target.closest('#mobile-flavor-pills, #mobile-filling-pills, #mobile-topping-pills, .mobile-tier')) {
+            return;
+          }
+          startY = e.touches[0].clientY;
+        }, { passive: true });
+        content.addEventListener('touchend', (e) => {
+          const endY = e.changedTouches[0].clientY;
+          if (endY - startY > 90) {
+            closeMobileQuickOrder();
+          }
+        });
+      }
     }
 
-    function addTierFromMobileQuickOrder(productId, tierIndex, element) {
-      const product = products.find(p => p.id === productId);
+    function updateMobileAddButton() {
+      const btn = document.getElementById('mobile-add-btn');
+      const hintEl = document.getElementById('mobile-add-hint');
+      if (!btn || !hintEl) return;
+
+      const prod = window.currentMobileProduct;
+      if (!prod) return;
+
+      const tierChosen = window.mobileSelectedTierIndex != null;
+      const needsFlavor = !!(prod.flavors && prod.flavors.length);
+      const needsFilling = !!(prod.fillings && prod.fillings.length);
+      const flavorOk = !needsFlavor || !!window.mobileSelectedFlavor;
+      const fillingOk = !needsFilling || (window.mobileSelectedFillings && window.mobileSelectedFillings.length > 0);
+
+      const can = tierChosen && flavorOk && fillingOk;
+
+      const isEdit = editingCartIndex !== null;
+      btn.textContent = isEdit ? 'Update in Order' : 'Add to Order';
+      btn.disabled = !can;
+
+      if (can) {
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        hintEl.textContent = '';
+      } else {
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        let msg = '';
+        if (!tierChosen) msg = 'Select an option';
+        else if (needsFlavor && !window.mobileSelectedFlavor) msg = 'Select a flavor';
+        else if (needsFilling && (!window.mobileSelectedFillings || !window.mobileSelectedFillings.length)) msg = 'Select 1 filling';
+        hintEl.textContent = msg;
+      }
+    }
+
+    function canAddMobileNow(product) {
+      if (window.mobileSelectedTierIndex == null) return false;
+      if (product.flavors && product.flavors.length && !window.mobileSelectedFlavor) return false;
+      if (product.fillings && product.fillings.length && (!window.mobileSelectedFillings || window.mobileSelectedFillings.length === 0)) return false;
+      return true;
+    }
+
+    function addFromMobileQuickOrder() {
+      const product = window.currentMobileProduct;
+      if (!product) return;
+
+      if (!canAddMobileNow(product)) {
+        if (typeof updateMobileAddButton === 'function') updateMobileAddButton();
+        return;
+      }
+
+      const tierIndex = window.mobileSelectedTierIndex;
       const tier = product.tiers[tierIndex];
       const notesInput = document.getElementById('mobile-quick-notes');
       const notes = notesInput ? notesInput.value.trim() : '';
@@ -3138,25 +3275,33 @@ Please confirm receipt.`;
         customizations
       };
 
-      // Add to cart
-      const existingIndex = cart.findIndex(item => 
-        item.id === product.id && 
-        item.customizations.tier === customizations.tier &&
-        item.customizations.notes === customizations.notes
-      );
+      const isEdit = editingCartIndex !== null;
 
-      if (existingIndex > -1) {
-        cart[existingIndex].quantity += 1;
+      if (isEdit) {
+        cart[editingCartIndex] = cartItem;
+        editingCartIndex = null;
       } else {
-        cart.push(cartItem);
+        // Proper duplicate detection that includes flavor/filling/toppings
+        const existingIndex = cart.findIndex(item => 
+          item.id === product.id && 
+          item.customizations.tier === customizations.tier &&
+          (item.customizations.flavor || '') === (customizations.flavor || '') &&
+          JSON.stringify(item.customizations.fillings || []) === JSON.stringify(customizations.fillings || []) &&
+          (item.customizations.notes || '') === (customizations.notes || '')
+        );
+
+        if (existingIndex > -1) {
+          cart[existingIndex].quantity += 1;
+        } else {
+          cart.push(cartItem);
+        }
       }
 
       updateCartCount();
       saveCartToStorage();
       closeMobileQuickOrder();
 
-      // Show nice toast
-      showToast(`Added ${tier.label} ${product.name}`);
+      showToast(isEdit ? `Updated ${tier.label} ${product.name}` : `Added ${tier.label} ${product.name}`);
     }
 
     function closeMobileQuickOrder() {
@@ -3171,19 +3316,30 @@ Please confirm receipt.`;
           if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
         }, 250);
       }
-      // Clean up mobile selections
+      // Clean up
       window.mobileSelectedFlavor = null;
       window.mobileSelectedFillings = [];
       window.mobileSelectedToppings = [];
+      window.mobileSelectedTierIndex = null;
+      window.currentMobileProduct = null;
+      editingCartIndex = null; // abandon pending edit if user swiped away
     }
 
-    // Mobile option selection helpers
+    // Mobile option selection helpers (single-select for flavor & filling, multi for toppings)
     function selectMobileFlavor(flavor, element) {
       window.mobileSelectedFlavor = flavor;
-      // Deselect siblings
       const pills = element.parentElement.querySelectorAll('button');
       pills.forEach(p => p.classList.remove('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]'));
       element.classList.add('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]');
+      if (typeof updateMobileAddButton === 'function') updateMobileAddButton();
+    }
+
+    function selectMobileFilling(filling, element) {
+      window.mobileSelectedFillings = [filling]; // exactly one
+      const pills = element.parentElement.querySelectorAll('button');
+      pills.forEach(p => p.classList.remove('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]'));
+      element.classList.add('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]');
+      if (typeof updateMobileAddButton === 'function') updateMobileAddButton();
     }
 
     function toggleMobileTopping(topping, element) {
@@ -3196,6 +3352,7 @@ Please confirm receipt.`;
         window.mobileSelectedToppings.push(topping);
         element.classList.add('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]');
       }
+      if (typeof updateMobileAddButton === 'function') updateMobileAddButton();
     }
 
     // Override quick add on mobile to use the dedicated flow
@@ -3209,9 +3366,6 @@ Please confirm receipt.`;
     };
 
     // Also make the Select button use the dedicated mobile flow
-    const originalOpenForSelect = window.openProductModal;
-    // We already overrode it above. Let's enhance the mobile select path
-    // When in 'select' mode on mobile, prefer the dedicated quick order
     const _originalOpen = window.openProductModal;
     window.openProductModal = function(productId, mode = 'details') {
       if (mode === 'select' && window.innerWidth < 768) {
