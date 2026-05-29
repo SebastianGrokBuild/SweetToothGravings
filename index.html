@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sweet Tooth Cravings • Miami, FL</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
+    
+    :root {
+      --lavender: #C9A9E8;
+    }
+    
+    body {
+      font-family: 'Inter', system_ui, sans-serif;
+    }
+    
+    .heading-serif {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title {
+      font-size: 2.25rem;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .product-card {
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                  box-shadow 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    .product-image-container {
+      position: relative;
+      background: #f8f1eb;
+    }
+
+    .product-image-fallback {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 1.25rem;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #6b5b5f;
+      background: linear-gradient(180deg, #fdf8f5 0%, #f9f1eb 100%);
+      border: 2px dashed #e8d9cf;
+    }
+    .product-image-fallback i {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #c9a9e8;
+      display: block;
+    }
+    
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    }
+
+    .nav-link {
+      position: relative;
+      transition: color 0.1s ease;
+    }
+    
+    .nav-link:after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -2px;
+      left: 0;
+      background-color: #C9A9E8;
+      transition: width 0.2s ease;
+    }
+    
+    .nav-link:hover:after {
+      width: 100%;
+    }
+
+    .dessert-bg {
+      background-image: linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.22)), url('assets/images/hero.jpg');
+      background-size: cover;
+      background-position: center;
+    }
+
+    .modal {
+      animation: modalPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.95) translateY(10px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .cart-drawer {
+      animation: slideIn 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .product-img {
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .product-card:hover .product-img {
+      transform: scale(1.04);
+    }
+
+    .stat-number {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .policy-card {
+      transition: all 0.2s ease;
+    }
+
+    .nav-scrolled {
+      background-color: rgba(253, 248, 245, 0.95);
+      backdrop-filter: blur(12px);
+    }
+
+    .sweet-pink {
+      color: #C9A9E8;
+    }
+
+    .menu-tab {
+      position: relative;
+      padding-bottom: 8px;
+      color: #6B5B5F;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+    
+    .menu-tab.active {
+      color: #3F2A2B;
+      font-weight: 600;
+    }
+    
+    .menu-tab.active:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #C9A9E8;
+      border-radius: 3px;
+    }
+
+    .price-tag {
+      background: linear-gradient(135deg, #FDF8F5 0%, #F9F1EB 100%);
+    }
+
+    .form-input {
+      transition: all 0.15s ease;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #C9A9E8;
+      box-shadow: 0 0 0 3px rgba(201, 169, 232, 0.25);
+    }
+
+    .dessert-gradient {
+      background: linear-gradient(180deg, #FDF8F5 0%, #F9F1EB 100%);
+    }
+
+    /* Make flavor & filling pills very reliable to tap on mobile inside bottom sheets */
+    #modal-flavors button,
+    #modal-fillings button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      min-height: 40px;   /* bigger tap target */
+      min-width: 70px;
+    }
+
+    /* Prevent swipe-to-close from eating taps on the option area */
+    #modal-flavor-fillings {
+      touch-action: pan-y;
+    }
+  </style>
+</head>
+<body class="bg-[#FDF8F5] text-[#3F2A2B] antialiased">
+  <!-- NAVBAR -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-[#FDF8F5]/95 backdrop-blur-md border-b border-[#EDE4DC]">
+    <div class="max-w-screen-2xl mx-auto">
+      <div class="px-8 py-5 flex items-center justify-between">
+        <!-- Logo -->
+        <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" 
+           class="flex items-center gap-x-3 cursor-pointer hover:opacity-90 transition-opacity">
+          <img src="assets/images/logo.gpj.png" alt="Sweet Tooth Cravings" class="h-12 sm:h-14 md:h-16 w-auto" loading="lazy" onerror="this.style.display='none'">
+          <span class="hidden md:inline font-semibold text-lg md:text-[21px] tracking-[-0.5px] leading-none">Sweettoothcravings</span>
+        </a>
+
+        <!-- Desktop Nav -->
+        <div class="hidden md:flex items-center gap-x-9 text-sm font-medium">
+          <a href="#menu" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Menu</a>
+          <a href="#how" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">How it Works</a>
+          <a href="#about" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">About</a>
+          <a href="#policies" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Policies</a>
+          <a href="#quick-order" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Quick Order</a>
+          <button onclick="openReviewsModal()" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B] flex items-center gap-x-1">
+            <i class="fa-solid fa-star text-sm"></i>
+            <span>Reviews</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-x-3">
+          <!-- Instagram -->
+          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" 
+             class="hidden sm:flex items-center gap-x-2 px-4 py-2 rounded-3xl text-sm font-medium text-[#5C4A4B] hover:bg-white hover:shadow-sm border border-transparent hover:border-[#EDE4DC] transition-all">
+            <i class="fa-brands fa-instagram text-lg"></i>
+            <span class="hidden lg:inline">@sweettoothcravings__</span>
+          </a>
+
+          <!-- Cart Button -->
+          <button onclick="toggleCart()" 
+                  class="flex items-center gap-x-2.5 px-5 h-11 rounded-3xl bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/30 hover:shadow-sm transition-all active:scale-[0.985]">
+            <div class="relative">
+              <i class="fa-solid fa-shopping-bag text-[#C9A9E8]"></i>
+              <span id="cart-count" 
+                    class="absolute -top-1.5 -right-1.5 text-[9px] font-bold bg-[#C9A9E8] text-white w-4 h-4 rounded-full flex items-center justify-center">0</span>
+            </div>
+            <span class="hidden md:inline text-sm font-semibold text-[#3F2A2B]">Order</span>
+          </button>
+
+          <!-- Mobile Menu -->
+          <button onclick="toggleMobileMenu()" class="md:hidden w-11 h-11 flex items-center justify-center text-[#C9A9E8]">
+            <i class="fa-solid fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-[#EDE4DC] bg-[#FDF8F5]">
+      <div class="px-8 py-6 flex flex-col gap-y-4 text-sm font-medium">
+        <a href="#menu" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Menu</a>
+        <a href="#how" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">How it Works</a>
+        <a href="#about" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">About</a>
+        <a href="#policies" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Policies</a>
+        <a href="#quick-order" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Quick Order</a>
+        <button onclick="openReviewsModal(); toggleMobileMenu()" class="py-1 text-left flex items-center gap-x-2 text-[#5C4A4B]">
+          <i class="fa-solid fa-star"></i> <span>Reviews</span>
+        </button>
+        <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="py-1 flex items-center gap-x-2 text-[#5C4A4B]">
+          <i class="fa-brands fa-instagram"></i> <span>Instagram</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="pt-20">
+    <div class="max-w-screen-2xl mx-auto">
+      <div class="dessert-bg h-[92vh] min-h-[640px] flex items-center relative rounded-b-[3.5rem] mx-4 shadow-xl overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-black/10 via-black/5 to-black/30"></div>
+        
+        <div class="relative z-10 max-w-2xl px-6 sm:px-8 md:px-16 text-white pt-8">
+          <div class="inline-flex items-center gap-x-2 bg-white/90 text-[#3F2A2B] px-4 h-8 rounded-3xl text-xs font-semibold tracking-widest mb-6">
+            <div class="w-2 h-2 bg-[#C9A9E8] rounded-full animate-pulse"></div>
+            MIAMI, FLORIDA
+          </div>
+          
+          <h1 class="heading-serif text-5xl sm:text-6xl md:text-7xl leading-[1.05] tracking-tighter mb-4">
+            Daily sweetness,<br>delivered.
+          </h1>
+          <p class="max-w-md text-base sm:text-lg text-white/90 mb-8">
+            Handcrafted cakes, flan, tres leches &amp; more.<br>
+            Made with love in Miami.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a href="#menu" 
+               class="inline-flex items-center justify-center gap-x-3 bg-white hover:bg-[#FDF8F5] active:bg-white text-[#3F2A2B] font-semibold px-8 h-13 sm:h-14 rounded-3xl shadow-lg transition-all text-base">
+              Browse Menu
+              <i class="fa-solid fa-arrow-right"></i>
+            </a>
+            <button onclick="openCustomOrder()"
+                    class="inline-flex items-center justify-center gap-x-3 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] text-white font-semibold px-8 h-13 sm:h-14 rounded-3xl transition-all text-base shadow-lg shadow-[#C9A9E8]/30">
+              <i class="fa-solid fa-magic"></i>
+              <span>Custom Order</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-x-5 mt-10 text-sm">
+            <div class="flex items-center -space-x-1">
+              <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
+                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CUPCAKES</div>
+              </div>
+              <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
+                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">FLAN</div>
+              </div>
+              <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
+                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CAKES</div>
+              </div>
+            </div>
+            <div>
+              <span class="font-semibold">5.0</span> <span class="text-white/80">(23 reviews)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trust badges floating -->
+        <div class="hidden lg:flex absolute bottom-9 right-9 bg-white/95 backdrop-blur px-5 py-3.5 rounded-3xl items-center gap-x-6 text-xs shadow-xl border border-white">
+          <div class="flex items-center gap-x-1.5 text-[#3F2A2B]">
+            <i class="fa-solid fa-clock text-[#C9A9E8]"></i>
+            <span class="font-medium">4–5 day lead time</span>
+          </div>
+          <div class="h-3 w-px bg-[#EDE4DC]"></div>
+          <div class="text-[#C9A9E8] font-semibold">50% deposit to book</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TRUST / STATS BAR -->
+  <div class="max-w-screen-2xl mx-auto px-8 pt-9 pb-5">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#EDE4DC] rounded-3xl overflow-hidden">
+      <div class="bg-white px-7 py-5 flex items-center gap-x-4">
+        <div class="text-4xl font-semibold text-[#C9A9E8] stat-number">23</div>
+        <div class="leading-tight text-sm">
+          <div class="font-semibold">Happy customers</div>
+          <div class="text-[#8B6F6F]">in Miami &amp; beyond</div>
+        </div>
+      </div>
+      <div class="bg-white px-7 py-5 flex items-center gap-x-4">
+        <div>
+          <div class="flex items-center gap-x-0.5 text-[#C9A9E8]">
+            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+          </div>
+          <div class="font-semibold mt-0.5">5.0 average rating</div>
+        </div>
+      </div>
+      <div class="bg-white px-7 py-5 flex items-center gap-x-4">
+        <i class="fa-solid fa-calendar-check text-3xl text-[#C9A9E8]"></i>
+        <div class="text-sm leading-tight">
+          <div class="font-semibold">Orders placed</div>
+          <div class="text-[#8B6F6F]">at least 4 days in advance</div>
+        </div>
+      </div>
+      <div class="bg-white px-7 py-5 flex items-center gap-x-4">
+        <i class="fa-solid fa-truck text-3xl text-[#C9A9E8]"></i>
+        <div class="text-sm leading-tight">
+          <div class="font-semibold">Pickup or Delivery</div>
+          <div class="text-[#8B6F6F]">+ small delivery fee</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MENU / PRODUCTS -->
+  <section id="menu" class="max-w-screen-2xl mx-auto px-8 pt-8 pb-16">
+    <div class="flex items-end justify-between mb-7">
+      <div>
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Signature Collection</div>
+        <h2 class="section-title heading-serif text-[#3F2A2B]">Our Desserts</h2>
+      </div>
+      <div class="hidden md:block text-sm text-[#8B6F6F]">All prices are <span class="font-medium text-[#3F2A2B]">starting prices</span></div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-8 border-b border-[#EDE4DC]">
+      <button onclick="filterProducts('all')" class="menu-tab active px-5 text-sm" data-filter="all">All</button>
+      <button onclick="filterProducts('cakes')" class="menu-tab px-5 text-sm" data-filter="cakes">Cakes</button>
+      <button onclick="filterProducts('desserts')" class="menu-tab px-5 text-sm" data-filter="desserts">Desserts &amp; Treats</button>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5">
+      <!-- Populated by JavaScript -->
+    </div>
+
+    <div class="text-center mt-9 text-xs text-[#8B6F6F]">
+      Prices vary based on size, decoration &amp; custom details. Final quote provided upon confirmation.
+    </div>
+
+    <!-- Dedicated Party Packages Section -->
+    <div id="party-packages-section" class="mt-14 pt-8 border-t border-[#EDE4DC]">
+      <div class="flex items-end justify-between mb-6">
+        <div>
+          <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">For Events &amp; Gatherings</div>
+          <h3 class="text-2xl heading-serif text-[#3F2A2B]">Party Packages</h3>
+        </div>
+        <div class="hidden sm:block text-xs text-[#8B6F6F]">1 week notice preferred</div>
+      </div>
+
+      <div id="party-packages-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl">
+        <!-- Populated by JavaScript - dedicated prominent cards -->
+      </div>
+
+      <div class="mt-4 text-xs text-[#8B6F6F]">
+        Each package includes a fresh cake + a curated selection of our most popular treats.
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="bg-white py-16 border-y border-[#EDE4DC]">
+    <div class="max-w-screen-2xl mx-auto px-8">
+      <div class="max-w-2xl mx-auto text-center mb-11">
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8] mb-2">Simple Process</div>
+        <h2 class="section-title heading-serif">How Ordering Works</h2>
+        <p class="text-[#6B5B5F] mt-2">We make it easy to get the desserts you love for any occasion.</p>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
+          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
+            <i class="fa-solid fa-search"></i>
+          </div>
+          <div class="font-semibold text-lg mb-1.5">1. Choose your treats</div>
+          <p class="text-sm leading-relaxed text-[#6B5B5F]">Browse our menu and add items to your order. Customize flavors, sizes, and decorations.</p>
+        </div>
+        
+        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
+          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
+            <i class="fa-solid fa-calendar"></i>
+          </div>
+          <div class="font-semibold text-lg mb-1.5">2. Request with 4–5 days notice</div>
+          <p class="text-sm leading-relaxed text-[#6B5B5F]">Most orders need 4–5 days. Party Packages require at least 1 week advance notice.</p>
+        </div>
+        
+        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
+          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
+            <i class="fa-solid fa-credit-card"></i>
+          </div>
+          <div class="font-semibold text-lg mb-1.5">3. Secure with 50% deposit</div>
+          <p class="text-sm leading-relaxed text-[#6B5B5F]">A non-refundable 50% deposit is required to confirm your order. No deposit = no order.</p>
+        </div>
+        
+        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
+          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+          <div class="font-semibold text-lg mb-1.5">4. Pickup or Delivery</div>
+          <p class="text-sm leading-relaxed text-[#6B5B5F]">Fresh on your chosen date. Delivery available in Miami area for a small additional fee.</p>
+        </div>
+      </div>
+
+      <div class="mt-9 max-w-lg mx-auto text-center text-sm bg-[#FDF8F5] border border-[#EDE4DC] rounded-3xl px-7 py-4 text-[#6B5B5F]">
+        <span class="font-semibold text-[#3F2A2B]">Please list any allergies</span> in the order form. We take dietary needs seriously.
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="max-w-screen-2xl mx-auto px-8 py-16">
+    <div class="max-w-4xl mx-auto grid md:grid-cols-12 gap-x-12 items-center">
+      <div class="md:col-span-7">
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Our Story</div>
+        <h2 class="heading-serif section-title mt-1.5 mb-6">Daily sweetness delivered</h2>
+        
+        <div class="prose text-[#5C4A4B] text-[15px] leading-relaxed space-y-4">
+          <p>Satisfy your cravings with these delicious desserts. Flan, tres leches, cakes + more!</p>
+          <p>Every order is made with care using quality ingredients. Whether you're celebrating a birthday, wedding, or just treating yourself — we’ve got something sweet for you.</p>
+        </div>
+
+        <div class="mt-7 flex items-center gap-x-3">
+          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank"
+             class="inline-flex items-center gap-x-3 px-6 h-12 bg-[#3F2A2B] hover:bg-black transition text-white rounded-3xl text-sm font-semibold">
+            <i class="fa-brands fa-instagram text-lg"></i>
+            <span>Follow on Instagram</span>
+          </a>
+          <div class="text-xs text-[#8B6F6F] pl-1">🍓🎂🍮💜🍰</div>
+        </div>
+      </div>
+
+      <div class="md:col-span-5 mt-10 md:mt-0">
+        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-8 text-sm">
+          <div class="uppercase text-xs tracking-widest font-semibold text-[#C9A9E8] mb-4">CAPABILITIES &amp; PRICING</div>
+          <ul class="space-y-3 text-[#5C4A4B]">
+            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> All prices shown are <span class="font-semibold">starting prices</span></li>
+            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Most orders: <span class="font-semibold">4–5 days</span> in advance</li>
+            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Full catering: <span class="font-semibold">1 week</span> minimum</li>
+            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Pickup or Delivery (+ fee)</li>
+            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> 50% non-refundable deposit required</li>
+          </ul>
+          <div class="mt-6 pt-5 border-t text-[#8B6F6F] text-xs">Final pricing depends on decoration, size, and custom requests.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POLICIES & PAYMENTS -->
+  <section id="policies" class="max-w-screen-2xl mx-auto px-8 py-16 border-t border-[#EDE4DC] bg-white">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Important Information</div>
+        <h2 class="heading-serif section-title mt-1.5">Policies &amp; Payments</h2>
+      </div>
+
+      <!-- Payments -->
+      <div class="bg-[#FDF8F5] border border-[#EDE4DC] rounded-3xl p-8 mb-8">
+        <div class="flex items-center gap-x-3 mb-4">
+          <div class="w-10 h-10 rounded-2xl bg-[#C9A9E8] text-white flex items-center justify-center text-xl">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <h3 class="text-2xl font-semibold tracking-tight">Payments</h3>
+        </div>
+        <div class="text-[#5C4A4B] leading-relaxed space-y-3">
+          <p>I accept <strong>Cash App, Apple Pay, or Zelle</strong>. Cash if exact change only.</p>
+          <p>All orders require a <strong>50% non-refundable deposit</strong> that must be paid within 24 hours of placing your order or it will be cancelled. Remaining balance is due the day BEFORE pickup or drop-off.</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <!-- Cancellations -->
+        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
+          <h4 class="font-semibold text-lg mb-2">Cancellations</h4>
+          <p class="text-[#5C4A4B] text-sm leading-relaxed">Deposits are non-refundable. Please give 48 hours' notice to cancel or reschedule.</p>
+        </div>
+
+        <!-- Allergies & Delivery -->
+        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
+          <h4 class="font-semibold text-lg mb-2">Allergies &amp; Delivery</h4>
+          <p class="text-[#5C4A4B] text-sm leading-relaxed">Please let me know about any food allergies before ordering. I can offer delivery for an extra fee depending on location.</p>
+        </div>
+
+        <!-- Ordering Timeline -->
+        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
+          <h4 class="font-semibold text-lg mb-2">Ordering Timeline</h4>
+          <p class="text-[#5C4A4B] text-sm leading-relaxed">Small orders need 3–5 days notice. Party packages require 1–2 weeks. No same-day orders.</p>
+        </div>
+
+        <!-- Liability -->
+        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
+          <h4 class="font-semibold text-lg mb-2">Liability</h4>
+          <p class="text-[#5C4A4B] text-sm leading-relaxed">Once your order is picked up or dropped off, all responsibility for its care transfers to you. I'm not liable for any issues after that.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="max-w-screen-2xl mx-auto px-8 pb-20">
+    <div class="bg-[#3F2A2B] text-white rounded-[3rem] px-9 py-12 md:py-14">
+      <div class="max-w-5xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center gap-x-3">
+            <div class="text-[#C9A9E8]">
+              <i class="fa-solid fa-star text-xl"></i>
+            </div>
+            <div class="uppercase tracking-[1.5px] text-xs font-semibold text-[#C8B3B5]">LOVED BY MIAMI</div>
+          </div>
+          <button onclick="openReviewsModal()" 
+                  class="text-sm font-medium text-[#C9A9E8] hover:underline flex items-center gap-x-1">
+            See all reviews &amp; leave yours →
+          </button>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-7">
+          <div>
+            <div class="flex text-[#C9A9E8] mb-3">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+            </div>
+            <p class="leading-snug text-white/90">"The 2-tier cake for my daughter’s birthday was absolutely stunning and tasted even better. Everyone asked where I got it!"</p>
+            <div class="mt-4 text-xs text-[#C8B3B5]">— Maria G., Coral Gables</div>
+          </div>
+          <div>
+            <div class="flex text-[#C9A9E8] mb-3">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+            </div>
+            <p class="leading-snug text-white/90">"The chocolate covered strawberries and flan were a hit at our Galentine’s party. Will definitely be ordering again."</p>
+            <div class="mt-4 text-xs text-[#C8B3B5]">— Jasmine T., Brickell</div>
+          </div>
+          <div>
+            <div class="flex text-[#C9A9E8] mb-3">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+            </div>
+            <p class="leading-snug text-white/90">"Ordered the letter cake and churro cheesecake for my mom’s 60th. Both were gorgeous and perfectly sweet. Thank you!"</p>
+            <div class="mt-4 text-xs text-[#C8B3B5]">— Carlos R., Kendall</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK ORDER FORM -->
+  <section id="quick-order" class="max-w-screen-2xl mx-auto px-8 py-16 bg-white border-t border-[#EDE4DC]">
+    <div class="max-w-md mx-auto">
+      <div class="text-center mb-8">
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Ready to Order?</div>
+        <h2 class="heading-serif section-title mt-1.5">Quick Order Form</h2>
+        <p class="text-[#6B5B5F] mt-2">Fill this out and we’ll get back to you within 24 hours.</p>
+      </div>
+
+      <form action="https://formsubmit.co/sweettoothcravingsorder@gmail.com" method="POST" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">YOUR FULL NAME *</label>
+          <input type="text" name="name" placeholder="Your Full Name" required
+                 class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">YOUR PHONE NUMBER *</label>
+          <input type="tel" name="phone" placeholder="Your Phone Number" required
+                 class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">CAKE FLAVOR OR TYPE *</label>
+          <input type="text" name="flavor" placeholder="Cake Flavor or Type" required
+                 class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">ORDER DETAILS / SPECIAL INSTRUCTIONS *</label>
+          <textarea name="details" placeholder="Order details, size, date needed, special instructions..." rows="5" required
+                    class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-base"></textarea>
+        </div>
+
+        <!-- FormSubmit hidden fields -->
+        <input type="hidden" name="_subject" value="New Cake Order Received!">
+        <input type="hidden" name="_next" value="https://sebastiangrokbuild.github.io/SweetToothGravings/">
+        <input type="hidden" name="_captcha" value="false">
+
+        <button type="submit" 
+                class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] text-white rounded-3xl font-semibold text-lg transition flex items-center justify-center gap-x-2">
+          Submit Order
+        </button>
+      </form>
+
+      <p class="text-center text-xs text-[#8B6F6F] mt-4">
+        We’ll reply within 24 hours to confirm details and arrange the 50% deposit.
+      </p>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <div class="max-w-screen-2xl mx-auto px-8 pb-14">
+    <div class="bg-gradient-to-br from-[#C9A9E8] to-[#B48AE0] text-white rounded-[3rem] px-10 py-12 flex flex-col md:flex-row items-center gap-y-6 justify-between">
+      <div>
+        <div class="font-semibold text-3xl tracking-tight heading-serif">Ready to satisfy your cravings?</div>
+        <div class="text-white/80 mt-1 text-lg">Let’s make something sweet together.</div>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button onclick="openCustomOrder()" 
+                class="px-9 h-14 rounded-3xl border border-white/70 hover:bg-white/10 transition font-semibold flex items-center gap-x-2">
+          <span>Start a Custom Order</span>
+        </button>
+        <button onclick="document.getElementById('menu').scrollIntoView({ behavior: 'smooth' })" 
+                class="px-9 h-14 bg-white text-[#C9A9E8] hover:bg-[#FDF8F5] transition font-semibold flex items-center gap-x-2 rounded-3xl">
+          <span>Browse Full Menu</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OWNER BOOKING TRACKER (simple Bakesy-style order log) -->
+  <div class="max-w-screen-2xl mx-auto px-8 pb-10">
+    <details class="max-w-md mx-auto text-xs text-[#8B6F6F]">
+      <summary class="cursor-pointer font-medium hover:text-[#C9A9E8]">Owner: View Booked Orders</summary>
+      <div id="booked-orders-list" class="mt-3 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-[12px] max-h-64 overflow-auto">
+        <!-- Populated by JS when opened -->
+      </div>
+    </details>
+  </div>
+
+  <!-- Floating Action Button - Mobile only -->
+  <div class="md:hidden fixed bottom-5 right-5 z-[60]">
+    <button onclick="document.getElementById('menu').scrollIntoView({ behavior: 'smooth' })" 
+            class="flex items-center gap-x-2 bg-[#C9A9E8] text-white px-5 h-14 rounded-3xl shadow-xl font-semibold text-sm active:scale-[0.985] transition">
+      <i class="fa-solid fa-shopping-bag"></i>
+      <span>Browse &amp; Order</span>
+    </button>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-[#EDE4DC] bg-white">
+    <div class="max-w-screen-2xl mx-auto px-8 pt-9 pb-10 text-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-y-6">
+        <div>
+          <div class="flex items-center gap-x-2.5">
+            <img src="assets/images/logo.gpj.png" alt="Sweet Tooth Cravings" class="h-9 w-auto" onerror="this.style.display='none'">
+          </div>
+          <div class="text-[#8B6F6F] text-xs mt-1">Miami, Florida • Est. 2022</div>
+        </div>
+
+        <div class="flex flex-wrap gap-x-8 gap-y-2 text-[#6B5B5F]">
+          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="hover:text-[#C9A9E8] transition flex items-center gap-x-1.5">
+            <i class="fa-brands fa-instagram"></i> <span>@sweettoothcravings__</span>
+          </a>
+          <button onclick="openCustomOrder()" class="hover:text-[#C9A9E8] transition">Custom orders</button>
+          <button onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">Ordering policies</button>
+        </div>
+
+        <div class="text-xs text-[#8B6F6F]">
+          © Sweet Tooth Cravings. All rights reserved.
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- PRODUCT DETAIL / CUSTOMIZE MODAL -->
+  <div id="product-modal" onclick="if (event.target.id === 'product-modal') closeProductModal()" class="hidden fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-lg md:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl max-h-[92vh] md:max-h-[85vh]">
+      <!-- Mobile drag handle -->
+      <div class="md:hidden flex justify-center pt-2 pb-1">
+        <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
+      </div>
+      <!-- Image -->
+      <div id="modal-image" class="h-60 w-full bg-cover bg-center relative flex items-center justify-center"
+           style="background: linear-gradient(180deg, #fdf8f5 0%, #f9f1eb 100%);">
+        <div id="modal-image-fallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-[#6b5b5f]">
+          <i class="fa-solid fa-image text-3xl mb-2 text-[#c9a9e8]"></i>
+          <span class="text-sm font-medium">Photo not available</span>
+        </div>
+      </div>
+      
+      <div class="p-7">
+        <div class="flex justify-between items-start gap-x-4">
+          <div>
+            <div id="modal-name" class="heading-serif text-3xl tracking-tight"></div>
+            <div id="modal-price" class="mt-1 text-[#C9A9E8] font-semibold text-xl"></div>
+          </div>
+          <button onclick="closeProductModal()" class="text-[#8B6F6F] hover:text-[#3F2A2B] p-1">
+            <i class="fa-solid fa-times text-2xl"></i>
+          </button>
+        </div>
+
+        <div id="modal-description" class="text-[#5C4A4B] mt-4 leading-relaxed"></div>
+
+        <div id="modal-info-box" class="mt-6 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl p-5 text-xs space-y-1 text-[#6B5B5F]">
+          <div class="flex justify-between"><span>Customization available</span> <span class="font-medium text-[#3F2A2B]">✓</span></div>
+          <div class="flex justify-between"><span>Lead time</span> <span class="font-medium text-[#3F2A2B]">4–5 days minimum</span></div>
+          <div class="flex justify-between"><span>Allergens</span> <span class="font-medium text-[#3F2A2B]">Please note in order</span></div>
+        </div>
+
+        <!-- ORDERING SECTION - Only shown in "Select" mode -->
+        <div id="modal-ordering-section" class="mt-6">
+          <!-- Clear Pricing Tiers -->
+          <div>
+            <label id="modal-tiers-label" class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2 block">Choose an option</label>
+            
+            <div id="modal-tiers" class="space-y-2">
+              <!-- Dynamically populated by JS with tier buttons -->
+            </div>
+
+            <!-- Flavor / Filling / Chocolate Type selectors (shown only for products that support them) -->
+            <div id="modal-flavor-fillings" class="hidden mt-5 pt-4 border-t border-[#EDE4DC]">
+              <div id="flavor-prompt" class="text-xs text-[#8B6F6F] mb-2">
+                Choose a size above to select your options
+              </div>
+
+              <div id="flavor-content" class="hidden">
+                <div id="flavor-group" class="mb-3">
+                  <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Flavor</div>
+                  <div id="modal-flavors" class="flex flex-wrap gap-2">
+                    <!-- Populated by JS as selectable pills -->
+                  </div>
+                </div>
+
+                <div id="filling-group">
+                  <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Filling</div>
+                  <div id="modal-fillings" class="flex flex-wrap gap-2">
+                    <!-- Populated by JS as selectable pills -->
+                  </div>
+                </div>
+
+                <!-- Toppings section (for Tres Leches etc.) -->
+                <div id="toppings-group" class="mt-3 pt-3 border-t border-[#EDE4DC]">
+                  <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Toppings (optional)</div>
+                  <div id="modal-toppings" class="flex flex-wrap gap-2">
+                    <!-- Populated by JS as multi-select pills -->
+                  </div>
+                  <div class="text-[10px] text-[#8B6F6F] mt-1">Tres Leches comes topped with whipped cream.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <label class="text-xs text-[#6B5B5F]">Special requests or notes (optional)</label>
+              <textarea id="modal-notes" rows="2" placeholder="Example: pink and gold theme, name on top, no nuts..." 
+                        class="form-input mt-1 w-full resize-y border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-7 flex gap-x-3">
+            <button onclick="addCurrentToCart()" 
+                    class="flex-1 h-13 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2">
+              <i class="fa-solid fa-plus"></i>
+              <span id="modal-add-btn-text">Add to Order</span>
+            </button>
+            <button onclick="closeProductModal()" 
+                    class="px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium">Cancel</button>
+          </div>
+        </div>
+
+        <!-- DETAILS MODE FOOTER - Only shown in "View Details" mode -->
+        <div id="modal-details-footer" class="mt-7 flex gap-x-3 hidden">
+          <button onclick="switchToSelectMode()" 
+                  class="flex-1 h-13 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2">
+            <span>Select &amp; Add to Order</span>
+          </button>
+          <button onclick="closeProductModal()" 
+                  class="px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CART DRAWER -->
+  <div id="cart-drawer" onclick="if (event.target.id === 'cart-drawer') toggleCart()" class="hidden fixed inset-0 z-[80] bg-black/50">
+    <div onclick="event.stopImmediatePropagation()" 
+         class="cart-drawer absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col">
+      
+      <div class="px-7 pt-7 pb-4 flex items-center justify-between border-b">
+        <div>
+          <div class="font-semibold text-2xl heading-serif tracking-tight">Your Order</div>
+          <div id="cart-subtotal" class="text-sm text-[#8B6F6F]"></div>
+        </div>
+        <button onclick="toggleCart()" class="text-2xl text-[#8B6F6F] hover:text-[#3F2A2B]">×</button>
+      </div>
+
+      <div id="cart-items" class="flex-1 overflow-y-auto px-7 py-5 space-y-4 text-sm">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="p-7 border-t bg-[#FDF8F5]">
+        <div class="text-xs text-[#6B5B5F] mb-3 px-1">
+          <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
+        </div>
+        
+        <button onclick="proceedToRequest()" 
+                class="w-full h-14 bg-[#3F2A2B] hover:bg-black text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
+          <span>REQUEST ORDER</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        
+        <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDER REQUEST MODAL -->
+  <div id="order-modal" onclick="if (event.target.id === 'order-modal') closeOrderModal()" class="hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[94vh] flex flex-col">
+      
+      <div class="px-8 pt-7 pb-4 flex items-center justify-between border-b">
+        <div>
+          <div class="heading-serif text-2xl">Request Your Order</div>
+          <div class="text-sm text-[#8B6F6F]">We’ll confirm within 24 hours</div>
+        </div>
+        <button onclick="closeOrderModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B]">×</button>
+      </div>
+
+      <div class="p-8 overflow-y-auto flex-1 space-y-7 text-sm">
+        <!-- Customer Info -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
+          <div>
+            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">FULL NAME *</label>
+            <input id="order-name" type="text" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">PHONE NUMBER *</label>
+            <input id="order-phone" type="tel" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base" placeholder="(305) 555-1234">
+          </div>
+        </div>
+
+        <!-- Date + Fulfillment -->
+        <div>
+          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">PREFERRED DATE *</label>
+          <input id="order-date" type="date" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
+          <p class="text-[11px] text-[#C9A9E8] mt-1 px-1">Minimum 4 days from today (we recommend 5+)</p>
+        </div>
+
+        <!-- Availability Calendar -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F]">AVAILABLE DATES (next 4 weeks)</label>
+          </div>
+          <div id="availability-calendar" class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+            <!-- Populated by JS: date pills -->
+          </div>
+          <p class="text-[10px] text-[#8B6F6F] mt-1">Click an available date to select it. Red "Booked" dates have already been taken by other clients. Gray dates are blocked.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-2">FULFILLMENT METHOD *</label>
+          <div class="flex gap-x-3">
+            <label class="flex-1 cursor-pointer border border-[#EDE4DC] has-[:checked]:border-[#C9A9E8] has-[:checked]:bg-[#FDF8F5] rounded-2xl px-4 py-3 flex items-center gap-x-2 text-sm">
+              <input type="radio" name="fulfillment" value="pickup" checked onchange="toggleDeliveryAddress()" class="accent-[#C9A9E8]">
+              <span class="font-medium">Pickup in Miami</span>
+            </label>
+            <label class="flex-1 cursor-pointer border border-[#EDE4DC] has-[:checked]:border-[#C9A9E8] has-[:checked]:bg-[#FDF8F5] rounded-2xl px-4 py-3 flex items-center gap-x-2 text-sm">
+              <input type="radio" name="fulfillment" value="delivery" onchange="toggleDeliveryAddress()" class="accent-[#C9A9E8]">
+              <span class="font-medium">Delivery (+ fee)</span>
+            </label>
+          </div>
+          <div id="delivery-address-wrapper" class="hidden mt-3">
+            <input id="order-address" type="text" placeholder="Delivery address (street, city, zip)" class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+          </div>
+        </div>
+
+        <!-- Current Order Summary -->
+        <div>
+          <div class="flex items-center justify-between mb-2 px-1">
+            <div class="text-xs font-semibold tracking-wider text-[#8B6F6F]">YOUR ORDER REQUEST</div>
+            <button onclick="toggleCart(); closeOrderModal();" class="text-xs text-[#C9A9E8] font-medium">Edit items</button>
+          </div>
+          
+          <div id="order-summary-items" class="bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl p-4 text-sm space-y-2 max-h-44 overflow-auto">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Allergies & Notes -->
+        <div class="grid grid-cols-1 gap-y-5">
+          <div>
+            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">ALLERGIES OR DIETARY RESTRICTIONS</label>
+            <textarea id="order-allergies" rows="2" placeholder="Example: Contains nuts? Gluten free needed?" class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">ADDITIONAL NOTES OR CUSTOM REQUESTS</label>
+            <textarea id="order-notes" rows="3" placeholder="Any special message, color scheme, or design ideas..." class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-8 py-6 border-t bg-[#FDF8F5] flex flex-col-reverse sm:flex-row gap-3 items-center">
+        <button onclick="closeOrderModal()" class="w-full sm:w-auto px-8 py-3 rounded-3xl font-medium border border-[#EDE4DC] hover:bg-white transition">Cancel</button>
+        
+        <button onclick="submitOrderRequest()" 
+                class="w-full sm:flex-1 h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white font-semibold rounded-3xl flex items-center justify-center gap-x-2">
+          <span>SUBMIT ORDER REQUEST</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div id="success-modal" onclick="if (event.target.id === 'success-modal') closeSuccessModal()" class="hidden fixed inset-0 z-[100] bg-black/70 backdrop-blur flex items-center justify-center p-4">
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white rounded-3xl max-w-md w-full px-8 py-9 text-center">
+      <div class="mx-auto w-16 h-16 flex items-center justify-center bg-[#FDF8F5] rounded-full mb-6">
+        <i class="fa-solid fa-check text-4xl text-[#C9A9E8]"></i>
+      </div>
+      
+      <div class="heading-serif text-3xl tracking-tight">Thank you!</div>
+      <div class="mt-2 text-lg">Your order request has been sent.</div>
+      
+      <div class="mt-6 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-left text-sm text-[#3F2A2B]">
+        <strong>Important — 50% Non-Refundable Deposit Required</strong><br>
+        A 50% deposit must be paid via Cash App, Apple Pay, or Zelle within <strong>24 hours</strong> of placing your order, or it will be automatically cancelled.<br>
+        Remaining balance is due the day before pickup/delivery.
+      </div>
+
+      <div class="mt-7 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-left text-xs text-[#6B5B5F]">
+        We will contact you via phone or text. You can also reach us directly on Instagram <span class="font-medium">@sweettoothcravings__</span>.
+      </div>
+
+      <div class="mt-6 flex flex-col gap-3">
+        <button onclick="copyOrderAsTextMessage()" 
+                class="w-full h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
+          <i class="fa-solid fa-copy"></i>
+          <span>Copy Order Details as Text Message</span>
+        </button>
+        
+        <button onclick="openSMSWithOrder()" 
+                class="w-full h-11 border border-[#C9A9E8] text-[#C9A9E8] hover:bg-[#FDF8F5] rounded-3xl font-medium flex items-center justify-center gap-x-2 transition">
+          <i class="fa-solid fa-sms"></i>
+          <span>Open Messages App with Details</span>
+        </button>
+      </div>
+
+      <button onclick="closeSuccessModal()" 
+              class="mt-4 w-full h-11 text-[#8B6F6F] hover:text-[#3F2A2B] font-medium">Back to site</button>
+    </div>
+  </div>
+
+  <!-- REVIEWS MODAL -->
+  <div id="reviews-modal" onclick="if (event.target.id === 'reviews-modal') closeReviewsModal()" class="hidden fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
+      <!-- Mobile drag handle -->
+      <div class="md:hidden flex justify-center pt-2 pb-1 bg-white">
+        <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
+      </div>
+      
+      <!-- Header -->
+      <div class="px-8 pt-7 pb-4 border-b flex items-center justify-between bg-white">
+        <div>
+          <div class="flex items-center gap-x-3">
+            <div class="heading-serif text-3xl">Customer Reviews</div>
+            <div class="flex items-center bg-[#FDF8F5] px-3 py-1 rounded-2xl text-sm">
+              <div class="flex text-[#C9A9E8]">
+                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+              </div>
+              <span id="reviews-average" class="ml-2 font-semibold">5.0</span>
+            </div>
+          </div>
+          <div id="reviews-count" class="text-[#8B6F6F] text-sm mt-0.5">Based on 17+ reviews</div>
+        </div>
+        <button onclick="closeReviewsModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B]">×</button>
+      </div>
+
+      <!-- Reviews List -->
+      <div id="reviews-list" class="flex-1 overflow-y-auto p-8 space-y-6 bg-[#FDF8F5]">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Leave a Review Form -->
+      <div class="border-t p-8 bg-white">
+        <div class="font-semibold text-lg mb-4">Leave a Review</div>
+        
+        <form id="review-form" onsubmit="submitReview(event)">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F] block mb-1">YOUR NAME</label>
+              <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm" placeholder="Your name">
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F] block mb-1">YOUR RATING</label>
+              <div id="star-rating" class="flex gap-x-1 text-2xl text-[#EDE4DC] cursor-pointer">
+                <span data-rating="1">★</span>
+                <span data-rating="2">★</span>
+                <span data-rating="3">★</span>
+                <span data-rating="4">★</span>
+                <span data-rating="5">★</span>
+              </div>
+              <input type="hidden" id="review-rating" value="5">
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F] block mb-1">YOUR REVIEW</label>
+            <textarea id="review-text" rows="3" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm" placeholder="Tell others about your experience..."></textarea>
+          </div>
+
+          <div class="flex gap-x-3">
+            <button type="submit" 
+                    class="flex-1 h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold">
+              Submit Review
+            </button>
+            <button type="button" onclick="closeReviewsModal()" 
+                    class="px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Tailwind script
+    function initializeTailwind() {
+      document.documentElement.style.setProperty('--accent', '#C9A9E8');
+    }
+
+    // ==================== PRODUCTS DATA ====================
+    // All images the user provided are now represented as menu items:
+    // 2-tier-cakes, bento-cake, breakable-heart, chocoflan, chocolate-strawberries,
+    // churro-cheesecake, coquito, cupcakes, custom-cakes, flan, mini-cakes,
+    // party-packages, sheet-cake, tres-leches-8x8.jpg + tres-leches-9x13.jpg (split for visibility).
+    // Full original pricing + options restored. Letter/Dog/MiniChocoflan removed.
+
+    // Shared options for all cake products (shown as selectable pills before ordering)
+    const CAKE_FLAVORS = ["Vanilla", "Chocolate", "Marble", "Funfetti"];
+    const CAKE_FILLINGS = ["Nutella", "Guava paste", "Biscoff butter", "Dulce de leche", "Fresh strawberries", "Whipped cream"];
+
+    const products = [
+      { 
+        id: 1, name: "2 Tier Cakes", price: 100, startingAt: true, category: "cakes", img: "assets/images/2-tier-cakes.jpg",
+        shortDesc: "Two-tier celebration cakes. Choose your size.",
+        description: "Beautiful two-tier cakes perfect for birthdays, weddings, and special celebrations. Fresh, moist, and customizable with your choice of flavors and fillings.",
+        flavors: CAKE_FLAVORS,
+        fillings: CAKE_FILLINGS,
+        tiers: [
+          { label: "4\" top + 6\" bottom", price: 100, serves: "Feeds ~20-25 people" },
+          { label: "6\" top + 8\" bottom", price: 140, serves: "Feeds ~40 people" }
+        ]
+      },
+      { 
+        id: 2, name: "Chocolate Covered Strawberries", price: 15, startingAt: true, category: "desserts", img: "assets/images/chocolate-strawberries.jpg",
+        shortDesc: "Milk, white, or dark chocolate. Perfect for gifts or parties.",
+        description: "Fresh strawberries dipped in premium chocolate. Great for events, gifts, or as a sweet treat.",
+        flavors: ["White Chocolate", "Milk Chocolate", "Dark Chocolate"],
+        tiers: [
+          { label: "4 count", price: 15, serves: "" },
+          { label: "6 count", price: 25, serves: "" },
+          { label: "12 count", price: 40, serves: "" }
+        ]
+      },
+      { 
+        id: 4, name: "Breakable Hearts", price: 35, startingAt: true, category: "desserts", img: "assets/images/breakable-heart.jpg",
+        shortDesc: "Comes with 5 chocolate strawberries. Fillable! Includes hammer.",
+        description: "Chocolate breakable heart filled with your choice of treats, money, or a small gift. Comes with 5 chocolate-covered strawberries and a mini hammer for the fun reveal.",
+        tiers: [
+          { label: "Chocolate Breakable Heart", price: 35, serves: "Fill with candy, money, or gift cards" }
+        ]
+      },
+      { 
+        id: 5, name: "Sheet Cakes / Rectangle Cakes", price: 90, startingAt: true, category: "cakes", img: "assets/images/sheet-cake.jpg",
+        shortDesc: "9x13 sheet cakes. Edible images available (+$5).",
+        description: "Classic 9x13 sheet cakes. Ideal for larger gatherings. Custom edible images available for an additional $5. Choose your flavor and filling.",
+        flavors: CAKE_FLAVORS,
+        fillings: CAKE_FILLINGS,
+        tiers: [
+          { label: "9×13 Sheet Cake", price: 90, serves: "Feeds 15-25 people" }
+        ]
+      },
+      { 
+        id: 6, name: "Churro Cheesecake", price: 30, startingAt: true, category: "desserts", img: "assets/images/churro-cheesecake.jpg",
+        shortDesc: "Cinnamon churro cheesecake. A customer favorite.",
+        description: "Creamy cheesecake with a crunchy cinnamon churro crust and topping. Available in two sizes — perfect for sharing or smaller gatherings.",
+        tiers: [
+          { label: "Small", price: 30, serves: "Feeds 6-8" },
+          { label: "Large", price: 38, serves: "Feeds 9-10" }
+        ]
+      },
+      { 
+        id: 7, name: "Cupcakes", price: 25, startingAt: true, category: "desserts", img: "assets/images/cupcakes.jpg",
+        shortDesc: "Beautifully decorated. Price varies by theme and design.",
+        description: "Moist cupcakes with delicious buttercream or filling. Decorated to match your theme — perfect for parties, weddings, or corporate events.",
+        flavors: CAKE_FLAVORS,
+        tiers: [
+          { label: "6 count", price: 25, serves: "" },
+          { label: "12 count", price: 30, serves: "" },
+          { label: "24 count", price: 40, serves: "" }
+        ]
+      },
+      { 
+        id: 8, name: "Bento Cake Box", price: 50, startingAt: true, category: "cakes", img: "assets/images/bento-cake.jpg",
+        shortDesc: "4\" cake + 5 cupcakes. Perfect for small groups or celebrations.",
+        description: "Adorable single-serve bento box: one 4-inch personal cake plus five matching cupcakes. Great for intimate celebrations or as a gift set.",
+        flavors: CAKE_FLAVORS,
+        fillings: CAKE_FILLINGS,
+        tiers: [
+          { label: "Bento Box (4\" cake + 5 cupcakes)", price: 50, serves: "" }
+        ]
+      },
+      { 
+        id: 10, name: "6 Inch Flan", price: 20, startingAt: true, category: "desserts", img: "assets/images/flan.jpg",
+        shortDesc: "Silky 6 inch flan in round or heart shape.",
+        description: "Traditional creamy flan with caramel sauce. Baked fresh in a 6-inch round or heart mold. A classic crowd-pleaser.",
+        tiers: [
+          { label: "6 inch round or heart", price: 20, serves: "" }
+        ]
+      },
+      { 
+        id: 11, name: "Coquito", price: 25, startingAt: true, category: "desserts", img: "assets/images/coquito.jpg",
+        shortDesc: "Creamy coconut drink. Choose from Pistachio, Almond, or Regular.",
+        description: "Homemade Puerto Rican coquito (coconut eggnog). Available with or without alcohol. Bottled for easy serving.",
+        flavors: ["Pistachio", "Almond", "Regular"],
+        tiers: [
+          { label: "17 oz bottle", price: 25, serves: "With or without alcohol" },
+          { label: "33 oz bottle", price: 35, serves: "With or without alcohol" }
+        ]
+      },
+      { 
+        id: 12, name: "Tres Leches", price: 30, startingAt: true, category: "desserts", img: "assets/images/tres-leches-9x13.jpg",
+        // IMPORTANT: Using the good 9x13 image only. The tres-leches-8x8.jpg file is corrupted (HTML, not image) — do not reference it.
+        shortDesc: "Moist tres leches tray. Topped with whipped cream + your choice of almonds, coconut, or strawberries.",
+        description: "Classic tres leches cake soaked in three milks. Topped with whipped cream and your choice of shredded almonds, coconut flakes, or strawberries. Available in two sizes.",
+        toppings: ["Shredded almonds", "Coconut flakes", "Strawberries"],
+        tiers: [
+          { label: "Small Tray (8x8)", price: 30, serves: "Feeds 6-8" },
+          { label: "Large Tray (9x13)", price: 45, serves: "Feeds 10-12" }
+        ]
+      },
+      { 
+        id: 13, name: "Custom Cakes", price: 65, startingAt: true, category: "cakes", img: "assets/images/custom-cakes.jpg",
+        shortDesc: "Fully personalized 6/8/10 inch cakes. Many fillings available.",
+        description: "Completely custom cakes made to your vision. Popular fillings: dulce de leche, guava, Nutella, strawberry, chocolate, and more. Edible images available for +$5.",
+        flavors: CAKE_FLAVORS,
+        fillings: CAKE_FILLINGS,
+        tiers: [
+          { label: "6 inch (round or heart)", price: 65, serves: "" },
+          { label: "8 inch (round or heart)", price: 75, serves: "" },
+          { label: "10 inch round", price: 90, serves: "" }
+        ]
+      },
+      { 
+        id: 15, name: "Mini Cakes", price: 40, startingAt: true, category: "cakes", img: "assets/images/mini-cakes.jpg",
+        shortDesc: "5 inch cakes. Perfect for 7 people or small celebrations.",
+        description: "Adorable 5-inch personal cakes. Great for intimate birthdays, anniversaries, or as individual dessert options at events. Customizable flavors.",
+        flavors: CAKE_FLAVORS,
+        fillings: CAKE_FILLINGS,
+        tiers: [
+          { label: "5 inch mini cake", price: 40, serves: "Feeds ~7 people" }
+        ]
+      },
+      { 
+        id: 16, name: "Chocoflan", price: 35, startingAt: true, category: "desserts", img: "assets/images/chocoflan.jpg",
+        shortDesc: "Flan layered over rich chocolate cake. A classic favorite.",
+        description: "The best of both worlds: creamy flan on top of moist chocolate cake. Baked in round or heart molds. Available in two popular sizes.",
+        // No flavors or fillings for Chocoflan (per user request)
+        tiers: [
+          { label: "6×3 inch round or heart", price: 35, serves: "" },
+          { label: "9 inch round (hole in middle)", price: 40, serves: "" }
+        ]
+      },
+      { 
+        id: 18, name: "Party Packages", price: 180, startingAt: true, category: "party", img: "assets/images/party-packages.jpg",
+        shortDesc: "Pre-designed packages with cake + treats for any celebration.",
+        description: "Choose from our curated party packages or let us know if you'd like a custom assortment. All packages include a cake and a variety of fresh treats. 1-week notice preferred.",
+        tiers: [
+          { 
+            label: "Basic Package", 
+            price: 180, 
+            serves: "6 inch cake + 3 dozen treats (36 total) — For a more intimate or small gathering" 
+          },
+          { 
+            label: "Standard Package", 
+            price: 250, 
+            serves: "8 inch cake + 5 dozen treats (60 total) — Perfect for medium size events" 
+          },
+          { 
+            label: "Premium Package", 
+            price: 350, 
+            serves: "8 or 10 inch cake + 8 dozen treats (100 total) — Perfect for luxurious and stress free parties" 
+          }
+        ]
+      }
+    ]
+
+    let cart = []
+    let currentProduct = null
+
+    // Render all products — every user-provided image now has its own card
+    function renderProducts(filteredProducts = mainDesserts) {
+      const grid = document.getElementById('products-grid')
+      grid.innerHTML = ''
+
+      filteredProducts.forEach(product => {
+        const card = document.createElement('div')
+        card.className = `product-card group bg-white border border-[#EDE4DC] rounded-3xl overflow-hidden flex flex-col`
+        
+        const priceLabel = product.startingAt ? `Starting at $${product.price}` : `$${product.price}`
+        
+        card.innerHTML = `
+          <div class="relative overflow-hidden aspect-[4/3] bg-[#F9F1EB] product-image-container">
+            <img src="${product.img}" 
+                 class="product-img absolute inset-0 w-full h-full object-cover" 
+                 alt="" 
+                 loading="lazy"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
+            <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
+            <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
+              <i class="fa-solid fa-image"></i>
+              <span>${product.name}</span>
+              <span class="text-[10px] mt-1 text-[#a38a8f]">Photo loading...</span>
+            </div>
+          </div>
+          
+          <div class="p-5 flex-1 flex flex-col">
+            <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
+            
+            <div class="text-xs text-[#8B6F6F] mb-auto line-clamp-2">${product.shortDesc}</div>
+            
+            <div class="flex flex-col sm:flex-row gap-2 mt-5">
+              <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
+                      class="flex-1 h-11 text-sm rounded-2xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium transition active:scale-[0.985]">
+                View Details
+              </button>
+              <button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
+                      class="flex-1 h-11 text-sm rounded-2xl bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Select</span>
+              </button>
+            </div>
+          </div>
+        `
+        grid.appendChild(card)
+      })
+    }
+
+    // Dedicated renderer for Party Packages section (separate from main menu grid)
+    function renderPartyPackages() {
+      const grid = document.getElementById('party-packages-grid')
+      if (!grid) return
+      grid.innerHTML = ''
+
+      const partyItems = products.filter(p => p.category === 'party')
+
+      partyItems.forEach(product => {
+        const card = document.createElement('div')
+        card.className = `product-card group bg-white border border-[#EDE4DC] rounded-3xl overflow-hidden flex flex-col shadow-sm`
+
+        const priceLabel = product.startingAt ? `Starting at $${product.price}` : `$${product.price}`
+
+        card.innerHTML = `
+          <div class="relative overflow-hidden aspect-[16/9] bg-[#F9F1EB] product-image-container">
+            <img src="${product.img}" 
+                 class="product-img absolute inset-0 w-full h-full object-cover" 
+                 alt="" 
+                 loading="lazy"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
+            <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
+            <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
+              <i class="fa-solid fa-image"></i>
+              <span>${product.name}</span>
+              <span class="text-[10px] mt-1 text-[#a38a8f]">Photo loading...</span>
+            </div>
+          </div>
+          
+          <div class="p-5 flex-1 flex flex-col">
+            <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
+            
+            <div class="text-xs text-[#8B6F6F] mb-auto line-clamp-3">${product.shortDesc}</div>
+            
+            <div class="flex flex-col sm:flex-row gap-2 mt-5">
+              <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
+                      class="flex-1 h-11 text-sm rounded-2xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium transition active:scale-[0.985]">
+                View Details
+              </button>
+              <button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
+                      class="flex-1 h-11 text-sm rounded-2xl bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Select</span>
+              </button>
+            </div>
+          </div>
+        `
+        grid.appendChild(card)
+      })
+    }
+
+    // Filter products by category
+    let currentFilter = 'all'
+    
+    // Main menu items (excludes Party Packages which has its own dedicated section)
+    const mainDesserts = products.filter(p => p.category !== 'party')
+    
+    function filterProducts(category) {
+      currentFilter = category
+      
+      // Update active tab styling
+      document.querySelectorAll('.menu-tab').forEach(tab => {
+        tab.classList.remove('active')
+        if (tab.dataset.filter === category) tab.classList.add('active')
+      })
+      
+      let filtered = category === 'all' ? mainDesserts : mainDesserts.filter(p => p.category === category)
+      renderProducts(filtered)
+    }
+
+    // Open product modal — supports two modes:
+    // 'details' → rich view with image + full info (View Details button)
+    // 'select'  → focused quick choice view (Select button)
+    let currentModalMode = 'details';
+
+    // Flavor / Fillings selection state (reset on every modal open/close)
+    let selectedFlavor = null;
+    let selectedFillings = [];
+
+    // Edit mode: when set, "Add" in the modal will update this cart index instead of adding new
+    let editingCartIndex = null;
+
+    // Tracks whether the user has clicked a size tier (so we can show flavor/filling after size selection)
+    let flavorSectionRevealed = false;
+
+    // Currently selected tier index (for the new size-first + highlight flow)
+    let selectedTierIndex = null;
+
+    // Selected toppings (for products like Tres Leches)
+    let selectedToppings = [];
+
+    function openProductModal(productId, mode = 'details') {
+      currentProduct = products.find(p => p.id === productId)
+      if (!currentProduct) return
+
+      currentModalMode = mode;
+
+      // Fresh open → reset the "user picked size" flag (unless we're in edit)
+      if (!editingCartIndex) {
+        flavorSectionRevealed = false;
+        selectedTierIndex = null;
+        selectedToppings = [];
+      }
+
+      const modalImg = document.getElementById('modal-image')
+      const modalImgFallback = document.getElementById('modal-image-fallback')
+
+      modalImg.style.backgroundImage = `url('${currentProduct.img}')`
+      modalImgFallback.classList.add('hidden')
+
+      // Basic broken image detection for the modal header
+      const testImg = new Image()
+      testImg.onload = () => {
+        modalImgFallback.classList.add('hidden')
+      }
+      testImg.onerror = () => {
+        modalImg.style.backgroundImage = 'none'
+        modalImgFallback.classList.remove('hidden')
+      }
+      testImg.src = currentProduct.img
+
+      document.getElementById('modal-name').textContent = currentProduct.name
+      
+      const priceText = currentProduct.startingAt 
+        ? `Starting at $${currentProduct.price}` 
+        : `$${currentProduct.price}`
+      document.getElementById('modal-price').textContent = priceText
+      
+      // Use full description in details mode, shortDesc in select/quick view
+      const descEl = document.getElementById('modal-description')
+
+      if (currentProduct.name === "Party Packages" && mode === 'details') {
+        // Special view showing the three packages when viewing details for Party Packages
+        descEl.innerHTML = `
+          <div class="space-y-4 text-sm">
+            <div>
+              <div class="font-semibold text-base">Basic Package — $180</div>
+              <div>6 inch cake + 3 dozen treats (36 total)</div>
+              <div class="italic text-[#8B6F6F]">For a more intimate or small gathering</div>
+            </div>
+            <div>
+              <div class="font-semibold text-base">Standard Package — $250</div>
+              <div>8 inch cake + 5 dozen treats (60 total)</div>
+              <div class="italic text-[#8B6F6F]">Perfect for medium size events</div>
+            </div>
+            <div>
+              <div class="font-semibold text-base">Premium Package — $350</div>
+              <div>8 or 10 inch cake + 8 dozen treats (100 total)</div>
+              <div class="italic text-[#8B6F6F]">Perfect for luxurious and stress free parties</div>
+            </div>
+          </div>
+        `
+      } else if (mode === 'details' && currentProduct.description) {
+        descEl.textContent = currentProduct.description
+      } else {
+        descEl.textContent = currentProduct.shortDesc || ''
+      }
+      
+      // Clear notes
+      document.getElementById('modal-notes').value = ''
+
+      // Render beautiful tier options
+      renderModalTiers(currentProduct)
+
+      // Flavor / Fillings pills (only appears for cakes in Select mode)
+      renderFlavorAndFillings(currentProduct, false)
+
+      // Make sure the big Add button shows the correct disabled / guidance text
+      updateAddButtonState();
+
+      // Configure the modal appearance based on which button was clicked
+      configureModalView(mode);
+
+      document.getElementById('product-modal').classList.remove('hidden')
+      document.getElementById('product-modal').classList.add('flex')
+    }
+
+    function configureModalView(mode) {
+      const image = document.getElementById('modal-image');
+      const description = document.getElementById('modal-description');
+      const infoBox = document.getElementById('modal-info-box');
+      const orderingSection = document.getElementById('modal-ordering-section');
+      const detailsFooter = document.getElementById('modal-details-footer');
+
+      if (mode === 'select') {
+        // SELECT MODE — Buying / Choosing options
+        image.style.display = 'none';
+        description.style.display = 'none';
+        if (infoBox) infoBox.style.display = 'none';
+
+        if (orderingSection) orderingSection.style.display = 'block';
+        if (detailsFooter) detailsFooter.style.display = 'none';
+
+        const tiersLabel = document.getElementById('modal-tiers-label');
+        if (tiersLabel) tiersLabel.textContent = 'Select an option';
+
+        const addBtnText = document.getElementById('modal-add-btn-text');
+        if (addBtnText) addBtnText.textContent = (editingCartIndex !== null) ? 'Update in Order' : 'Add to Order';
+
+        const modalContent = document.querySelector('#product-modal .modal');
+        if (modalContent) modalContent.classList.add('!max-w-md');
+
+      } else {
+        // DETAILS MODE — Pure product information only
+        image.style.display = 'block';
+        description.style.display = 'block';
+        if (infoBox) infoBox.style.display = 'block';
+
+        if (orderingSection) orderingSection.style.display = 'none';
+        if (detailsFooter) detailsFooter.style.display = 'flex';
+
+        const modalContent = document.querySelector('#product-modal .modal');
+        if (modalContent) modalContent.classList.remove('!max-w-md');
+
+        // Hide flavor/fillings when in pure details view
+        const ff = document.getElementById('modal-flavor-fillings');
+        if (ff) ff.classList.add('hidden');
+      }
+    }
+
+    // Called from the Details view when user wants to actually buy
+    function switchToSelectMode() {
+      const modal = document.getElementById('product-modal');
+      if (!currentProduct) return;
+
+      currentModalMode = 'select';
+
+      // Reconfigure the view
+      configureModalView('select');
+
+      // Re-render tiers (in case they were cleared)
+      renderModalTiers(currentProduct);
+
+      // Re-render flavor/filling selectors
+      renderFlavorAndFillings(currentProduct, false);
+      updateAddButtonState();
+    }
+
+    function closeProductModal() {
+      const modal = document.getElementById('product-modal')
+      modal.classList.add('hidden')
+      modal.classList.remove('flex')
+
+      // Reset any compact styling
+      const modalContent = modal.querySelector('.modal');
+      if (modalContent) modalContent.classList.remove('!max-w-md');
+
+      // Reset visibility of sections
+      const orderingSection = document.getElementById('modal-ordering-section');
+      const detailsFooter = document.getElementById('modal-details-footer');
+      if (orderingSection) orderingSection.style.display = 'block';
+      if (detailsFooter) detailsFooter.style.display = 'none';
+
+      currentProduct = null
+      currentModalMode = 'details';
+
+      // Reset flavor/filling/toppings selections
+      selectedFlavor = null
+      selectedFillings = []
+      selectedToppings = []
+      const ff = document.getElementById('modal-flavor-fillings')
+      if (ff) ff.classList.add('hidden')
+
+      // Cancel any pending edit
+      editingCartIndex = null
+      flavorSectionRevealed = false
+      selectedTierIndex = null
+
+      // Reset button text
+      const addBtnText = document.getElementById('modal-add-btn-text')
+      if (addBtnText) addBtnText.textContent = 'Add to Order'
+    }
+
+    // Dynamically render pricing tiers in the modal (now selection-only rows, no per-row Add buttons)
+    function renderModalTiers(product) {
+      const container = document.getElementById('modal-tiers')
+      container.innerHTML = ''
+
+      if (!product.tiers || product.tiers.length === 0) {
+        container.innerHTML = `<div class="text-sm text-[#6B5B5F]">Please add notes with your preferred size.</div>`
+        return
+      }
+
+      product.tiers.forEach((tier, index) => {
+        const isSelected = selectedTierIndex === index;
+
+        const tierEl = document.createElement('div')
+        tierEl.className = `flex items-center justify-between gap-3 border rounded-2xl px-4 py-3 cursor-pointer transition group ${
+          isSelected 
+            ? 'border-[#C9A9E8] bg-[#F9F1EB] ring-1 ring-[#C9A9E8]/30' 
+            : 'border-[#EDE4DC] hover:border-[#C9A9E8]'
+        }`
+        
+        tierEl.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <div class="font-semibold text-[#3F2A2B]">${tier.label}</div>
+            ${tier.serves ? `<div class="text-xs text-[#8B6F6F]">${tier.serves}</div>` : ''}
+          </div>
+          <div class="flex items-center gap-x-3">
+            <div class="text-right">
+              <div class="font-semibold text-[#C9A9E8]">$${tier.price}</div>
+            </div>
+            ${isSelected 
+              ? `<i class="fa-solid fa-check text-[#C9A9E8] text-lg"></i>` 
+              : ''}
+          </div>
+        `
+        
+        // Clicking the row selects this size (highlights it), reveals flavor/filling if needed,
+        // and enables the big Add button once flavor + 1 filling are also chosen.
+        tierEl.onclick = () => {
+          selectedTierIndex = index;
+
+          // Re-render tiers so the highlight moves
+          renderModalTiers(product);
+
+          // Only reveal the options area if this product actually has flavors, fillings, or toppings
+          const hasOptions = (product.flavors && product.flavors.length > 0) ||
+                             (product.fillings && product.fillings.length > 0) ||
+                             (product.toppings && product.toppings.length > 0);
+
+          if (hasOptions) {
+            const ff = document.getElementById('modal-flavor-fillings')
+            const prompt = document.getElementById('flavor-prompt')
+            const content = document.getElementById('flavor-content')
+
+            if (ff && prompt && content) {
+              flavorSectionRevealed = true;
+              ff.classList.remove('hidden')
+              prompt.classList.add('hidden')
+              content.classList.remove('hidden')
+
+              setTimeout(() => {
+                ff.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }, 60)
+            }
+          }
+
+          // Update whether the big bottom button is enabled
+          updateAddButtonState();
+        }
+        
+        container.appendChild(tierEl)
+      })
+
+      // After (re)rendering tiers, make sure button state is correct
+      updateAddButtonState();
+    }
+
+    // ==================== FLAVOR + FILLINGS SELECTORS (for cakes) ====================
+    function renderFlavorAndFillings(product, preserveSelections = false) {
+      const wrapper = document.getElementById('modal-flavor-fillings')
+      const flavorContainer = document.getElementById('modal-flavors')
+      const fillingContainer = document.getElementById('modal-fillings')
+
+      if (!wrapper || !flavorContainer || !fillingContainer) return
+
+      // Only reset when opening a completely fresh product (not when pre-filling for edit)
+      if (!preserveSelections) {
+        selectedFlavor = null
+        selectedFillings = []
+      }
+
+      // Show the flavor/filling area only if the product has flavors OR fillings
+      const hasFlavors = product.flavors && product.flavors.length > 0
+      const hasFillings = product.fillings && product.fillings.length > 0
+      const hasToppings = product.toppings && product.toppings.length > 0
+
+      if (!hasFlavors && !hasFillings && !hasToppings) {
+        wrapper.classList.add('hidden')
+        return
+      }
+
+      // For items that only have flavors (like Cupcakes) or only toppings in some cases,
+      // show the options immediately instead of forcing a size click first.
+      // Exception: Keep the "after size selection" gate for Tres Leches toppings as requested.
+      if (!preserveSelections && hasFlavors && !hasFillings) {
+        flavorSectionRevealed = true;
+      }
+
+      wrapper.classList.remove('hidden')
+
+      const prompt = document.getElementById('flavor-prompt')
+      const content = document.getElementById('flavor-content')
+      const flavorGroup = document.getElementById('flavor-group')
+      const fillingGroup = document.getElementById('filling-group')
+
+      // In normal flow: show prompt until user picks a size (via tier row click).
+      // In edit mode (coming from cart) or when already revealed: show the actual selectors immediately.
+      const shouldShowContent = !!editingCartIndex || preserveSelections || flavorSectionRevealed;
+
+      if (prompt && content) {
+        if (shouldShowContent) {
+          prompt.classList.add('hidden')
+          content.classList.remove('hidden')
+        } else {
+          prompt.classList.remove('hidden')
+          content.classList.add('hidden')
+        }
+      }
+
+      // Show/hide individual groups based on what the product supports
+      if (flavorGroup) flavorGroup.style.display = hasFlavors ? '' : 'none'
+      if (fillingGroup) fillingGroup.style.display = hasFillings ? '' : 'none'
+
+      const toppingsGroup = document.getElementById('toppings-group')
+      if (toppingsGroup) toppingsGroup.style.display = hasToppings ? '' : 'none'
+
+      // Render Flavor pills (single select) — only if this product has flavors
+      flavorContainer.innerHTML = ''
+      if (hasFlavors) {
+        product.flavors.forEach(flavor => {
+          const pill = document.createElement('button')
+          pill.type = 'button'
+          pill.className = `px-4 py-1.5 text-sm rounded-2xl border transition font-medium
+            ${selectedFlavor === flavor 
+              ? 'bg-[#C9A9E8] text-white border-[#C9A9E8]' 
+              : 'border-[#EDE4DC] hover:border-[#C9A9E8] text-[#3F2A2B] hover:bg-[#FDF8F5]'}`
+          pill.textContent = flavor
+
+          pill.onclick = () => {
+            selectedFlavor = flavor
+            renderFlavorAndFillings(product, true)
+            updateAddButtonState();
+          }
+          flavorContainer.appendChild(pill)
+        })
+      }
+
+      // Render Fillings pills (single-select) — only if this product has fillings
+      fillingContainer.innerHTML = ''
+      if (hasFillings) {
+        product.fillings.forEach(filling => {
+          const pill = document.createElement('button')
+          pill.type = 'button'
+          const isActive = selectedFillings[0] === filling
+          pill.className = `px-4 py-1.5 text-sm rounded-2xl border transition font-medium
+            ${isActive 
+              ? 'bg-[#C9A9E8] text-white border-[#C9A9E8]' 
+              : 'border-[#EDE4DC] hover:border-[#C9A9E8] text-[#3F2A2B] hover:bg-[#FDF8F5]'}`
+          pill.textContent = filling
+
+          pill.onclick = () => {
+            selectedFillings = [filling]
+            renderFlavorAndFillings(product, true)
+            updateAddButtonState();
+          }
+          fillingContainer.appendChild(pill)
+        })
+      }
+
+      // Render Toppings (multi-select, optional)
+      const toppingsContainer = document.getElementById('modal-toppings')
+      if (toppingsContainer) {
+        toppingsContainer.innerHTML = ''
+        if (hasToppings) {
+          product.toppings.forEach(topping => {
+            const pill = document.createElement('button')
+            pill.type = 'button'
+            const isActive = selectedToppings.includes(topping)
+            pill.className = `px-4 py-1.5 text-sm rounded-2xl border transition font-medium
+              ${isActive 
+                ? 'bg-[#C9A9E8] text-white border-[#C9A9E8]' 
+                : 'border-[#EDE4DC] hover:border-[#C9A9E8] text-[#3F2A2B] hover:bg-[#FDF8F5]'}`
+            pill.textContent = topping
+
+            pill.onclick = () => {
+              if (selectedToppings.includes(topping)) {
+                selectedToppings = selectedToppings.filter(t => t !== topping)
+              } else {
+                selectedToppings.push(topping)
+              }
+              renderFlavorAndFillings(product, true)
+              updateAddButtonState();
+            }
+            toppingsContainer.appendChild(pill)
+          })
+        }
+      }
+
+      // After (re)rendering pills, make sure the big button reflects current completion state
+      updateAddButtonState();
+    }
+
+    // Helper to include current flavor/filling/toppings choices in customizations
+    function getFlavorFillingCustomizations() {
+      const out = {}
+      if (selectedFlavor) out.flavor = selectedFlavor
+      if (selectedFillings.length > 0) out.fillings = [...selectedFillings]
+      if (selectedToppings.length > 0) out.toppings = [...selectedToppings]
+      return out
+    }
+
+    // Enable/disable the big bottom "Add / Update" button based on required choices
+    function updateAddButtonState() {
+      const btn = document.getElementById('modal-add-btn-text')
+      if (!btn) return
+
+      const hasSize = selectedTierIndex !== null
+
+      const productHasFlavors = currentProduct && currentProduct.flavors && currentProduct.flavors.length > 0
+      const hasRequiredFlavor = !productHasFlavors || !!selectedFlavor
+
+      const productHasFillings = currentProduct && currentProduct.fillings && currentProduct.fillings.length > 0
+      const hasRequiredFilling = !productHasFillings || selectedFillings.length === 1
+
+      const ready = hasSize && hasRequiredFlavor && hasRequiredFilling
+
+      const parentBtn = btn.parentElement
+      if (parentBtn) {
+        if (ready) {
+          parentBtn.disabled = false
+          parentBtn.classList.remove('opacity-50', 'cursor-not-allowed')
+          parentBtn.classList.add('hover:bg-[#B48AE0]', 'active:bg-[#A078D4]')
+        } else {
+          parentBtn.disabled = true
+          parentBtn.classList.add('opacity-50', 'cursor-not-allowed')
+          parentBtn.classList.remove('hover:bg-[#B48AE0]', 'active:bg-[#A078D4]')
+        }
+      }
+
+      // Dynamic button text
+      if (!hasSize) {
+        btn.textContent = 'Select a size'
+      } else if (productHasFlavors && !hasRequiredFlavor) {
+        btn.textContent = 'Select a flavor'
+      } else if (productHasFillings && !hasRequiredFilling) {
+        btn.textContent = 'Select 1 filling'
+      } else {
+        btn.textContent = editingCartIndex !== null ? 'Update in Order' : 'Add to Order'
+      }
+    }
+
+    // Add a specific tier from the modal
+    function addTierToCart(productId, tierIndex) {
+      const product = products.find(p => p.id === productId)
+      if (!product || !product.tiers) return
+
+      const tier = product.tiers[tierIndex]
+      const notes = document.getElementById('modal-notes').value.trim()
+
+      const customizations = {
+        tier: tier.label,
+        price: tier.price,
+        serves: tier.serves || '',
+        notes: notes,
+        ...getFlavorFillingCustomizations()
+      }
+
+      // Add to cart with the exact tier price
+      const cartItem = {
+        ...product,
+        price: tier.price,           // use the tier price
+        quantity: 1,
+        customizations
+      }
+
+      // Check for duplicate (same product + tier + flavor + fillings + notes)
+      const existingIndex = cart.findIndex(item => 
+        item.id === product.id && 
+        item.customizations.tier === customizations.tier &&
+        (item.customizations.flavor || '') === (customizations.flavor || '') &&
+        JSON.stringify(item.customizations.fillings || []) === JSON.stringify(customizations.fillings || []) &&
+        item.customizations.notes === customizations.notes
+      )
+
+      if (editingCartIndex !== null) {
+        // EDIT MODE: replace the existing cart item with the newly chosen options
+        cart[editingCartIndex] = {
+          ...cartItem,
+          quantity: cart[editingCartIndex].quantity || 1   // preserve the original quantity
+        }
+        showToast(`Updated ${tier.label} ${product.name}`)
+        editingCartIndex = null
+      } else if (existingIndex > -1) {
+        cart[existingIndex].quantity += 1
+      } else {
+        cart.push(cartItem)
+      }
+
+      updateCartCount()
+      saveCartToStorage()
+
+      // If cart is open, refresh it so the user immediately sees the change
+      const drawer = document.getElementById('cart-drawer')
+      if (drawer && !drawer.classList.contains('hidden')) {
+        renderCartItems()
+      }
+
+      closeProductModal()
+    }
+
+    // Quick add uses the first (cheapest) tier
+    function quickAddToCart(productId) {
+      // Open the product modal (popup) so the user can choose which option/tier they want
+      // before anything is added to the cart.
+      openProductModal(productId);
+    }
+
+    // Big "Add to Order" / "Update in Order" button — only path to add after choosing size + flavor + 1 filling
+    function addCurrentToCart() {
+      if (!currentProduct || !currentProduct.tiers || currentProduct.tiers.length === 0) {
+        closeProductModal()
+        return
+      }
+
+      // Must have size + flavor (if required) + filling (if required)
+      const requiresFlavor = currentProduct && currentProduct.flavors && currentProduct.flavors.length > 0
+      const requiresFilling = currentProduct && currentProduct.fillings && currentProduct.fillings.length > 0
+
+      if (selectedTierIndex === null || 
+          (requiresFlavor && !selectedFlavor) || 
+          (requiresFilling && selectedFillings.length !== 1)) {
+        return
+      }
+
+      const tier = currentProduct.tiers[selectedTierIndex]
+      const notes = document.getElementById('modal-notes')?.value.trim() || ''
+
+      const customizations = {
+        tier: tier.label,
+        price: tier.price,
+        serves: tier.serves || '',
+        notes,
+        flavor: selectedFlavor,
+        fillings: [...selectedFillings]   // will always be length 1 now
+      }
+
+      const cartItem = {
+        ...currentProduct,
+        price: tier.price,
+        quantity: 1,
+        customizations
+      }
+
+      if (editingCartIndex !== null) {
+        // Update existing line in cart (preserve quantity)
+        cart[editingCartIndex] = {
+          ...cartItem,
+          quantity: cart[editingCartIndex].quantity || 1
+        }
+        showToast(`Updated ${tier.label} ${currentProduct.name}`)
+        editingCartIndex = null
+      } else {
+        cart.push(cartItem)
+        showToast(`Added ${tier.label} ${currentProduct.name}`)
+      }
+
+      updateCartCount()
+      saveCartToStorage()
+
+      const drawer = document.getElementById('cart-drawer')
+      if (drawer && !drawer.classList.contains('hidden')) {
+        renderCartItems()
+      }
+
+      closeProductModal()
+    }
+
+    function addToCart(product, quantity = 1, customizations = {}) {
+      // Support both old 'size' and new 'tier' structures
+      const existingIndex = cart.findIndex(item => 
+        item.id === product.id && 
+        (item.customizations.tier === customizations.tier || item.customizations.size === customizations.size) &&
+        (item.customizations.flavor || '') === (customizations.flavor || '') &&
+        JSON.stringify(item.customizations.fillings || []) === JSON.stringify(customizations.fillings || []) &&
+        item.customizations.notes === customizations.notes
+      )
+      
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += quantity
+      } else {
+        cart.push({
+          ...product,
+          quantity,
+          customizations
+        })
+      }
+      
+      updateCartCount()
+      saveCartToStorage()
+      
+      // If cart drawer is open, refresh it
+      const drawer = document.getElementById('cart-drawer')
+      if (!drawer.classList.contains('hidden')) {
+        renderCartItems()
+      }
+    }
+
+    function updateCartCount() {
+      const countEl = document.getElementById('cart-count')
+      const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
+      countEl.textContent = totalItems
+      countEl.style.display = totalItems > 0 ? 'flex' : 'none'
+    }
+
+    function saveCartToStorage() {
+      localStorage.setItem('stc_cart', JSON.stringify(cart))
+    }
+
+    function loadCartFromStorage() {
+      const saved = localStorage.getItem('stc_cart')
+      if (saved) {
+        cart = JSON.parse(saved)
+        updateCartCount()
+      }
+    }
+
+    // Render cart drawer contents
+    function renderCartItems() {
+      const container = document.getElementById('cart-items')
+      const subtotalEl = document.getElementById('cart-subtotal')
+      
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="flex flex-col items-center justify-center text-center py-12 text-[#8B6F6F]">
+            <i class="fa-solid fa-shopping-bag text-5xl mb-4 opacity-30"></i>
+            <div class="font-medium">Your order is empty</div>
+            <button onclick="toggleCart(); document.getElementById('menu').scrollIntoView({behavior:'smooth'})" 
+                    class="mt-3 text-xs text-[#C9A9E8]">Browse the menu</button>
+          </div>`
+        subtotalEl.textContent = ''
+        return
+      }
+
+      let html = ''
+      let startingTotal = 0
+
+      cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity
+        startingTotal += itemTotal
+        
+        html += `
+          <div class="flex gap-4 border border-[#EDE4DC] rounded-2xl p-3.5 bg-white">
+            <div class="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-[#EDE4DC]">
+              <img src="${item.img}" class="w-full h-full object-cover">
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-start">
+                <div class="font-semibold leading-tight pr-2">${item.name}</div>
+                <div class="flex items-center -mr-1">
+                  <button onclick="editCartItem(${index}); event.stopImmediatePropagation()" 
+                          class="text-[#C9A9E8] hover:text-[#3F2A2B] p-1" title="Change size, flavor or fillings">
+                    <i class="fa-solid fa-pencil text-xs"></i>
+                  </button>
+                  <button onclick="removeFromCart(${index}); event.stopImmediatePropagation()" 
+                          class="text-[#C9A9E8] hover:text-red-600 p-1">
+                    <i class="fa-solid fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="text-xs text-[#C9A9E8] mt-px font-medium">$${item.price} × ${item.quantity}</div>
+              
+              ${item.customizations.tier ? 
+                `<div class="text-[10px] text-[#6B5B5F] mt-1 cursor-pointer hover:text-[#C9A9E8] transition" 
+                      onclick="editCartItem(${index}); event.stopImmediatePropagation()" 
+                      title="Click to change size, flavor or fillings">
+                   ${item.customizations.tier} <i class="fa-solid fa-pencil text-[9px] ml-0.5 opacity-60"></i>
+                 </div>` : ''}
+              ${item.customizations.flavor ? 
+                `<div class="text-[10px] text-[#6B5B5F] mt-0.5">Flavor: <span class="font-medium text-[#3F2A2B]">${item.customizations.flavor}</span></div>` : ''}
+              ${item.customizations.fillings && item.customizations.fillings.length ? 
+                `<div class="text-[10px] text-[#6B5B5F] mt-0.5">Filling: <span class="font-medium text-[#3F2A2B]">${item.customizations.fillings.join(', ')}</span></div>` : ''}
+              ${item.customizations.toppings && item.customizations.toppings.length ? 
+                `<div class="text-[10px] text-[#6B5B5F] mt-0.5">Toppings: <span class="font-medium text-[#3F2A2B]">${item.customizations.toppings.join(', ')}</span></div>` : ''}
+              ${item.customizations.size && item.customizations.size !== 'Standard (as shown)' ? 
+                `<div class="text-[10px] text-[#6B5B5F] mt-1">Size: ${item.customizations.size}</div>` : ''}
+              
+              ${item.customizations.notes ? 
+                `<div class="text-[10px] italic text-[#6B5B5F] mt-0.5 line-clamp-2">"${item.customizations.notes}"</div>` : ''}
+              
+              <div class="flex items-center justify-between mt-3">
+                <div class="flex items-center border border-[#EDE4DC] rounded-2xl text-sm">
+                  <button onclick="changeCartQty(${index}, -1)" class="px-3 py-px text-[#C9A9E8]">−</button>
+                  <span class="px-2 font-semibold">${item.quantity}</span>
+                  <button onclick="changeCartQty(${index}, 1)" class="px-3 py-px text-[#C9A9E8]">+</button>
+                </div>
+                
+                <div class="font-semibold tabular-nums">$${itemTotal}</div>
+              </div>
+            </div>
+          </div>
+        `
+      })
+
+      container.innerHTML = html
+      subtotalEl.innerHTML = `<span class="font-medium">Est. starting total:</span> <span class="font-semibold">$${startingTotal}</span>`
+    }
+
+    function changeCartQty(index, delta) {
+      cart[index].quantity = Math.max(1, cart[index].quantity + delta)
+      renderCartItems()
+      updateCartCount()
+      saveCartToStorage()
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1)
+      renderCartItems()
+      updateCartCount()
+      saveCartToStorage()
+    }
+
+    // Open the product modal pre-filled with the current cart item's choices so user can change size/flavor/fillings
+    function editCartItem(index) {
+      const item = cart[index]
+      if (!item) return
+
+      // Remember which cart slot we're editing
+      editingCartIndex = index
+
+      // Open the modal in select mode
+      openProductModal(item.id, 'select')
+
+      // After the modal renders, pre-fill the saved flavor and fillings
+      // We use a tiny delay so the DOM from renderFlavorAndFillings exists
+      setTimeout(() => {
+        if (!currentProduct) return
+
+        // Restore previous selections
+        selectedFlavor = item.customizations.flavor || null
+        selectedFillings = item.customizations.fillings ? [...item.customizations.fillings] : []
+
+        // Restore which size/tier was previously chosen
+        if (item.customizations.tier && currentProduct.tiers) {
+          const idx = currentProduct.tiers.findIndex(t => t.label === item.customizations.tier)
+          selectedTierIndex = idx >= 0 ? idx : null
+        }
+
+        // Re-render everything with saved values
+        renderModalTiers(currentProduct)
+        renderFlavorAndFillings(currentProduct, true)
+
+        // Also pre-fill the notes textarea
+        const notesEl = document.getElementById('modal-notes')
+        if (notesEl && item.customizations.notes) {
+          notesEl.value = item.customizations.notes
+        }
+      }, 60)
+    }
+
+    function toggleCart() {
+      const drawer = document.getElementById('cart-drawer')
+      
+      if (drawer.classList.contains('hidden')) {
+        drawer.classList.remove('hidden')
+        drawer.classList.add('flex')
+        renderCartItems()
+      } else {
+        drawer.classList.add('hidden')
+        drawer.classList.remove('flex')
+      }
+    }
+
+    function proceedToRequest() {
+      if (cart.length === 0) return
+      
+      toggleCart() // close cart
+      document.getElementById('order-modal').classList.remove('hidden')
+      document.getElementById('order-modal').classList.add('flex')
+      
+      // Populate order summary
+      populateOrderSummary()
+      
+      // Set minimum date (4 days from now)
+      setMinimumDate()
+
+      // Render availability calendar
+      loadBlockedDates()
+      renderAvailabilityCalendar()
+    }
+
+    function populateOrderSummary() {
+      const container = document.getElementById('order-summary-items')
+      container.innerHTML = ''
+      
+      let total = 0
+      
+      cart.forEach(item => {
+        const line = document.createElement('div')
+        line.className = 'flex justify-between items-start py-1'
+        
+        const lineTotal = item.price * item.quantity
+        total += lineTotal
+        
+        let extra = ''
+        if (item.customizations.tier) extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Size: <span class="font-medium text-[#3F2A2B]">${item.customizations.tier}</span></div>`
+
+        if (item.customizations.flavor) {
+          extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Flavor: <span class="font-medium text-[#3F2A2B]">${item.customizations.flavor}</span></div>`
+        }
+
+        if (item.customizations.fillings && item.customizations.fillings.length) {
+          extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Filling: <span class="font-medium text-[#3F2A2B]">${item.customizations.fillings.join(' + ')}</span></div>`
+        }
+        if (item.customizations.toppings && item.customizations.toppings.length) {
+          extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Toppings: <span class="font-medium text-[#3F2A2B]">${item.customizations.toppings.join(' + ')}</span></div>`
+        }
+
+        if (item.customizations.notes) {
+          extra += `<div class="text-[11px] italic text-[#8B6F6F] mt-0.5">"${item.customizations.notes.substring(0, 50)}${item.customizations.notes.length > 50 ? '…' : ''}"</div>`
+        }
+        
+        line.innerHTML = `
+          <div class="flex-1">
+            <div class="flex items-baseline gap-x-2">
+              <span class="font-medium">${item.name}</span> 
+              <span class="text-[#8B6F6F] text-xs">×${item.quantity}</span>
+            </div>
+            ${extra ? `<div class="mt-1 space-y-0.5">${extra}</div>` : ''}
+          </div>
+          <div class="font-semibold tabular-nums ml-3 text-right">$${lineTotal}</div>
+        `
+        container.appendChild(line)
+      })
+      
+      const totalLine = document.createElement('div')
+      totalLine.className = 'pt-3 mt-2 border-t border-[#E4D9CF] flex justify-between font-semibold text-sm'
+      totalLine.innerHTML = `
+        <div>Estimated starting total</div>
+        <div>$${total}</div>
+      `
+      container.appendChild(totalLine)
+    }
+
+    function setMinimumDate() {
+      const dateInput = document.getElementById('order-date')
+      const today = new Date()
+      const minDate = new Date(today)
+      minDate.setDate(today.getDate() + 4) // 4 days minimum
+      
+      const formatted = minDate.toISOString().split('T')[0]
+      dateInput.min = formatted
+      
+      // Default to 5 days out
+      const defaultDate = new Date(today)
+      defaultDate.setDate(today.getDate() + 5)
+      dateInput.value = defaultDate.toISOString().split('T')[0]
+    }
+
+    // ==================== AVAILABILITY CALENDAR ====================
+    let blockedDates = new Set();
+    let isEditingAvailability = false;
+
+    function loadBlockedDates() {
+      const saved = localStorage.getItem('stc_blocked_dates');
+      blockedDates = saved ? new Set(JSON.parse(saved)) : new Set();
+    }
+
+    function saveBlockedDates() {
+      localStorage.setItem('stc_blocked_dates', JSON.stringify([...blockedDates]));
+    }
+
+    function isDateBlocked(dateStr) {
+      return blockedDates.has(dateStr);
+    }
+
+    // Simple booked orders tracking (for owner to see upcoming orders like on Bakesy)
+    function loadBookedOrders() {
+      const saved = localStorage.getItem('stc_booked_orders');
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function saveBookedOrders(orders) {
+      localStorage.setItem('stc_booked_orders', JSON.stringify(orders));
+    }
+
+    function isDateBooked(dateStr) {
+      const orders = loadBookedOrders();
+      return orders.some(o => o.date === dateStr);
+    }
+
+    function renderAvailabilityCalendar() {
+      const container = document.getElementById('availability-calendar');
+      if (!container) return;
+
+      loadBlockedDates();
+      container.innerHTML = '';
+
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() + 4); // respect minimum 4 days
+
+      for (let i = 0; i < 28; i++) { // next 4 weeks
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+
+        const dateStr = d.toISOString().split('T')[0];
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayNum = d.getDate();
+        const month = d.toLocaleDateString('en-US', { month: 'short' });
+
+        const isBlocked = isDateBlocked(dateStr);
+        const isBooked = isDateBooked(dateStr);
+        const isSelected = document.getElementById('order-date')?.value === dateStr;
+        const isUnavailable = isBlocked || isBooked;
+
+        const pill = document.createElement('div');
+        
+        let pillClasses = `flex-shrink-0 px-3 py-2 rounded-2xl text-center border text-xs min-w-[58px] transition-all `;
+        let pillContent = `
+          <div class="font-medium">${dayName}</div>
+          <div class="text-[13px]">${month} ${dayNum}</div>
+        `;
+
+        if (isUnavailable) {
+          if (isBooked) {
+            pillClasses += 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed';
+            pillContent = `
+              <div class="font-medium text-[10px]">Booked</div>
+              <div class="text-[11px]">${month} ${dayNum}</div>
+            `;
+          } else {
+            pillClasses += 'bg-gray-200 text-gray-400 border-gray-300 line-through cursor-not-allowed';
+          }
+        } else if (isSelected) {
+          pillClasses += 'bg-[#C9A9E8] text-white border-[#C9A9E8] font-semibold';
+        } else {
+          pillClasses += 'bg-white border-[#EDE4DC] hover:border-[#C9A9E8] hover:bg-[#fdf8f5] cursor-pointer';
+        }
+
+        pill.className = pillClasses;
+        pill.innerHTML = pillContent;
+
+        if (!isUnavailable) {
+          pill.onclick = () => {
+            // Normal customer selection — selects the date for the order
+            document.getElementById('order-date').value = dateStr;
+            renderAvailabilityCalendar(); // refresh selection highlight
+          };
+        }
+
+        container.appendChild(pill);
+      }
+    }
+
+    function toggleAvailabilityEditor() {
+      isEditingAvailability = !isEditingAvailability;
+      const container = document.getElementById('availability-calendar');
+      
+      if (isEditingAvailability) {
+        container.style.border = '2px dashed #C9A9E8';
+        container.style.padding = '4px';
+        alert('Edit mode ON. Click any date to block or unblock it. Click "Manage my availability" again to save.');
+      } else {
+        container.style.border = '';
+        container.style.padding = '';
+        saveBlockedDates();
+        alert('Availability updated and saved in your browser.');
+      }
+      renderAvailabilityCalendar();
+    }
+
+    // Hook into order modal opening to render calendar
+    const originalOpenOrderModal = window.openOrderModal || function(){};
+    window.openOrderModal = function() {
+      // call original if exists, or the internal logic
+      if (typeof originalOpenOrderModal === 'function') originalOpenOrderModal();
+      
+      setTimeout(() => {
+        loadBlockedDates();
+        renderAvailabilityCalendar();
+      }, 80);
+    };
+
+    function toggleDeliveryAddress() {
+      const wrapper = document.getElementById('delivery-address-wrapper')
+      const deliveryChecked = document.querySelector('input[name="fulfillment"][value="delivery"]').checked
+      wrapper.classList.toggle('hidden', !deliveryChecked)
+    }
+
+    function closeOrderModal() {
+      const modal = document.getElementById('order-modal')
+      modal.classList.add('hidden')
+      modal.classList.remove('flex')
+    }
+
+    function submitOrderRequest() {
+      // Basic validation
+      const name = document.getElementById('order-name').value.trim()
+      const phone = document.getElementById('order-phone').value.trim()
+      const date = document.getElementById('order-date').value
+      
+      if (!name || !phone || !date) {
+        alert('Please fill out your name, phone number, and preferred date.')
+        return
+      }
+      
+      // Check date is valid (at least 4 days)
+      const selectedDate = new Date(date)
+      const minAllowed = new Date()
+      minAllowed.setDate(minAllowed.getDate() + 3)
+      
+      if (selectedDate < minAllowed) {
+        alert('Please select a date at least 4 days from today.')
+        return
+      }
+
+      // Check against blocked dates
+      loadBlockedDates()
+      const dateStr = date
+      if (blockedDates.has(dateStr)) {
+        alert('Sorry, that date is not available. Please choose another date from the calendar.')
+        return
+      }
+      
+      const fulfillmentEl = document.querySelector('input[name="fulfillment"]:checked')
+      const fulfillment = fulfillmentEl ? fulfillmentEl.value : 'pickup'
+      const address = fulfillment === 'delivery' ? document.getElementById('order-address').value.trim() : ''
+      
+      if (fulfillment === 'delivery' && !address) {
+        alert('Please enter a delivery address.')
+        return
+      }
+      
+      // Build order payload
+      const orderData = {
+        customer: { name, phone },
+        date,
+        fulfillment,
+        address,
+        allergies: document.getElementById('order-allergies').value.trim(),
+        notes: document.getElementById('order-notes').value.trim(),
+        items: cart.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          customizations: item.customizations
+        }))
+      }
+      
+      // Record booking for owner tracking (similar to Bakesy)
+      const bookedOrders = loadBookedOrders();
+      bookedOrders.push({
+        ...orderData,
+        status: 'pending_deposit',
+        bookedAt: new Date().toISOString()
+      });
+      saveBookedOrders(bookedOrders);
+      
+      // Store for the success modal buttons
+      window.lastSubmittedOrder = orderData;
+      
+      // In real app this would POST to a backend / email service.
+      console.log('Order request submitted:', orderData)
+      
+      // Close modals
+      closeOrderModal()
+      
+      // Clear cart
+      cart = []
+      saveCartToStorage()
+      updateCartCount()
+      
+      // Show success
+      document.getElementById('success-modal').classList.remove('hidden')
+      document.getElementById('success-modal').classList.add('flex')
+
+      // On mobile, automatically try to open SMS composer with order details
+      if (window.innerWidth < 768 && window.lastSubmittedOrder) {
+        setTimeout(() => {
+          try {
+            openSMSWithOrder();
+          } catch (e) {}
+        }, 800);
+      }
+    }
+
+    function buildOrderTextMessage(orderData) {
+      const itemsText = (orderData.items || []).map(item => {
+        let line = `${item.quantity}x ${item.name}`;
+        if (item.customizations?.tier) line += ` — ${item.customizations.tier}`;
+        if (item.customizations?.flavor) line += ` (${item.customizations.flavor})`;
+        if (item.customizations?.fillings?.length) line += ` | Filling: ${item.customizations.fillings.join(', ')}`;
+        if (item.customizations?.toppings?.length) line += ` | Toppings: ${item.customizations.toppings.join(', ')}`;
+        return line;
+      }).join('\n');
+
+      return `New Order - ${orderData.date}
+
+Customer: ${orderData.customer.name}
+Phone: ${orderData.customer.phone}
+
+Fulfillment: ${orderData.fulfillment}${orderData.address ? `\nAddress: ${orderData.address}` : ''}
+
+Items:
+${itemsText}
+
+Allergies: ${orderData.allergies || 'None'}
+Notes: ${orderData.notes || 'None'}
+
+⚠️ 50% non-refundable deposit required within 24 hours via Cash App, Apple Pay, or Zelle.
+
+Please confirm receipt.`;
+    }
+
+    function copyOrderAsTextMessage() {
+      const orderData = window.lastSubmittedOrder;
+      if (!orderData) {
+        alert("No recent order found.");
+        return;
+      }
+
+      const message = buildOrderTextMessage(orderData);
+      navigator.clipboard.writeText(message).then(() => {
+        alert("Order details copied as text message!\n\nYou can now paste it into Messages / SMS.");
+      }).catch(() => {
+        // Fallback
+        prompt("Copy this message:", message);
+      });
+    }
+
+    function openSMSWithOrder() {
+      const orderData = window.lastSubmittedOrder;
+      if (!orderData) {
+        alert("No recent order found.");
+        return;
+      }
+
+      const message = buildOrderTextMessage(orderData);
+      const encoded = encodeURIComponent(message);
+      const phone = (orderData.customer.phone || '').replace(/\D/g, '');
+
+      // This works well on iOS and many Android devices
+      window.location.href = `sms:${phone}?body=${encoded}`;
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById('success-modal')
+      modal.classList.add('hidden')
+      modal.classList.remove('flex')
+      
+      // Scroll to top nicely
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    // ==================== ADMIN ORDER MANAGEMENT ====================
+
+    function updateOrderStatus(index, newStatus) {
+      const orders = loadBookedOrders();
+      if (!orders[index]) return;
+
+      orders[index].status = newStatus;
+      orders[index].statusUpdatedAt = new Date().toISOString();
+
+      saveBookedOrders(orders);
+      renderBookedOrdersList();
+    }
+
+    function requestBalance(index) {
+      const orders = loadBookedOrders();
+      if (!orders[index]) return;
+
+      const order = orders[index];
+      const message = `Hi ${order.customer.name}, this is a reminder that the remaining 50% balance for your order on ${order.date} is now due. Please send via Cash App, Apple Pay, or Zelle. Thank you!`;
+      
+      navigator.clipboard.writeText(message).catch(() => {});
+      alert(`Message copied to clipboard:\n\n${message}\n\n(You can paste this into Cash App / text / email)`);
+
+      updateOrderStatus(index, 'balance_requested');
+    }
+
+    function markBalancePaid(index) {
+      if (confirm('Mark the remaining balance as paid?')) {
+        updateOrderStatus(index, 'balance_paid');
+      }
+    }
+
+    function cancelOrder(index) {
+      if (confirm('Cancel this order? This will free up the date.')) {
+        updateOrderStatus(index, 'cancelled');
+      }
+    }
+
+    function completeOrder(index) {
+      if (confirm('Mark this order as completed?')) {
+        updateOrderStatus(index, 'completed');
+      }
+    }
+
+    // Owner booking viewer with admin controls
+    function renderBookedOrdersList() {
+      const container = document.getElementById('booked-orders-list');
+      if (!container) return;
+
+      const orders = loadBookedOrders().sort((a, b) => a.date.localeCompare(b.date));
+
+      if (orders.length === 0) {
+        container.innerHTML = `<div class="text-[#8B6F6F]">No orders booked yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = orders.map(order => {
+        const itemCount = order.items ? order.items.length : 0;
+        return `
+          <div class="border-b border-[#EDE4DC] py-2 last:border-b-0">
+            <div class="font-medium text-[#3F2A2B]">${order.date} — ${order.customer.name}</div>
+            <div class="text-[11px]">${order.fulfillment} • ${itemCount} item(s)</div>
+            <div class="text-[10px] text-[#8B6F6F]">${order.customer.phone}</div>
+            <div class="mt-1 flex flex-wrap gap-1">
+              <button onclick="updateOrderStatus(${index}, 'deposit_paid')" class="text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded">Deposit Paid</button>
+              <button onclick="requestBalance(${index})" class="text-[9px] px-1.5 py-0.5 bg-[#C9A9E8] text-white rounded">Request Balance</button>
+              <button onclick="markBalancePaid(${index})" class="text-[9px] px-1.5 py-0.5 bg-green-700 text-white rounded">Balance Paid</button>
+              <button onclick="cancelOrder(${index})" class="text-[9px] px-1.5 py-0.5 bg-red-500 text-white rounded">Cancel</button>
+              <button onclick="completeOrder(${index})" class="text-[9px] px-1.5 py-0.5 bg-[#3F2A2B] text-white rounded">Complete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Hook the details open to render bookings
+    document.addEventListener('DOMContentLoaded', () => {
+      const details = document.querySelector('details');
+      if (details) {
+        details.addEventListener('toggle', (e) => {
+          if (details.open) {
+            renderBookedOrdersList();
+          }
+        });
+      }
+    });
+
+    function openCustomOrder() {
+      // Open order modal directly with empty cart or prompt
+      if (cart.length === 0) {
+        // Show a quick message + open the form anyway
+        document.getElementById('order-modal').classList.remove('hidden')
+        document.getElementById('order-modal').classList.add('flex')
+        
+        // Pre-populate a note about custom
+        setTimeout(() => {
+          const notesField = document.getElementById('order-notes')
+          if (notesField && !notesField.value) {
+            notesField.value = 'I would like a fully custom cake / dessert. '
+          }
+          document.getElementById('order-summary-items').innerHTML = `
+            <div class="text-[#8B6F6F] text-sm py-2">No items added yet — please describe your custom request above.</div>
+          `
+        }, 80)
+
+        loadBlockedDates()
+        renderAvailabilityCalendar()
+      } else {
+        document.getElementById('order-modal').classList.remove('hidden')
+        document.getElementById('order-modal').classList.add('flex')
+        populateOrderSummary()
+      }
+      
+      setMinimumDate()
+
+      loadBlockedDates()
+      renderAvailabilityCalendar()
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div')
+      toast.className = `fixed bottom-5 left-1/2 -translate-x-1/2 bg-[#3F2A2B] text-white px-6 h-11 rounded-3xl flex items-center text-sm font-medium shadow-xl z-[110]`
+      toast.textContent = message
+      document.body.appendChild(toast)
+      
+      setTimeout(() => {
+        toast.style.transition = 'all 0.2s ease'
+        toast.style.opacity = '0'
+        setTimeout(() => toast.remove(), 150)
+      }, 1850)
+    }
+
+    function initializeProductFilters() {
+      // Set initial active tab
+      const allTab = document.querySelector('.menu-tab[data-filter="all"]')
+      if (allTab) allTab.classList.add('active')
+      
+      // Keyboard support for filters (optional)
+      document.addEventListener('keydown', function(e) {
+        if (e.key === '/' && document.activeElement.tagName === 'BODY') {
+          e.preventDefault()
+          const menuSection = document.getElementById('menu')
+          menuSection.scrollIntoView({ behavior: 'smooth' })
+        }
+      })
+    }
+
+    function initializeNavbarScroll() {
+      const navbar = document.getElementById('navbar')
+      
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 30) {
+          navbar.classList.add('nav-scrolled', 'shadow-sm')
+        } else {
+          navbar.classList.remove('nav-scrolled', 'shadow-sm')
+        }
+      })
+    }
+
+    function initializeDateValidation() {
+      // Extra safety - handled inline in submit too
+    }
+
+    function initializeMobileMenu() {
+      // Already handled by toggleMobileMenu()
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu')
+      menu.classList.toggle('hidden')
+    }
+
+    // Main initialization
+    function initializeWebsite() {
+      initializeTailwind()
+      
+      // Render the simplified menu
+      renderProducts()
+      
+      // Dedicated Party Packages section (separate from main tabs)
+      renderPartyPackages()
+      
+      // Filters
+      initializeProductFilters()
+      
+      // Load previous cart if any
+      loadCartFromStorage()
+      updateCartCount()
+      
+      // Navbar behavior
+      initializeNavbarScroll()
+      
+      // Other inits
+      initializeDateValidation()
+      initializeMobileMenu()
+      
+      // Demo: Add one popular item on first visit hint (commented — keep clean)
+      // console.log('%c[Sweet Tooth Cravings] Website ready.', 'color:#8B6F6F')
+      
+      // Bonus: Press "?" to open custom order (fun)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === '?' && document.activeElement.tagName === 'BODY') {
+          e.preventDefault()
+          openCustomOrder()
+        }
+      })
+      
+      // Preload a couple images for smoothness (already local)
+      console.log('%c[Sweet Tooth Cravings] Clean modern baking site initialized.', 'color:#C9A9E8')
+    }
+
+    // ==================== REVIEWS SYSTEM ====================
+    const hardcodedReviews = [
+      { id: 1, name: "Diana R", date: "2 months ago", rating: 5, text: "Best desserts you will ever have." },
+      { id: 2, name: "Jenny", date: "2 months ago", rating: 5, text: "Ashley is an absolute sweetheart. She offers a variety of different delicious desserts. Everything she makes is amazing. I’ve ordered her pistachio coquito which was phenomenal! Her chocoflan was creamy and full of flavor. Her cakes are the best! She will exceed your expectations. I truly recommend her, you will not be disappointed." },
+      { id: 3, name: "Jenny", date: "2 months ago", rating: 5, text: "The best!!" },
+      { id: 4, name: "Joey Gonzalez", date: "2 months ago", rating: 5, text: "Great products and service! Highly recommended. Great service, prompt replies. Excellent custom cakes and other party items. Very tasty! Place your orders with confidence!" },
+      { id: 5, name: "Pam", date: "2 months ago", rating: 5, text: "Great desserts. I ordered a party package and everything was gone in minutes! My family loved it and the design was so perfect. Thanks!" },
+      { id: 6, name: "Claudia Rodriguez", date: "2 months ago", rating: 5, text: "Simply the best! She is truly the best! She knows exactly what I like and always brings my ideas to life perfectly. Every order is made exactly how I ask and somehow she still manages to exceed my expectations every single time. Her attention to detail, creativity, and consistency are unmatched. I wouldn’t trust anyone else with my cakes!" },
+      { id: 7, name: "Adriana R", date: "2 months ago", rating: 5, text: "Amazing service & delicious desserts! Ashley is such a joy to work with and made my ideas come to life with such ease. The cake was gorgeous and tasted so good ♡ Thank you for making my birthday extra sweet!" },
+      { id: 8, name: "Betty", date: "2 months ago", rating: 5, text: "Great taste. Super good tasting cakes. I found her on Instagram and she didn’t disappoint! Will be booking her again!" },
+      { id: 9, name: "Katherine Galeano", date: "12 months ago", rating: 5, text: "Unforgettable Sweets. Sweet Tooth Cravings truly lives up to the name. These are hands down the best sweets I’ve ever had! The chocolate they use for their chocolate-covered strawberries is rich and luxurious. Their cakes are just as incredible. I’m obsessed with the guava-filled cake. The flan is also a must-try—so smooth and creamy.", verified: true },
+      { id: 10, name: "Pamela", date: "12 months ago", rating: 5, text: "Two cake customer. Ok I have ordered two cakes, one for my bridal proposal brunch and the other for my best friend’s birthday and both not only have been so freaking adorable and well put together but the flavors are so delicious and moist! I will forever be a lifelong customer.", verified: true },
+      { id: 11, name: "Elizabeth", date: "12 months ago", rating: 5, text: "Catering. The best for catering — we hire her for every event. Honestly every craving me and my family have, she never disappoints us.", verified: true },
+      { id: 12, name: "neilyn P", date: "1 year ago", rating: 5, text: "Cupcakes and chocolate covered strawberries. The strawberries were fresh and the cupcakes were flavorful and decorated nicely. I highly recommend sweettoothcravings." },
+      { id: 13, name: "Marlyn Peguero", date: "1 year ago", rating: 5, text: "Best cake and flancocho. I'm glad I chose you. The cake and the flancocho were delicious. I will 100% recommend you to everyone I know. You're the best. Guests were very excited about tasting everything." },
+      { id: 14, name: "Zenaida", date: "1 year ago", rating: 5, text: "Amazing 🤩. Starting with the baker — she is very sweet, overall reliable (super on time) and honest. What you request is what you get. She makes sure to go over and beyond what you imagine. Then the treats are amazing — my orders have always been the hits of the party." },
+      { id: 15, name: "Cami Gonzalez", date: "1 year ago", rating: 5, text: "Delicioso. Muy bueno los cakes y la decoración bella." },
+      { id: 16, name: "Nicklas Boscan", date: "1 year ago", rating: 5, text: "The best desserts! These desserts are one better than the other. I don’t think you can go wrong with any choice. The tres leches, the coquito and the flan are my favorite items." },
+      { id: 17, name: "Kasey Bonilla", date: "1 year ago", rating: 5, text: "Amazing! The most amazing treats I’ve ever tried!" }
+    ];
+
+    let userReviews = [];
+
+    function loadUserReviews() {
+      const saved = localStorage.getItem('stc_user_reviews');
+      userReviews = saved ? JSON.parse(saved) : [];
+    }
+
+    function saveUserReviews() {
+      localStorage.setItem('stc_user_reviews', JSON.stringify(userReviews));
+    }
+
+    function getAllReviews() {
+      return [...hardcodedReviews, ...userReviews].sort((a, b) => {
+        // Put user reviews first (newest feel)
+        if (a.id && !b.id) return -1;
+        if (!a.id && b.id) return 1;
+        return 0;
+      });
+    }
+
+    function openReviewsModal() {
+      loadUserReviews();
+      const modal = document.getElementById('reviews-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      renderReviews();
+      setupStarRating();
+    }
+
+    function closeReviewsModal() {
+      const modal = document.getElementById('reviews-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderReviews() {
+      const container = document.getElementById('reviews-list');
+      const allReviews = getAllReviews();
+
+      // Update stats
+      const total = allReviews.length;
+      document.getElementById('reviews-count').textContent = `Based on ${total}+ reviews`;
+      document.getElementById('reviews-average').textContent = '5.0';
+
+      container.innerHTML = '';
+
+      if (allReviews.length === 0) {
+        container.innerHTML = `<p class="text-center text-[#8B6F6F] py-8">No reviews yet. Be the first to leave one!</p>`;
+        return;
+      }
+
+      allReviews.forEach(review => {
+        const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+        const verifiedBadge = review.verified ? 
+          `<span class="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Verified Order</span>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-[#EDE4DC] rounded-3xl p-6';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-semibold text-lg">${review.name}</div>
+              <div class="text-xs text-[#8B6F6F] mt-0.5">${review.date} ${verifiedBadge}</div>
+            </div>
+            <div class="text-[#C9A9E8] text-xl tracking-[-1px]">${stars}</div>
+          </div>
+          <p class="mt-4 text-[#3F2A2B] leading-relaxed">${review.text}</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    let selectedRating = 5;
+
+    function setupStarRating() {
+      const container = document.getElementById('star-rating');
+      const hiddenInput = document.getElementById('review-rating');
+      
+      if (!container) return;
+
+      const stars = container.querySelectorAll('span');
+
+      function updateStars(rating) {
+        stars.forEach((star, index) => {
+          if (index < rating) {
+            star.classList.add('text-[#C9A9E8]');
+            star.classList.remove('text-[#EDE4DC]');
+          } else {
+            star.classList.remove('text-[#C9A9E8]');
+            star.classList.add('text-[#EDE4DC]');
+          }
+        });
+        hiddenInput.value = rating;
+        selectedRating = rating;
+      }
+
+      stars.forEach((star, index) => {
+        star.onclick = () => updateStars(index + 1);
+        star.onmouseover = () => updateStars(index + 1);
+      });
+
+      container.onmouseleave = () => updateStars(selectedRating);
+
+      // Default to 5 stars
+      updateStars(5);
+    }
+
+    function submitReview(e) {
+      e.preventDefault();
+
+      const name = document.getElementById('review-name').value.trim();
+      const text = document.getElementById('review-text').value.trim();
+      const rating = parseInt(document.getElementById('review-rating').value) || 5;
+
+      if (!name || !text) return;
+
+      const newReview = {
+        name: name,
+        date: "Just now",
+        rating: rating,
+        text: text
+      };
+
+      userReviews.unshift(newReview); // newest first
+      saveUserReviews();
+
+      // Re-render
+      renderReviews();
+
+      // Reset form
+      document.getElementById('review-form').reset();
+      selectedRating = 5;
+      setupStarRating();
+
+      // Success message
+      const successMsg = document.createElement('div');
+      successMsg.className = 'mt-4 text-center text-sm bg-emerald-50 text-emerald-700 py-3 rounded-2xl';
+      successMsg.textContent = 'Thank you! Your review has been added.';
+      const formContainer = document.querySelector('#reviews-modal .border-t');
+      formContainer.appendChild(successMsg);
+
+      setTimeout(() => {
+        successMsg.remove();
+      }, 2800);
+    }
+
+    // ==================== MOBILE ENHANCEMENTS ====================
+
+    // Better bottom sheet swipe to close
+    function makeBottomSheetSwipeable(modalElement, closeFn) {
+      if (!modalElement) return;
+
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+
+      const content = modalElement.querySelector('.modal');
+      if (!content) return;
+
+      function onTouchStart(e) {
+        if (window.innerWidth >= 768) return; // Only on mobile
+
+        const target = e.target;
+
+        // Don't start swipe drag if user is interacting with buttons, inputs, or the flavor/filling selectors
+        if (target.closest('button, input, textarea, select, #modal-flavors, #modal-fillings')) {
+          isDragging = false;
+          return;
+        }
+
+        startY = e.touches[0].clientY;
+        isDragging = true;
+        content.style.transition = 'none';
+      }
+
+      function onTouchMove(e) {
+        if (!isDragging || window.innerWidth >= 768) return;
+        currentY = e.touches[0].clientY;
+        const delta = currentY - startY;
+
+        if (delta > 0) {
+          content.style.transform = `translateY(${delta}px)`;
+        }
+      }
+
+      function onTouchEnd() {
+        if (!isDragging || window.innerWidth >= 768) return;
+        isDragging = false;
+
+        const delta = currentY - startY;
+        content.style.transition = 'transform 0.3s ease, opacity 0.2s ease';
+
+        if (delta > 120) {
+          // Swiped down enough → close
+          content.style.transform = `translateY(100%)`;
+          setTimeout(() => {
+            closeFn();
+            content.style.transform = '';
+          }, 280);
+        } else {
+          // Snap back
+          content.style.transform = '';
+        }
+      }
+
+      // Prefer attaching swipe only to the top drag handle on mobile.
+      // This prevents the swipe gesture from stealing taps on content like flavor/filling pills and tier buttons.
+      const handle = modalElement.querySelector('.md\\:hidden, .md\\:hidden.flex');
+      const target = handle || modalElement.querySelector('#modal-flavor-fillings')?.parentElement || content;
+
+      // If we fell back to the whole content, still protect interactive children via onTouchStart check above
+      target.addEventListener('touchstart', onTouchStart, { passive: true });
+      target.addEventListener('touchmove', onTouchMove, { passive: true });
+      target.addEventListener('touchend', onTouchEnd);
+
+      // Also allow clicking the backdrop to close (already works)
+    }
+
+    // Apply swipe behavior to modals after they open
+    function initMobileBottomSheets() {
+      const productModal = document.getElementById('product-modal');
+      const reviewsModal = document.getElementById('reviews-modal');
+
+      if (productModal) {
+        // We will call makeBottomSheetSwipeable when opening
+      }
+      if (reviewsModal) {
+        // Same
+      }
+    }
+
+    // Enhanced open functions with swipe support
+    const originalOpenProductModal = window.openProductModal || openProductModal;
+    window.openProductModal = function(productId, mode = 'details') {
+      originalOpenProductModal(productId, mode);
+      
+      // Add swipe after a tick
+      setTimeout(() => {
+        const modal = document.getElementById('product-modal');
+        if (modal && window.innerWidth < 768) {
+          makeBottomSheetSwipeable(modal, closeProductModal);
+        }
+      }, 50);
+    };
+
+    const originalOpenReviewsModal = window.openReviewsModal || openReviewsModal;
+    window.openReviewsModal = function() {
+      originalOpenReviewsModal();
+      setTimeout(() => {
+        const modal = document.getElementById('reviews-modal');
+        if (modal && window.innerWidth < 768) {
+          makeBottomSheetSwipeable(modal, closeReviewsModal);
+        }
+      }, 50);
+    };
+
+    // ==================== DEDICATED MOBILE QUICK ORDER FLOW ====================
+
+    // Create a super clean, fast mobile-only Quick Order bottom sheet
+    function openMobileQuickOrder(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      // Remove any existing quick order sheet
+      const existing = document.getElementById('mobile-quick-order');
+      if (existing) existing.remove();
+
+      const tiers = product.tiers || [{ label: 'Standard', price: product.price }];
+
+      let html = `
+        <div id="mobile-quick-order" class="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-end md:hidden">
+          <div class="w-full bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl" style="transform: translateY(0); transition: transform 0.3s ease;">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b">
+              <div class="flex items-center gap-x-3">
+                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" alt="">
+                <div>
+                  <div class="font-semibold text-lg leading-tight">${product.name}</div>
+                  <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>
+                </div>
+              </div>
+              <button onclick="closeMobileQuickOrder()" class="text-3xl text-[#8B6F6F] px-2 leading-none">×</button>
+            </div>
+
+            <!-- Options -->
+            <div class="flex-1 overflow-y-auto p-5 space-y-2">
+              <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2 px-1">Choose your option</div>
+      `;
+
+      tiers.forEach((tier, index) => {
+        html += `
+          <div onclick="addTierFromMobileQuickOrder(${productId}, ${index}, this)" 
+               class="flex items-center justify-between bg-white border border-[#EDE4DC] active:border-[#C9A9E8] rounded-2xl px-4 py-4 cursor-pointer transition">
+            <div>
+              <div class="font-medium">${tier.label}</div>
+              ${tier.serves ? `<div class="text-xs text-[#8B6F6F]">${tier.serves}</div>` : ''}
+            </div>
+            <div class="font-semibold text-lg text-[#C9A9E8]">$${tier.price}</div>
+          </div>
+        `;
+      });
+
+      html += `
+            </div>
+
+            <!-- Flavor / Toppings / Fillings (for products that support them) -->
+            <div id="mobile-options-container" class="px-5 pb-2"></div>
+
+            <!-- Quick Notes -->
+            <div class="px-5 pb-5">
+              <div class="text-xs text-[#6B5B5F] mb-1.5">Quick note (optional)</div>
+              <input id="mobile-quick-notes" type="text" 
+                     class="w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm" 
+                     placeholder="Any special requests?">
+            </div>
+
+            <div class="h-4"></div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', html);
+
+      // Render flavor / toppings / fillings for mobile if the product supports them
+      const optionsContainer = document.getElementById('mobile-options-container');
+      if (optionsContainer && (product.flavors || product.fillings || product.toppings)) {
+        let optionsHTML = '';
+
+        // Store selections on the window for this mobile flow
+        window.mobileSelectedFlavor = null;
+        window.mobileSelectedFillings = [];
+        window.mobileSelectedToppings = [];
+
+        if (product.flavors && product.flavors.length > 0) {
+          optionsHTML += `<div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1.5">Flavor</div>`;
+          optionsHTML += `<div class="flex flex-wrap gap-2 mb-4" id="mobile-flavor-pills">`;
+          product.flavors.forEach(flavor => {
+            optionsHTML += `<button onclick="selectMobileFlavor('${flavor}', this)" class="px-3 py-1.5 text-sm rounded-2xl border border-[#EDE4DC] active:bg-[#C9A9E8] active:text-white">${flavor}</button>`;
+          });
+          optionsHTML += `</div>`;
+        }
+
+        if (product.toppings && product.toppings.length > 0) {
+          optionsHTML += `<div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1.5">Toppings (optional)</div>`;
+          optionsHTML += `<div class="flex flex-wrap gap-2 mb-4" id="mobile-topping-pills">`;
+          product.toppings.forEach(topping => {
+            optionsHTML += `<button onclick="toggleMobileTopping('${topping}', this)" class="px-3 py-1.5 text-sm rounded-2xl border border-[#EDE4DC] active:bg-[#C9A9E8] active:text-white">${topping}</button>`;
+          });
+          optionsHTML += `</div>`;
+        }
+
+        optionsContainer.innerHTML = optionsHTML;
+      }
+
+      // Add swipe to close on the new sheet
+      const sheet = document.getElementById('mobile-quick-order');
+      const content = sheet.querySelector('.w-full.bg-white');
+
+      let startY = 0;
+      content.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+      content.addEventListener('touchend', (e) => {
+        const endY = e.changedTouches[0].clientY;
+        if (endY - startY > 80) {
+          closeMobileQuickOrder();
+        }
+      });
+    }
+
+    function addTierFromMobileQuickOrder(productId, tierIndex, element) {
+      const product = products.find(p => p.id === productId);
+      const tier = product.tiers[tierIndex];
+      const notesInput = document.getElementById('mobile-quick-notes');
+      const notes = notesInput ? notesInput.value.trim() : '';
+
+      const customizations = {
+        tier: tier.label,
+        price: tier.price,
+        serves: tier.serves || '',
+        notes: notes,
+        flavor: window.mobileSelectedFlavor || null,
+        fillings: window.mobileSelectedFillings || [],
+        toppings: window.mobileSelectedToppings || []
+      };
+
+      const cartItem = {
+        ...product,
+        price: tier.price,
+        quantity: 1,
+        customizations
+      };
+
+      // Add to cart
+      const existingIndex = cart.findIndex(item => 
+        item.id === product.id && 
+        item.customizations.tier === customizations.tier &&
+        item.customizations.notes === customizations.notes
+      );
+
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += 1;
+      } else {
+        cart.push(cartItem);
+      }
+
+      updateCartCount();
+      saveCartToStorage();
+      closeMobileQuickOrder();
+
+      // Show nice toast
+      showToast(`Added ${tier.label} ${product.name}`);
+    }
+
+    function closeMobileQuickOrder() {
+      const sheet = document.getElementById('mobile-quick-order');
+      if (sheet) {
+        const content = sheet.querySelector('.w-full.bg-white');
+        if (content) {
+          content.style.transition = 'transform 0.25s ease';
+          content.style.transform = 'translateY(100%)';
+        }
+        setTimeout(() => {
+          if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
+        }, 250);
+      }
+      // Clean up mobile selections
+      window.mobileSelectedFlavor = null;
+      window.mobileSelectedFillings = [];
+      window.mobileSelectedToppings = [];
+    }
+
+    // Mobile option selection helpers
+    function selectMobileFlavor(flavor, element) {
+      window.mobileSelectedFlavor = flavor;
+      // Deselect siblings
+      const pills = element.parentElement.querySelectorAll('button');
+      pills.forEach(p => p.classList.remove('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]'));
+      element.classList.add('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]');
+    }
+
+    function toggleMobileTopping(topping, element) {
+      if (!window.mobileSelectedToppings) window.mobileSelectedToppings = [];
+      const idx = window.mobileSelectedToppings.indexOf(topping);
+      if (idx > -1) {
+        window.mobileSelectedToppings.splice(idx, 1);
+        element.classList.remove('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]');
+      } else {
+        window.mobileSelectedToppings.push(topping);
+        element.classList.add('bg-[#C9A9E8]', 'text-white', 'border-[#C9A9E8]');
+      }
+    }
+
+    // Override quick add on mobile to use the dedicated flow
+    const originalQuickAdd = window.quickAddToCart || function(){};
+    window.quickAddToCart = function(productId) {
+      if (window.innerWidth < 768) {
+        openMobileQuickOrder(productId);
+      } else {
+        originalQuickAdd(productId);
+      }
+    };
+
+    // Also make the Select button use the dedicated mobile flow
+    const originalOpenForSelect = window.openProductModal;
+    // We already overrode it above. Let's enhance the mobile select path
+    // When in 'select' mode on mobile, prefer the dedicated quick order
+    const _originalOpen = window.openProductModal;
+    window.openProductModal = function(productId, mode = 'details') {
+      if (mode === 'select' && window.innerWidth < 768) {
+        openMobileQuickOrder(productId);
+        return;
+      }
+      _originalOpen(productId, mode);
+    };
+
+    // ==================== IMAGE REPLACEMENT HELP (Bakesy) ====================
+
+    /*
+      HOW TO REPLACE IMAGES WITH YOUR BAKESY PHOTOS:
+
+      1. Go to your Bakesy shop: https://bakesy.shop/b/sweettoothcravings
+      2. For each product below, right-click (or long press on mobile) the main photo → Save image.
+      3. Save them into:  assets/images/
+      4. Rename them using the suggested filenames below for easy matching.
+
+      Current mapping (update the "img" property in the products array when ready):
+
+      Suggested new filenames:
+      - 2-tier-cakes.jpg
+      - chocolate-strawberries.jpg
+      - letter-cake.jpg
+      - breakable-heart.jpg
+      - sheet-cake.jpg
+      - churro-cheesecake.jpg
+      - cupcakes.jpg
+      - bento-cake.jpg
+      - tres-leches.jpg          (used for catering + tres leches)
+      - flan.jpg
+      - coquito.jpg
+      - custom-cake.jpg
+      - mini-desserts.jpg
+      - dog-cake.jpg
+
+      Once you have the new images, tell me the exact filenames you used and I will update all the product.img paths in one go.
+    */
+
+    // Boot app
+    window.onload = function() {
+      initializeWebsite();
+      initMobileBottomSheets();
+    };
+  </script>
+</body>
+</html>

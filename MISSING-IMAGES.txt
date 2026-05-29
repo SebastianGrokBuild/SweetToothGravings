@@ -1,0 +1,32 @@
+CURRENT STATUS - MENU IMAGES (Updated)
+
+✅ Every image listed by the user is now used as a main photo for a menu item card:
+- 2-tier-cakes.jpg → 2 Tier Cakes
+- bento-cake.jpg → Bento Cake Box
+- breakable-heart.jpg → Breakable Hearts
+- chocoflan.jpg → Chocoflan
+- chocolate-strawberries.jpg → Chocolate Covered Strawberries
+- churro-cheesecake.jpg → Churro Cheesecake
+- coquito.jpg → Coquito
+- cupcakes.jpg → Cupcakes
+- custom-cakes.jpg → Custom Cakes
+- flan.jpg → 6 Inch Flan
+- mini-cakes.jpg → Mini Cakes
+- party-packages.jpg → Party Packages (catering trays)
+- sheet-cake.jpg → Sheet Cakes / Rectangle Cakes
+- tres-leches-8x8.jpg → Tres Leches - Small (8x8)
+- tres-leches-9x13.jpg → Tres Leches - Large (9x13)
+
+Removed (as requested earlier):
+- Letter / Number Cakes, Dog Cakes, Mini Chocoflans (and their images cleaned)
+
+All products now use the exact original detailed pricing, tier options, and descriptions you provided.
+
+Filters: All / Cakes / Desserts & Treats (Trays tab removed).
+
+If images appear broken or old menu items are missing:
+1. Hard refresh: Cmd + Shift + R (or Ctrl + Shift + R)
+2. Make sure you're on the newest server port
+3. Clear browser cache if needed
+
+Hero image kept as your preferred one (hero.jpg).

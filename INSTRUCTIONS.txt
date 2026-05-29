@@ -1,0 +1,42 @@
+INSTRUCTIONS FOR ADDING BAKESY IMAGES
+
+Current situation:
+- This folder contains saved Bakesy product pages as .html files.
+- These HTML files do **not** contain the actual photos (they are just the app loader).
+
+What you need to do:
+
+1. Go to the live Bakesy shop: https://bakesy.shop/b/sweettoothcravings
+
+2. For each product (use the .html filenames here as reference):
+   - Click the product
+   - Right-click the main photo → "Save image as"
+   - Save it with a clean name (suggestions below)
+
+Suggested clean filenames (recommended):
+
+From the files in this folder, use these names when saving:
+
+- "2 Tier Cakes | Sweettoothcravings__.html"               → 2-tier-cakes.jpg
+- "Bento Cake Box | Sweettoothcravings__.html"             → bento-cake.jpg
+- "Breakable Hearts | Sweettoothcravings__.html"           → breakable-heart.jpg
+- "Caterings | Sweettoothcravings__.html"                  → party-packages.jpg   (or catering-hero.jpg)
+- "Chocoflan | Sweettoothcravings__.html"                  → chocoflan.jpg
+- "Chocolate Covered Strawberries | Sweettoothcravings__.html" → chocolate-strawberries.jpg
+- "Churro Cheescake | Sweettoothcravings__.html"           → churro-cheesecake.jpg
+- "Coquito | Sweettoothcravings__.html"                    → coquito.jpg
+- "Creamy flan | Sweettoothcravings__.html"                → flan.jpg
+- "Cupcakes | Sweettoothcravings__.html"                   → cupcakes.jpg
+- "Mini Cakes | Sweettoothcravings__.html"                 → mini-cakes.jpg
+- "Sheet Cakes: Rectangle Cakes | Sweettoothcravings__.html" → sheet-cake.jpg
+- "Tres leches Trays | Sweettoothcravings__8x8 size.html"  → tres-leches-8x8.jpg
+- "Tres leches Trays | Sweettoothcravings__9x13.html"      → tres-leches-9x13.jpg
+
+Once you have the actual .jpg or .png files:
+
+- Put them directly in:   ../assets/images/   (the main images folder)
+- Then tell me "Images ready" or list the filenames you used.
+
+I will then update the website code so every product uses your real Bakesy photos.
+
+Note: We already removed Dog Cakes and Mini Chocoflans, and created a separate "Party Packages" section. The images for those are no longer needed.
