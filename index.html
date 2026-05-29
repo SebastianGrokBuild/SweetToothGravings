@@ -8,8 +8,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Tally Embed Script (loaded early for reliable popup binding) -->
   <script async src="https://tally.so/widgets/embed.js"></script>
-  <!-- Calendly Embed Script -->
-  <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
     
@@ -676,15 +674,7 @@
     </div>
   </div>
 
-  <!-- OWNER BOOKING TRACKER (simple Bakesy-style order log) -->
-  <div class="max-w-screen-2xl mx-auto px-8 pb-10">
-    <details class="max-w-md mx-auto text-xs text-[#8B6F6F]">
-      <summary class="cursor-pointer font-medium hover:text-[#C9A9E8]">Owner: View Booked Orders</summary>
-      <div id="booked-orders-list" class="mt-3 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-[12px] max-h-64 overflow-auto">
-        <!-- Populated by JS when opened -->
-      </div>
-    </details>
-  </div>
+
 
   <!-- Floating Action Button - Mobile only -->
   <div class="md:hidden fixed bottom-5 right-5 z-[60]">
@@ -852,8 +842,7 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <button onclick="openCalendly(); return false;"
-                onclick="if(window.Tally && typeof window.Tally.openForm==='function'){window.Tally.openForm('lbvyR5')}else{window.open('https://tally.so/r/lbvyR5','_blank')}; setTimeout(function(){if(typeof toggleCart==='function'){var c=document.getElementById('cart-drawer');if(c && !c.classList.contains('hidden'))toggleCart();}},300)"
+        <button data-tally-open="lbvyR5"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -2063,101 +2052,10 @@
 
 
 
-        container.style.border = '';
-        container.style.padding = '';
-        saveBlockedDates();
-        alert('Availability updated and saved in your browser.');
-      }
-      renderAvailabilityCalendar();
-    }
-
-
-
-
 
 
 
       
-
-      
-      // Record booking for owner tracking (similar to Bakesy)
-      const bookedOrders = loadBookedOrders();
-      bookedOrders.push({
-        ...orderData,
-        status: 'pending_deposit',
-        bookedAt: new Date().toISOString()
-      });
-      saveBookedOrders(bookedOrders);
-      
-      // Send email notification to sweettoothcravingsorder@gmail.com (background)
-      sendOrderEmail(orderData);
-      
-      console.log('Order request submitted:', orderData)
-      
-      // Close modals
-      closeOrderModal()
-      
-      // Clear cart
-      cart = []
-      saveCartToStorage()
-      updateCartCount()
-      
-      // Show success
-      document.getElementById('success-modal').classList.remove('hidden')
-      document.getElementById('success-modal').classList.add('flex')
-    }
-
-    // Send full order details to your email via FormSubmit (background, non-blocking)
-    async function sendOrderEmail(orderData) {
-      try {
-        const formData = new FormData();
-        formData.append('name', orderData.customer.name);
-        formData.append('phone', orderData.customer.phone);
-        formData.append('preferred_date', orderData.date);
-        formData.append('fulfillment', orderData.fulfillment + (orderData.address ? ` — ${orderData.address}` : ''));
-
-        const itemsText = (orderData.items || []).map(item => {
-          const lineTotal = item.price * (item.quantity || 1);
-          let line = `${item.quantity}x ${item.name} — $${lineTotal}`;
-          if (item.customizations?.tier) line += ` — ${item.customizations.tier}`;
-          if (item.customizations?.flavor) line += ` (${item.customizations.flavor})`;
-          if (item.customizations?.fillings?.length) line += ` | Filling: ${item.customizations.fillings.join(', ')}`;
-          if (item.customizations?.toppings?.length) line += ` | Toppings: ${item.customizations.toppings.join(', ')}`;
-          return line;
-        }).join('\n');
-
-        const total = (orderData.items || []).reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-
-        const fullMessage = `New Order for ${orderData.date}
-
-Customer: ${orderData.customer.name}
-Phone: ${orderData.customer.phone}
-
-Fulfillment: ${orderData.fulfillment}${orderData.address ? '\nAddress: ' + orderData.address : ''}
-
-Items:
-${itemsText}
-
-Est. Total: $${total}
-
-Allergies: ${orderData.allergies || 'None'}
-Notes: ${orderData.notes || 'None'}
-
-⚠️ 50% non-refundable deposit required within 24 hours via Cash App, Apple Pay, or Zelle.`;
-
-        formData.append('order_details', fullMessage);
-        formData.append('_subject', `New Sweettooth Order — ${orderData.date} — ${orderData.customer.name}`);
-        formData.append('_captcha', 'false');
-
-        // Fire and forget — we don't await or block the UI
-        fetch('https://formsubmit.co/sweettoothcravingsorder@gmail.com', {
-          method: 'POST',
-          body: formData
-        }).catch(() => {});
-      } catch (err) {
-        console.log('Background order email (non-critical):', err);
-      }
-    }
 
     function closeSuccessModal() {
       const modal = document.getElementById('success-modal')
@@ -2168,114 +2066,11 @@ Notes: ${orderData.notes || 'None'}
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    // ==================== ADMIN ORDER MANAGEMENT ====================
-
-    function updateOrderStatus(index, newStatus) {
-      const orders = loadBookedOrders();
-      if (!orders[index]) return;
-
-      orders[index].status = newStatus;
-      orders[index].statusUpdatedAt = new Date().toISOString();
-
-      saveBookedOrders(orders);
-      renderBookedOrdersList();
-    }
-
-    function requestBalance(index) {
-      const orders = loadBookedOrders();
-      if (!orders[index]) return;
-
-      const order = orders[index];
-      const message = `Hi ${order.customer.name}, this is a reminder that the remaining 50% balance for your order on ${order.date} is now due. Please send via Cash App, Apple Pay, or Zelle. Thank you!`;
-      
-      navigator.clipboard.writeText(message).catch(() => {});
-      alert(`Message copied to clipboard:\n\n${message}\n\n(You can paste this into Cash App / text / email)`);
-
-      updateOrderStatus(index, 'balance_requested');
-    }
-
-    function markBalancePaid(index) {
-      if (confirm('Mark the remaining balance as paid?')) {
-        updateOrderStatus(index, 'balance_paid');
-      }
-    }
-
-    function cancelOrder(index) {
-      if (confirm('Cancel this order? This will free up the date.')) {
-        updateOrderStatus(index, 'cancelled');
-      }
-    }
-
-    function completeOrder(index) {
-      if (confirm('Mark this order as completed?')) {
-        updateOrderStatus(index, 'completed');
-      }
-    }
-
-    // Owner booking viewer with admin controls
-    function renderBookedOrdersList() {
-      const container = document.getElementById('booked-orders-list');
-      if (!container) return;
-
-      const orders = loadBookedOrders().sort((a, b) => a.date.localeCompare(b.date));
-
-      if (orders.length === 0) {
-        container.innerHTML = `<div class="text-[#8B6F6F]">No orders booked yet.</div>`;
-        return;
-      }
-
-      container.innerHTML = orders.map(order => {
-        const itemCount = order.items ? order.items.length : 0;
-        return `
-          <div class="border-b border-[#EDE4DC] py-2 last:border-b-0">
-            <div class="font-medium text-[#3F2A2B]">${order.date} — ${order.customer.name}</div>
-            <div class="text-[11px]">${order.fulfillment} • ${itemCount} item(s)</div>
-            <div class="text-[10px] text-[#8B6F6F]">${order.customer.phone}</div>
-            <div class="mt-1 flex flex-wrap gap-1">
-              <button onclick="updateOrderStatus(${index}, 'deposit_paid')" class="text-[9px] px-1.5 py-0.5 bg-green-600 text-white rounded">Deposit Paid</button>
-              <button onclick="requestBalance(${index})" class="text-[9px] px-1.5 py-0.5 bg-[#C9A9E8] text-white rounded">Request Balance</button>
-              <button onclick="markBalancePaid(${index})" class="text-[9px] px-1.5 py-0.5 bg-green-700 text-white rounded">Balance Paid</button>
-              <button onclick="cancelOrder(${index})" class="text-[9px] px-1.5 py-0.5 bg-red-500 text-white rounded">Cancel</button>
-              <button onclick="completeOrder(${index})" class="text-[9px] px-1.5 py-0.5 bg-[#3F2A2B] text-white rounded">Complete</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    // Hook the details open to render bookings
-    document.addEventListener('DOMContentLoaded', () => {
-      const details = document.querySelector('details');
-      if (details) {
-        details.addEventListener('toggle', (e) => {
-          if (details.open) {
-            renderBookedOrdersList();
-          }
-        });
-      }
-    });
-
     function openCustomOrder() {
-      // Now uses Tally form for custom orders
-      // The Tally form should be configured to handle custom requests
       if (typeof window.Tally !== 'undefined' && typeof window.Tally.openForm === 'function') {
         window.Tally.openForm('lbvyR5');
       } else {
-        // Fallback if Tally script not ready
         window.open('https://tally.so/r/lbvyR5', '_blank');
-      }
-    }
-
-    function openCalendly() {
-      const calendlyUrl = 'https://calendly.com/sweettoothcravingsorder/15min';
-
-      if (window.Calendly && typeof Calendly.initPopupWidget === 'function') {
-        Calendly.initPopupWidget({ url: calendlyUrl });
-        toggleCart(); // close cart after opening Calendly
-      } else {
-        // Fallback if Calendly script hasn't loaded yet
-        window.open(calendlyUrl, '_blank');
-        toggleCart();
       }
     }
 
@@ -2337,7 +2132,7 @@ Notes: ${orderData.notes || 'None'}
       initializeTailwind()
       
       // Render the simplified menu
-      renderProducts()
+      renderProducts(mainDesserts)
       
       // Dedicated Party Packages section (separate from main tabs)
       renderPartyPackages()
@@ -2369,6 +2164,11 @@ Notes: ${orderData.notes || 'None'}
       
       // Preload a couple images for smoothness (already local)
       console.log('%c[Sweet Tooth Cravings] Clean modern baking site initialized.', 'color:#C9A9E8')
+
+      // Ensure Tally embeds are scanned (for the Submit button in cart)
+      if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
+        window.Tally.loadEmbeds()
+      }
     }
 
     // ==================== REVIEWS SYSTEM ====================
