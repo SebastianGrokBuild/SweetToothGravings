@@ -853,6 +853,7 @@
         </div>
         
         <button onclick="openCalendly(); return false;"
+                onclick="if(window.Tally && typeof window.Tally.openForm==='function'){window.Tally.openForm('lbvyR5')}else{window.open('https://tally.so/r/lbvyR5','_blank')}; setTimeout(function(){if(typeof toggleCart==='function'){var c=document.getElementById('cart-drawer');if(c && !c.classList.contains('hidden'))toggleCart();}},300)"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -2058,179 +2059,10 @@
 
 
 
-    function populateOrderSummary() {
-      const container = document.getElementById('order-summary-items')
-      container.innerHTML = ''
-      
-      let total = 0
-      
-      cart.forEach(item => {
-        const line = document.createElement('div')
-        line.className = 'flex justify-between items-start py-1'
-        
-        const lineTotal = item.price * item.quantity
-        total += lineTotal
-        
-        let extra = ''
-        if (item.customizations.tier) extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Size: <span class="font-medium text-[#3F2A2B]">${item.customizations.tier}</span></div>`
 
-        if (item.customizations.flavor) {
-          extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Flavor: <span class="font-medium text-[#3F2A2B]">${item.customizations.flavor}</span></div>`
-        }
 
-        if (item.customizations.fillings && item.customizations.fillings.length) {
-          extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Filling: <span class="font-medium text-[#3F2A2B]">${item.customizations.fillings.join(' + ')}</span></div>`
-        }
-        if (item.customizations.toppings && item.customizations.toppings.length) {
-          extra += `<div class="text-[11px] text-[#6B5B5F] mt-0.5">Toppings: <span class="font-medium text-[#3F2A2B]">${item.customizations.toppings.join(' + ')}</span></div>`
-        }
 
-        if (item.customizations.notes) {
-          extra += `<div class="text-[11px] italic text-[#8B6F6F] mt-0.5">"${item.customizations.notes.substring(0, 50)}${item.customizations.notes.length > 50 ? '…' : ''}"</div>`
-        }
-        
-        line.innerHTML = `
-          <div class="flex-1">
-            <div class="flex items-baseline gap-x-2">
-              <span class="font-medium">${item.name}</span> 
-              <span class="text-[#8B6F6F] text-xs">×${item.quantity}</span>
-            </div>
-            ${extra ? `<div class="mt-1 space-y-0.5">${extra}</div>` : ''}
-          </div>
-          <div class="font-semibold tabular-nums ml-3 text-right">$${lineTotal}</div>
-        `
-        container.appendChild(line)
-      })
-      
-      const totalLine = document.createElement('div')
-      totalLine.className = 'pt-3 mt-2 border-t border-[#E4D9CF] flex justify-between font-semibold text-sm'
-      totalLine.innerHTML = `
-        <div>Estimated starting total</div>
-        <div>$${total}</div>
-      `
-      container.appendChild(totalLine)
-    }
 
-    function setMinimumDate() {
-      const dateInput = document.getElementById('order-date')
-      const today = new Date()
-      const minDate = new Date(today)
-      minDate.setDate(today.getDate() + 4) // 4 days minimum
-      
-      const formatted = minDate.toISOString().split('T')[0]
-      dateInput.min = formatted
-      
-      // Default to 5 days out
-      const defaultDate = new Date(today)
-      defaultDate.setDate(today.getDate() + 5)
-      dateInput.value = defaultDate.toISOString().split('T')[0]
-    }
-
-    // ==================== AVAILABILITY CALENDAR ====================
-    let blockedDates = new Set();
-    let isEditingAvailability = false;
-
-    function loadBlockedDates() {
-      const saved = localStorage.getItem('stc_blocked_dates');
-      blockedDates = saved ? new Set(JSON.parse(saved)) : new Set();
-    }
-
-    function saveBlockedDates() {
-      localStorage.setItem('stc_blocked_dates', JSON.stringify([...blockedDates]));
-    }
-
-    function isDateBlocked(dateStr) {
-      return blockedDates.has(dateStr);
-    }
-
-    // Simple booked orders tracking (for owner to see upcoming orders like on Bakesy)
-    function loadBookedOrders() {
-      const saved = localStorage.getItem('stc_booked_orders');
-      return saved ? JSON.parse(saved) : [];
-    }
-
-    function saveBookedOrders(orders) {
-      localStorage.setItem('stc_booked_orders', JSON.stringify(orders));
-    }
-
-    function isDateBooked(dateStr) {
-      const orders = loadBookedOrders();
-      return orders.some(o => o.date === dateStr);
-    }
-
-    function renderAvailabilityCalendar() {
-      const container = document.getElementById('availability-calendar');
-      if (!container) return;
-
-      loadBlockedDates();
-      container.innerHTML = '';
-
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() + 4); // respect minimum 4 days
-
-      for (let i = 0; i < 28; i++) { // next 4 weeks
-        const d = new Date(startDate);
-        d.setDate(startDate.getDate() + i);
-
-        const dateStr = d.toISOString().split('T')[0];
-        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-        const dayNum = d.getDate();
-        const month = d.toLocaleDateString('en-US', { month: 'short' });
-
-        const isBlocked = isDateBlocked(dateStr);
-        const isBooked = isDateBooked(dateStr);
-        const isSelected = document.getElementById('order-date')?.value === dateStr;
-        const isUnavailable = isBlocked || isBooked;
-
-        const pill = document.createElement('div');
-        
-        let pillClasses = `flex-shrink-0 px-3 py-2 rounded-2xl text-center border text-xs min-w-[58px] transition-all `;
-        let pillContent = `
-          <div class="font-medium">${dayName}</div>
-          <div class="text-[13px]">${month} ${dayNum}</div>
-        `;
-
-        if (isUnavailable) {
-          if (isBooked) {
-            pillClasses += 'bg-red-100 text-red-400 border-red-200 cursor-not-allowed';
-            pillContent = `
-              <div class="font-medium text-[10px]">Booked</div>
-              <div class="text-[11px]">${month} ${dayNum}</div>
-            `;
-          } else {
-            pillClasses += 'bg-gray-200 text-gray-400 border-gray-300 line-through cursor-not-allowed';
-          }
-        } else if (isSelected) {
-          pillClasses += 'bg-[#C9A9E8] text-white border-[#C9A9E8] font-semibold';
-        } else {
-          pillClasses += 'bg-white border-[#EDE4DC] hover:border-[#C9A9E8] hover:bg-[#fdf8f5] cursor-pointer';
-        }
-
-        pill.className = pillClasses;
-        pill.innerHTML = pillContent;
-
-        if (!isUnavailable) {
-          pill.onclick = () => {
-            // Normal customer selection — selects the date for the order
-            document.getElementById('order-date').value = dateStr;
-            renderAvailabilityCalendar(); // refresh selection highlight
-          };
-        }
-
-        container.appendChild(pill);
-      }
-    }
-
-    function toggleAvailabilityEditor() {
-      isEditingAvailability = !isEditingAvailability;
-      const container = document.getElementById('availability-calendar');
-      
-      if (isEditingAvailability) {
-        container.style.border = '2px dashed #C9A9E8';
-        container.style.padding = '4px';
-        alert('Edit mode ON. Click any date to block or unblock it. Click "Manage my availability" again to save.');
-      } else {
         container.style.border = '';
         container.style.padding = '';
         saveBlockedDates();
@@ -2239,79 +2071,14 @@
       renderAvailabilityCalendar();
     }
 
-    // Hook into order modal opening to render calendar
-    const originalOpenOrderModal = window.openOrderModal || function(){};
-    window.openOrderModal = function() {
-      // call original if exists, or the internal logic
-      if (typeof originalOpenOrderModal === 'function') originalOpenOrderModal();
-      
-      setTimeout(() => {
-        loadBlockedDates();
-        renderAvailabilityCalendar();
-      }, 80);
-    };
-
-    function toggleDeliveryAddress() {
-      const wrapper = document.getElementById('delivery-address-wrapper')
-      const deliveryChecked = document.querySelector('input[name="fulfillment"][value="delivery"]').checked
-      wrapper.classList.toggle('hidden', !deliveryChecked)
-    }
 
 
 
-    function submitOrderRequest() {
-      // Basic validation
-      const name = document.getElementById('order-name').value.trim()
-      const phone = document.getElementById('order-phone').value.trim()
-      const date = document.getElementById('order-date').value
-      
-      if (!name || !phone || !date) {
-        alert('Please fill out your name, phone number, and preferred date.')
-        return
-      }
-      
-      // Check date is valid (at least 4 days)
-      const selectedDate = new Date(date)
-      const minAllowed = new Date()
-      minAllowed.setDate(minAllowed.getDate() + 3)
-      
-      if (selectedDate < minAllowed) {
-        alert('Please select a date at least 4 days from today.')
-        return
-      }
 
-      // Check against blocked dates
-      loadBlockedDates()
-      const dateStr = date
-      if (blockedDates.has(dateStr)) {
-        alert('Sorry, that date is not available. Please choose another date from the calendar.')
-        return
-      }
+
+
       
-      const fulfillmentEl = document.querySelector('input[name="fulfillment"]:checked')
-      const fulfillment = fulfillmentEl ? fulfillmentEl.value : 'pickup'
-      const address = fulfillment === 'delivery' ? document.getElementById('order-address').value.trim() : ''
-      
-      if (fulfillment === 'delivery' && !address) {
-        alert('Please enter a delivery address.')
-        return
-      }
-      
-      // Build order payload
-      const orderData = {
-        customer: { name, phone },
-        date,
-        fulfillment,
-        address,
-        allergies: document.getElementById('order-allergies').value.trim(),
-        notes: document.getElementById('order-notes').value.trim(),
-        items: cart.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          customizations: item.customizations
-        }))
-      }
+
       
       // Record booking for owner tracking (similar to Bakesy)
       const bookedOrders = loadBookedOrders();
