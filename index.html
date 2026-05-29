@@ -848,109 +848,13 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <button onclick="proceedToRequest()" 
-                class="w-full h-14 bg-[#3F2A2B] hover:bg-black text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
-          <span>REQUEST ORDER</span>
+        <button data-tally-open="lbvyR5" onclick="toggleCart()"
+                class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
+          <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ORDER REQUEST MODAL -->
-  <div id="order-modal" onclick="if (event.target.id === 'order-modal') closeOrderModal()" class="hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[94vh] flex flex-col">
-      
-      <div class="px-8 pt-7 pb-4 flex items-center justify-between border-b">
-        <div>
-          <div class="heading-serif text-2xl">Request Your Order</div>
-          <div class="text-sm text-[#8B6F6F]">We’ll confirm within 24 hours</div>
-        </div>
-        <button onclick="closeOrderModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B]">×</button>
-      </div>
-
-      <div class="p-8 overflow-y-auto flex-1 space-y-7 text-sm">
-        <!-- Customer Info -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
-          <div>
-            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">FULL NAME *</label>
-            <input id="order-name" type="text" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">PHONE NUMBER *</label>
-            <input id="order-phone" type="tel" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base" placeholder="(305) 555-1234">
-          </div>
-        </div>
-
-        <!-- Date + Fulfillment -->
-        <div>
-          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">PREFERRED DATE *</label>
-          <input id="order-date" type="date" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
-          <p class="text-[11px] text-[#C9A9E8] mt-1 px-1">Minimum 4 days from today (we recommend 5+)</p>
-        </div>
-
-        <!-- Availability Calendar -->
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F]">AVAILABLE DATES (next 4 weeks)</label>
-          </div>
-          <div id="availability-calendar" class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-            <!-- Populated by JS: date pills -->
-          </div>
-          <p class="text-[10px] text-[#8B6F6F] mt-1">Click an available date to select it. Red "Booked" dates have already been taken by other clients. Gray dates are blocked.</p>
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-2">FULFILLMENT METHOD *</label>
-          <div class="flex gap-x-3">
-            <label class="flex-1 cursor-pointer border border-[#EDE4DC] has-[:checked]:border-[#C9A9E8] has-[:checked]:bg-[#FDF8F5] rounded-2xl px-4 py-3 flex items-center gap-x-2 text-sm">
-              <input type="radio" name="fulfillment" value="pickup" checked onchange="toggleDeliveryAddress()" class="accent-[#C9A9E8]">
-              <span class="font-medium">Pickup in Miami</span>
-            </label>
-            <label class="flex-1 cursor-pointer border border-[#EDE4DC] has-[:checked]:border-[#C9A9E8] has-[:checked]:bg-[#FDF8F5] rounded-2xl px-4 py-3 flex items-center gap-x-2 text-sm">
-              <input type="radio" name="fulfillment" value="delivery" onchange="toggleDeliveryAddress()" class="accent-[#C9A9E8]">
-              <span class="font-medium">Delivery (+ fee)</span>
-            </label>
-          </div>
-          <div id="delivery-address-wrapper" class="hidden mt-3">
-            <input id="order-address" type="text" placeholder="Delivery address (street, city, zip)" class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
-          </div>
-        </div>
-
-        <!-- Current Order Summary -->
-        <div>
-          <div class="flex items-center justify-between mb-2 px-1">
-            <div class="text-xs font-semibold tracking-wider text-[#8B6F6F]">YOUR ORDER REQUEST</div>
-            <button onclick="toggleCart(); closeOrderModal();" class="text-xs text-[#C9A9E8] font-medium">Edit items</button>
-          </div>
-          
-          <div id="order-summary-items" class="bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl p-4 text-sm space-y-2 max-h-44 overflow-auto">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <!-- Allergies & Notes -->
-        <div class="grid grid-cols-1 gap-y-5">
-          <div>
-            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">ALLERGIES OR DIETARY RESTRICTIONS</label>
-            <textarea id="order-allergies" rows="2" placeholder="Example: Contains nuts? Gluten free needed?" class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">ADDITIONAL NOTES OR CUSTOM REQUESTS</label>
-            <textarea id="order-notes" rows="3" placeholder="Any special message, color scheme, or design ideas..." class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="px-8 py-6 border-t bg-[#FDF8F5] flex flex-col-reverse sm:flex-row gap-3 items-center">
-        <button onclick="closeOrderModal()" class="w-full sm:w-auto px-8 py-3 rounded-3xl font-medium border border-[#EDE4DC] hover:bg-white transition">Cancel</button>
-        
-        <button data-tally-open="lbvyR5" onclick="closeOrderModal()"
-                class="w-full sm:flex-1 h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white font-semibold rounded-3xl flex items-center justify-center gap-x-2">
-          <span>Submit Order Request</span>
-        </button>
       </div>
     </div>
   </div>
@@ -2137,23 +2041,7 @@
       }
     }
 
-    function proceedToRequest() {
-      if (cart.length === 0) return
-      
-      toggleCart() // close cart
-      document.getElementById('order-modal').classList.remove('hidden')
-      document.getElementById('order-modal').classList.add('flex')
-      
-      // Populate order summary
-      populateOrderSummary()
-      
-      // Set minimum date (4 days from now)
-      setMinimumDate()
 
-      // Render availability calendar
-      loadBlockedDates()
-      renderAvailabilityCalendar()
-    }
 
     function populateOrderSummary() {
       const container = document.getElementById('order-summary-items')
@@ -2354,11 +2242,7 @@
       wrapper.classList.toggle('hidden', !deliveryChecked)
     }
 
-    function closeOrderModal() {
-      const modal = document.getElementById('order-modal')
-      modal.classList.add('hidden')
-      modal.classList.remove('flex')
-    }
+
 
     function submitOrderRequest() {
       // Basic validation
@@ -2590,35 +2474,14 @@ Notes: ${orderData.notes || 'None'}
     });
 
     function openCustomOrder() {
-      // Open order modal directly with empty cart or prompt
-      if (cart.length === 0) {
-        // Show a quick message + open the form anyway
-        document.getElementById('order-modal').classList.remove('hidden')
-        document.getElementById('order-modal').classList.add('flex')
-        
-        // Pre-populate a note about custom
-        setTimeout(() => {
-          const notesField = document.getElementById('order-notes')
-          if (notesField && !notesField.value) {
-            notesField.value = 'I would like a fully custom cake / dessert. '
-          }
-          document.getElementById('order-summary-items').innerHTML = `
-            <div class="text-[#8B6F6F] text-sm py-2">No items added yet — please describe your custom request above.</div>
-          `
-        }, 80)
-
-        loadBlockedDates()
-        renderAvailabilityCalendar()
+      // Now uses Tally form for custom orders
+      // The Tally form should be configured to handle custom requests
+      if (typeof window.Tally !== 'undefined' && typeof window.Tally.openForm === 'function') {
+        window.Tally.openForm('lbvyR5');
       } else {
-        document.getElementById('order-modal').classList.remove('hidden')
-        document.getElementById('order-modal').classList.add('flex')
-        populateOrderSummary()
+        // Fallback if Tally script not ready
+        window.open('https://tally.so/r/lbvyR5', '_blank');
       }
-      
-      setMinimumDate()
-
-      loadBlockedDates()
-      renderAvailabilityCalendar()
     }
 
     function showToast(message) {
