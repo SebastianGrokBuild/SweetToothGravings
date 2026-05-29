@@ -848,7 +848,7 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <button data-tally-open="lbvyR5"
+        <button data-tally-open="lbvyR5" onclick="openTallyForm()"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -3401,7 +3401,33 @@ Notes: ${orderData.notes || 'None'}
   <script async src="https://tally.so/widgets/embed.js"></script>
 
   <script>
-    // Close the cart drawer automatically when the Tally form opens
+    // Robust helper function to open the Tally form
+    function openTallyForm() {
+      var formId = 'lbvyR5';
+
+      // Preferred: Use Tally's global method if the script has loaded
+      if (window.Tally && typeof window.Tally.openForm === 'function') {
+        try {
+          window.Tally.openForm(formId);
+        } catch (err) {
+          // fallback below
+          window.open('https://tally.so/r/' + formId, '_blank');
+        }
+      } else {
+        // Fallback if script hasn't loaded yet or failed
+        window.open('https://tally.so/r/' + formId, '_blank');
+      }
+
+      // Close the cart drawer after a short delay (gives popup time to appear)
+      setTimeout(function () {
+        var cartDrawer = document.getElementById('cart-drawer');
+        if (cartDrawer && typeof toggleCart === 'function' && !cartDrawer.classList.contains('hidden')) {
+          toggleCart();
+        }
+      }, 250);
+    }
+
+    // Also listen for Tally's event in case the data attribute is used directly
     window.addEventListener('Tally.FormOpen', function(e) {
       if (e.detail && e.detail.formId === 'lbvyR5') {
         var cart = document.getElementById('cart-drawer');
