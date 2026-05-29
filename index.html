@@ -848,12 +848,11 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <!-- ========== TALLY POPUP BUTTON - DO NOT REMOVE THIS ATTRIBUTE ========== -->
-        <!-- This exact button must have data-tally-open="lbvyR5" 
-             so it opens the Tally form as a popup when clicked.
-             The Tally embed script handles the popup automatically.
-             Do not remove or change this attribute. -->
-        <button data-tally-open="lbvyR5" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
+        <!-- ========== TALLY POPUP BUTTON - DO NOT REMOVE OR MODIFY THIS ATTRIBUTE ========== -->
+        <!-- This button must ONLY have data-tally-open="lbvyR5" (standard Tally popup).
+             The Tally script will automatically make it open the form as a popup/modal.
+             Do not add onclick or any other attributes that could interfere. -->
+        <button data-tally-open="lbvyR5"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
