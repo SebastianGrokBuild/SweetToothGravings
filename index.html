@@ -6,6 +6,8 @@
   <title>Sweet Tooth Cravings • Miami, FL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Tally Embed Script (loaded early for reliable popup binding) -->
+  <script async src="https://tally.so/widgets/embed.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
     
@@ -2040,6 +2042,11 @@
         drawer.classList.remove('hidden')
         drawer.classList.add('flex')
         renderCartItems()
+
+        // Force Tally to scan for embeds (important for elements in hidden drawers)
+        if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
+          window.Tally.loadEmbeds()
+        }
       } else {
         drawer.classList.add('hidden')
         drawer.classList.remove('flex')
@@ -3266,9 +3273,6 @@ Notes: ${orderData.notes || 'None'}
   </script>
 
   <!-- TALLY INTEGRATION - DO NOT REMOVE -->
-  <!-- Tally Forms Embed Script - required for data-tally-open to work as popup -->
-  <script async src="https://tally.so/widgets/embed.js"></script>
-
   <script>
     // Close the cart drawer when the Tally form (lbvyR5) opens as a popup
     // This is part of the protected Tally integration
