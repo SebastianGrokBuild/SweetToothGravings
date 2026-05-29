@@ -974,20 +974,6 @@
         We will contact you via phone or text. You can also reach us directly on Instagram <span class="font-medium">@sweettoothcravings__</span>.
       </div>
 
-      <div class="mt-6 flex flex-col gap-3">
-        <button onclick="copyOrderAsTextMessage()" 
-                class="w-full h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
-          <i class="fa-solid fa-copy"></i>
-          <span>Copy Order Details as Text Message</span>
-        </button>
-        
-        <button onclick="openSMSWithOrder()" 
-                class="w-full h-11 border border-[#C9A9E8] text-[#C9A9E8] hover:bg-[#FDF8F5] rounded-3xl font-medium flex items-center justify-center gap-x-2 transition">
-          <i class="fa-solid fa-sms"></i>
-          <span>Open Messages App with Details</span>
-        </button>
-      </div>
-
       <button onclick="closeSuccessModal()" 
               class="mt-4 w-full h-11 text-[#8B6F6F] hover:text-[#3F2A2B] font-medium">Back to site</button>
     </div>
@@ -2431,9 +2417,6 @@
       });
       saveBookedOrders(bookedOrders);
       
-      // Store for the success modal buttons
-      window.lastSubmittedOrder = orderData;
-      
       // Send email notification to sweettoothcravingsorder@gmail.com (background)
       sendOrderEmail(orderData);
       
@@ -2450,43 +2433,6 @@
       // Show success
       document.getElementById('success-modal').classList.remove('hidden')
       document.getElementById('success-modal').classList.add('flex')
-
-      // On mobile, automatically try to open SMS composer with order details
-      if (window.innerWidth < 768 && window.lastSubmittedOrder) {
-        setTimeout(() => {
-          try {
-            openSMSWithOrder();
-          } catch (e) {}
-        }, 800);
-      }
-    }
-
-    function buildOrderTextMessage(orderData) {
-      const itemsText = (orderData.items || []).map(item => {
-        let line = `${item.quantity}x ${item.name}`;
-        if (item.customizations?.tier) line += ` — ${item.customizations.tier}`;
-        if (item.customizations?.flavor) line += ` (${item.customizations.flavor})`;
-        if (item.customizations?.fillings?.length) line += ` | Filling: ${item.customizations.fillings.join(', ')}`;
-        if (item.customizations?.toppings?.length) line += ` | Toppings: ${item.customizations.toppings.join(', ')}`;
-        return line;
-      }).join('\n');
-
-      return `New Order - ${orderData.date}
-
-Customer: ${orderData.customer.name}
-Phone: ${orderData.customer.phone}
-
-Fulfillment: ${orderData.fulfillment}${orderData.address ? `\nAddress: ${orderData.address}` : ''}
-
-Items:
-${itemsText}
-
-Allergies: ${orderData.allergies || 'None'}
-Notes: ${orderData.notes || 'None'}
-
-⚠️ 50% non-refundable deposit required within 24 hours via Cash App, Apple Pay, or Zelle.
-
-Please confirm receipt.`;
     }
 
     // Send full order details to your email via FormSubmit (background, non-blocking)
@@ -2537,40 +2483,8 @@ Notes: ${orderData.notes || 'None'}
           body: formData
         }).catch(() => {});
       } catch (err) {
-        // Silent fail — order still saved locally and SMS flow still works
         console.log('Background order email (non-critical):', err);
       }
-    }
-
-    function copyOrderAsTextMessage() {
-      const orderData = window.lastSubmittedOrder;
-      if (!orderData) {
-        alert("No recent order found.");
-        return;
-      }
-
-      const message = buildOrderTextMessage(orderData);
-      navigator.clipboard.writeText(message).then(() => {
-        alert("Order details copied as text message!\n\nYou can now paste it into Messages / SMS.");
-      }).catch(() => {
-        // Fallback
-        prompt("Copy this message:", message);
-      });
-    }
-
-    function openSMSWithOrder() {
-      const orderData = window.lastSubmittedOrder;
-      if (!orderData) {
-        alert("No recent order found.");
-        return;
-      }
-
-      const message = buildOrderTextMessage(orderData);
-      const encoded = encodeURIComponent(message);
-      const phone = (orderData.customer.phone || '').replace(/\D/g, '');
-
-      // This works well on iOS and many Android devices
-      window.location.href = `sms:${phone}?body=${encoded}`;
     }
 
     function closeSuccessModal() {
