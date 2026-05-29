@@ -853,12 +853,6 @@
           <span>REQUEST ORDER</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
-
-        <!-- Tally Form - appears only when items are in cart -->
-        <button data-tally-open="lbvyR5" onclick="toggleCart()"
-                class="w-full h-12 mt-3 rounded-3xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white font-semibold flex items-center justify-center gap-x-2 transition">
-          <span>Request Your Order</span>
-        </button>
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
       </div>
@@ -953,7 +947,7 @@
       <div class="px-8 py-6 border-t bg-[#FDF8F5] flex flex-col-reverse sm:flex-row gap-3 items-center">
         <button onclick="closeOrderModal()" class="w-full sm:w-auto px-8 py-3 rounded-3xl font-medium border border-[#EDE4DC] hover:bg-white transition">Cancel</button>
         
-        <button onclick="submitOrderRequest()" 
+        <button data-tally-open="lbvyR5" onclick="closeOrderModal()"
                 class="w-full sm:flex-1 h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white font-semibold rounded-3xl flex items-center justify-center gap-x-2">
           <span>SUBMIT ORDER REQUEST</span>
         </button>
