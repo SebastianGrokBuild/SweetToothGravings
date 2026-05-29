@@ -851,10 +851,9 @@
         </div>
         
         <!-- ========== TALLY POPUP BUTTON - DO NOT REMOVE OR MODIFY THIS ATTRIBUTE ========== -->
-        <!-- This button must ONLY have data-tally-open="lbvyR5" (standard Tally popup).
-             The Tally script will automatically make it open the form as a popup/modal.
-             Do not add onclick or any other attributes that could interfere. -->
-        <button data-tally-open="lbvyR5"
+        <!-- This button uses data-tally-open="lbvyR5" for the Tally popup.
+             The onclick is a reliable fallback in case auto-binding fails for hidden elements. -->
+        <button data-tally-open="lbvyR5" onclick="if(window.Tally && typeof window.Tally.openForm==='function'){window.Tally.openForm('lbvyR5')}else{window.open('https://tally.so/r/lbvyR5','_blank')}; setTimeout(function(){if(typeof toggleCart==='function'){var c=document.getElementById('cart-drawer');if(c && !c.classList.contains('hidden'))toggleCart();}},300)"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -2046,6 +2045,12 @@
         // Force Tally to scan for embeds (important for elements in hidden drawers)
         if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
           window.Tally.loadEmbeds()
+          // Call again shortly after in case the script was still loading
+          setTimeout(function() {
+            if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
+              window.Tally.loadEmbeds()
+            }
+          }, 300)
         }
       } else {
         drawer.classList.add('hidden')
