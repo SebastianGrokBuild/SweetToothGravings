@@ -962,7 +962,7 @@
       </div>
       
       <div class="heading-serif text-3xl tracking-tight">Thank you!</div>
-      <div class="mt-2 text-lg">Your order request has been sent.</div>
+      <div class="mt-2 text-lg">Your order request has been sent to our team.</div>
       
       <div class="mt-6 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-left text-sm text-[#3F2A2B]">
         <strong>Important — 50% Non-Refundable Deposit Required</strong><br>
@@ -2434,7 +2434,9 @@
       // Store for the success modal buttons
       window.lastSubmittedOrder = orderData;
       
-      // In real app this would POST to a backend / email service.
+      // Send email notification to sweettoothcravingsorder@gmail.com (background)
+      sendOrderEmail(orderData);
+      
       console.log('Order request submitted:', orderData)
       
       // Close modals
@@ -2485,6 +2487,59 @@ Notes: ${orderData.notes || 'None'}
 ⚠️ 50% non-refundable deposit required within 24 hours via Cash App, Apple Pay, or Zelle.
 
 Please confirm receipt.`;
+    }
+
+    // Send full order details to your email via FormSubmit (background, non-blocking)
+    async function sendOrderEmail(orderData) {
+      try {
+        const formData = new FormData();
+        formData.append('name', orderData.customer.name);
+        formData.append('phone', orderData.customer.phone);
+        formData.append('preferred_date', orderData.date);
+        formData.append('fulfillment', orderData.fulfillment + (orderData.address ? ` — ${orderData.address}` : ''));
+
+        const itemsText = (orderData.items || []).map(item => {
+          const lineTotal = item.price * (item.quantity || 1);
+          let line = `${item.quantity}x ${item.name} — $${lineTotal}`;
+          if (item.customizations?.tier) line += ` — ${item.customizations.tier}`;
+          if (item.customizations?.flavor) line += ` (${item.customizations.flavor})`;
+          if (item.customizations?.fillings?.length) line += ` | Filling: ${item.customizations.fillings.join(', ')}`;
+          if (item.customizations?.toppings?.length) line += ` | Toppings: ${item.customizations.toppings.join(', ')}`;
+          return line;
+        }).join('\n');
+
+        const total = (orderData.items || []).reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+
+        const fullMessage = `New Order for ${orderData.date}
+
+Customer: ${orderData.customer.name}
+Phone: ${orderData.customer.phone}
+
+Fulfillment: ${orderData.fulfillment}${orderData.address ? '\nAddress: ' + orderData.address : ''}
+
+Items:
+${itemsText}
+
+Est. Total: $${total}
+
+Allergies: ${orderData.allergies || 'None'}
+Notes: ${orderData.notes || 'None'}
+
+⚠️ 50% non-refundable deposit required within 24 hours via Cash App, Apple Pay, or Zelle.`;
+
+        formData.append('order_details', fullMessage);
+        formData.append('_subject', `New Sweettooth Order — ${orderData.date} — ${orderData.customer.name}`);
+        formData.append('_captcha', 'false');
+
+        // Fire and forget — we don't await or block the UI
+        fetch('https://formsubmit.co/sweettoothcravingsorder@gmail.com', {
+          method: 'POST',
+          body: formData
+        }).catch(() => {});
+      } catch (err) {
+        // Silent fail — order still saved locally and SMS flow still works
+        console.log('Background order email (non-critical):', err);
+      }
     }
 
     function copyOrderAsTextMessage() {
