@@ -848,11 +848,13 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
+        <!-- TALLY INTEGRATION - DO NOT REMOVE OR MODIFY THIS ATTRIBUTE -->
         <button data-tally-open="lbvyR5"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
+        <!-- End Tally button -->
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
       </div>
@@ -3397,11 +3399,13 @@ Notes: ${orderData.notes || 'None'}
     };
   </script>
 
-  <!-- Tally Forms Embed Script -->
+  <!-- TALLY INTEGRATION - DO NOT REMOVE -->
+  <!-- Tally Forms Embed Script - required for data-tally-open to work as popup -->
   <script async src="https://tally.so/widgets/embed.js"></script>
 
   <script>
     // Close the cart drawer when the Tally form (lbvyR5) opens as a popup
+    // This is part of the protected Tally integration
     window.addEventListener('Tally.FormOpen', function(e) {
       if (e.detail && e.detail.formId === 'lbvyR5') {
         var cartDrawer = document.getElementById('cart-drawer');
@@ -3411,5 +3415,6 @@ Notes: ${orderData.notes || 'None'}
       }
     });
   </script>
+  <!-- End Tally integration -->
 </body>
 </html>
