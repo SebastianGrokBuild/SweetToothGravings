@@ -233,12 +233,6 @@
             <span class="hidden lg:inline">@sweettoothcravings__</span>
           </a>
 
-          <!-- Request Your Order (Tally Form) -->
-          <button data-tally-open="lbvyR5"
-                  class="hidden md:flex items-center px-5 h-11 rounded-3xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white text-sm font-semibold transition-all active:scale-[0.985]">
-            Request Your Order
-          </button>
-
           <!-- Cart Button -->
           <button onclick="toggleCart()" 
                   class="flex items-center gap-x-2.5 px-5 h-11 rounded-3xl bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/30 hover:shadow-sm transition-all active:scale-[0.985]">
@@ -261,12 +255,6 @@
     <!-- Mobile Menu -->
     <div id="mobile-menu" class="hidden md:hidden border-t border-[#EDE4DC] bg-[#FDF8F5]">
       <div class="px-8 py-6 flex flex-col gap-y-4 text-sm font-medium">
-        <!-- Request Your Order (Tally Form) - Prominent on mobile -->
-        <button data-tally-open="lbvyR5" onclick="toggleMobileMenu()"
-                class="w-full py-3 mb-2 rounded-3xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white font-semibold text-base transition-all active:scale-[0.985]">
-          Request Your Order
-        </button>
-
         <a href="#menu" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Menu</a>
         <a href="#how" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">How it Works</a>
         <a href="#about" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">About</a>
@@ -672,10 +660,6 @@
         <div class="text-white/80 mt-1 text-lg">Let’s make something sweet together.</div>
       </div>
       <div class="flex flex-wrap gap-3">
-        <button data-tally-open="lbvyR5"
-                class="px-9 h-14 rounded-3xl bg-white text-[#C9A9E8] hover:bg-[#FDF8F5] transition font-semibold flex items-center gap-x-2">
-          <span>Request Your Order</span>
-        </button>
         <button onclick="openCustomOrder()" 
                 class="px-9 h-14 rounded-3xl border border-white/70 hover:bg-white/10 transition font-semibold flex items-center gap-x-2">
           <span>Start a Custom Order</span>
@@ -868,6 +852,12 @@
                 class="w-full h-14 bg-[#3F2A2B] hover:bg-black text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>REQUEST ORDER</span>
           <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <!-- Tally Form - appears only when items are in cart -->
+        <button data-tally-open="lbvyR5" onclick="toggleCart()"
+                class="w-full h-12 mt-3 rounded-3xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white font-semibold flex items-center justify-center gap-x-2 transition">
+          <span>Request Your Order</span>
         </button>
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
