@@ -3238,19 +3238,28 @@ Notes: ${orderData.notes || 'None'}
         setTimeout(() => updateMobileAddButton(), 10);
       }
 
-      // Swipe to dismiss (only on the white sheet, not on interactive pills)
+      // Swipe to dismiss (only on the white sheet, not on interactive pills/tiers)
       const sheet = document.getElementById('mobile-quick-order');
       const content = sheet ? sheet.querySelector('.w-full.bg-white') : null;
       if (content) {
         let startY = 0;
+        let isInteractiveTouch = false;
+
         content.addEventListener('touchstart', (e) => {
-          // don't swipe if tapping inside option pills or tier rows
+          // Protect taps on tiers and option pills from triggering swipe-to-close
           if (e.target.closest('#mobile-flavor-pills, #mobile-filling-pills, #mobile-topping-pills, .mobile-tier')) {
+            isInteractiveTouch = true;
             return;
           }
+          isInteractiveTouch = false;
           startY = e.touches[0].clientY;
         }, { passive: true });
+
         content.addEventListener('touchend', (e) => {
+          if (isInteractiveTouch) {
+            isInteractiveTouch = false;
+            return; // tap on selectable content — do not treat as swipe
+          }
           const endY = e.changedTouches[0].clientY;
           if (endY - startY > 90) {
             closeMobileQuickOrder();
