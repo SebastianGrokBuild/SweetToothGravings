@@ -852,7 +852,7 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <button onclick="Calendly.initPopupWidget({url: 'https://calendly.com/sweettoothcravingsorder/15min'}); toggleCart(); return false;"
+        <button onclick="openCalendly(); return false;"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -2496,6 +2496,19 @@ Notes: ${orderData.notes || 'None'}
       } else {
         // Fallback if Tally script not ready
         window.open('https://tally.so/r/lbvyR5', '_blank');
+      }
+    }
+
+    function openCalendly() {
+      const calendlyUrl = 'https://calendly.com/sweettoothcravingsorder/15min';
+
+      if (window.Calendly && typeof Calendly.initPopupWidget === 'function') {
+        Calendly.initPopupWidget({ url: calendlyUrl });
+        toggleCart(); // close cart after opening Calendly
+      } else {
+        // Fallback if Calendly script hasn't loaded yet
+        window.open(calendlyUrl, '_blank');
+        toggleCart();
       }
     }
 
