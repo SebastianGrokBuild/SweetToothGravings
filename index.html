@@ -208,7 +208,7 @@
         <!-- Logo -->
         <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" 
            class="flex items-center gap-x-2 sm:gap-x-3 cursor-pointer hover:opacity-90 transition-opacity">
-          <img src="assets/images/logo.gpj.png" alt="Sweet Tooth Cravings" class="h-10 sm:h-12 md:h-14 lg:h-16 w-auto" loading="lazy" onerror="this.style.display='none'">
+          <img src="assets/images/logo.gpj.png" alt="Sweet Tooth Cravings" class="h-10 sm:h-12 md:h-14 lg:h-16 w-auto" onerror="this.style.display='none'">
           <span class="font-semibold text-[14px] sm:text-base md:text-lg lg:text-[21px] tracking-[-0.4px] leading-none whitespace-nowrap">Sweettoothcravings</span>
         </a>
 
@@ -1244,7 +1244,6 @@
             <img src="${product.img}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="" 
-                 loading="lazy"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1295,7 +1294,6 @@
             <img src="${product.img}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="" 
-                 loading="lazy"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1386,6 +1384,7 @@
 
       modalImgEl.src = currentProduct.img
       modalImgEl.alt = currentProduct.name || ''
+      modalImgEl.loading = 'eager'
       modalImgEl.style.display = ''   // reset in case it was hidden from previous error
       modalImgFallback.classList.add('hidden')
 
