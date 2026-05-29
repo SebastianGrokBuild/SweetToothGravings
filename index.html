@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <!-- Tally Embed Script (loaded early for reliable popup binding) -->
   <script async src="https://tally.so/widgets/embed.js"></script>
+  <!-- Calendly Embed Script -->
+  <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
     
@@ -850,15 +852,11 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <!-- ========== TALLY POPUP BUTTON - DO NOT REMOVE OR MODIFY THIS ATTRIBUTE ========== -->
-        <!-- This button uses data-tally-open="lbvyR5" for the Tally popup.
-             The onclick is a reliable fallback in case auto-binding fails for hidden elements. -->
-        <button data-tally-open="lbvyR5" onclick="if(window.Tally && typeof window.Tally.openForm==='function'){window.Tally.openForm('lbvyR5')}else{window.open('https://tally.so/r/lbvyR5','_blank')}; setTimeout(function(){if(typeof toggleCart==='function'){var c=document.getElementById('cart-drawer');if(c && !c.classList.contains('hidden'))toggleCart();}},300)"
+        <button onclick="Calendly.initPopupWidget({url: 'https://calendly.com/sweettoothcravingsorder/15min'}); toggleCart(); return false;"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
-        <!-- ========== END TALLY POPUP BUTTON ========== -->
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
       </div>
