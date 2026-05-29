@@ -848,7 +848,7 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <button data-tally-open="lbvyR5" onclick="toggleCart()"
+        <button data-tally-open="lbvyR5" onclick="setTimeout(function(){ if(typeof toggleCart==='function') toggleCart(); }, 250)"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
