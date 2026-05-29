@@ -725,8 +725,9 @@
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
       <!-- Image -->
-      <div id="modal-image" class="h-60 w-full bg-cover bg-center relative flex items-center justify-center"
-           style="background: linear-gradient(180deg, #fdf8f5 0%, #f9f1eb 100%);">
+      <div id="modal-image" class="w-full bg-[#FDF8F5] relative flex items-center justify-center overflow-hidden"
+           style="max-height: 300px; min-height: 160px;">
+        <img id="modal-image-element" class="max-h-[300px] w-auto max-w-full object-contain" alt="">
         <div id="modal-image-fallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-[#6b5b5f]">
           <i class="fa-solid fa-image text-3xl mb-2 text-[#c9a9e8]"></i>
           <span class="text-sm font-medium">Photo not available</span>
@@ -1379,19 +1380,23 @@
         selectedToppings = [];
       }
 
-      const modalImg = document.getElementById('modal-image')
+      const modalImgContainer = document.getElementById('modal-image')
+      const modalImgEl = document.getElementById('modal-image-element')
       const modalImgFallback = document.getElementById('modal-image-fallback')
 
-      modalImg.style.backgroundImage = `url('${currentProduct.img}')`
+      modalImgEl.src = currentProduct.img
+      modalImgEl.alt = currentProduct.name || ''
+      modalImgEl.style.display = ''   // reset in case it was hidden from previous error
       modalImgFallback.classList.add('hidden')
 
-      // Basic broken image detection for the modal header
+      // Basic broken image detection
       const testImg = new Image()
       testImg.onload = () => {
         modalImgFallback.classList.add('hidden')
+        modalImgEl.style.display = ''
       }
       testImg.onerror = () => {
-        modalImg.style.backgroundImage = 'none'
+        modalImgEl.style.display = 'none'
         modalImgFallback.classList.remove('hidden')
       }
       testImg.src = currentProduct.img
@@ -1480,6 +1485,8 @@
       } else {
         // DETAILS MODE — Pure product information only
         image.style.display = 'block';
+        const imgEl = document.getElementById('modal-image-element');
+        if (imgEl) imgEl.style.display = '';
         description.style.display = 'block';
         if (infoBox) infoBox.style.display = 'block';
 
