@@ -838,7 +838,7 @@
           <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
         </div>
         
-        <!-- GATED CHECKOUT FLOW: Must copy details before Submit becomes available -->
+        <!-- GATED CHECKOUT FLOW: Must click "Copy Order Details" before "Submit Order Request" becomes available -->
         <button onclick="copyOrderDetails(); event.stopImmediatePropagation();"
                 class="w-full h-12 mb-3 bg-white border-2 border-[#C9A9E8] hover:bg-[#FDF8F5] text-[#C9A9E8] hover:text-[#B48AE0] rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition active:scale-[0.985]">
           <i class="fa-solid fa-copy text-sm"></i>
@@ -846,11 +846,14 @@
         </button>
 
         <button id="submit-order-btn"
-                data-tally-open="lbvyR5"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
-          <span>Submit Order Request</span>
+          <span>Request Order &amp; Date</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
+
+        <p class="mt-1.5 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
+          After selecting your date, you will be taken to our order form to complete your request.
+        </p>
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
       </div>
@@ -1129,7 +1132,7 @@
 
     let cart = []
     let currentProduct = null
-    let orderDetailsCopied = false  // Gating flag for cart checkout flow (must copy before Submit enabled)
+    let orderDetailsCopied = false   // Gating flag: must copy details before Submit is enabled
 
     // Render all products — every user-provided image now has its own card
     function renderProducts(filteredProducts = mainDesserts) {
@@ -2058,40 +2061,30 @@
       btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none', 'bg-gray-300', 'text-gray-500')
       btn.classList.remove('bg-[#C9A9E8]', 'hover:bg-[#B48AE0]', 'text-white')
 
-      // Remove the Tally attribute and any JS handler so the button is inert until copy
-      btn.removeAttribute('data-tally-open')
+      // Remove any previous handler so the button is inert until Copy is done
       btn.onclick = null
     }
 
     function enableSubmitButtonAfterCopy() {
+      orderDetailsCopied = true
+      checkAndEnableSubmit()
+    }
+
+    function checkAndEnableSubmit() {
       const btn = document.getElementById('submit-order-btn')
       if (!btn) return
 
-      orderDetailsCopied = true
+      if (orderDetailsCopied) {
+        // Copy step completed → enable Submit
+        btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none', 'bg-gray-300', 'text-gray-500')
+        btn.classList.add('bg-[#C9A9E8]', 'hover:bg-[#B48AE0]', 'text-white')
 
-      // Restore beautiful purple active state
-      btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none', 'bg-gray-300', 'text-gray-500')
-      btn.classList.add('bg-[#C9A9E8]', 'hover:bg-[#B48AE0]', 'text-white')
-
-      // Keep the button source clean (only data-tally-open + id as requested).
-      // Re-add the attribute the user wants to see.
-      btn.setAttribute('data-tally-open', 'lbvyR5')
-
-      // Attach redirect behavior via JS (does NOT add onclick to the HTML source).
-      // This makes clicking the button reliably redirect to the Tally form.
-      btn.onclick = function (e) {
-        if (e) e.preventDefault()
-
-        // Signal that a Tally submission is about to happen.
-        // The original page will detect this (via storage/focus) and clear the cart automatically.
-        localStorage.setItem('clearCartAfterTallySubmit', Date.now().toString())
-
-        window.open('https://tally.so/r/lbvyR5', '_blank')
-      }
-
-      // Optional: still try to scan for Tally (harmless)
-      if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
-        window.Tally.loadEmbeds()
+        // Open Calendly. Also set flag so cart can clear after the user later submits Tally (cross-tab safe).
+        btn.onclick = function (e) {
+          if (e) e.preventDefault()
+          localStorage.setItem('clearCartAfterTallySubmit', Date.now().toString())
+          window.open('https://calendly.com/sweettoothcravingsorder/15min', '_blank')
+        }
       }
     }
 
@@ -2105,11 +2098,10 @@
       if (typeof saveCartToStorage === 'function') saveCartToStorage()
       if (typeof updateCartCount === 'function') updateCartCount()
 
-      // If drawer is open, refresh its contents
+      // If drawer is open, refresh its contents and close it
       const drawer = document.getElementById('cart-drawer')
       if (drawer && !drawer.classList.contains('hidden')) {
         if (typeof renderCartItems === 'function') renderCartItems()
-        // Close the drawer after clearing
         setTimeout(function () {
           if (drawer && typeof toggleCart === 'function' && !drawer.classList.contains('hidden')) {
             toggleCart()
@@ -2117,7 +2109,7 @@
         }, 600)
       }
 
-      // Remove the flag so it doesn't trigger again
+      // Remove the flag
       localStorage.removeItem('clearCartAfterTallySubmit')
 
       return true
@@ -2154,7 +2146,7 @@
       summary += "Please contact us to arrange date and payment (Cash App / Zelle / Apple Pay)."
 
       navigator.clipboard.writeText(summary).then(() => {
-        // Enable the Submit button (gating complete)
+        // Enable the Submit button now that Copy step is done
         enableSubmitButtonAfterCopy()
 
         // Nice feedback on the Copy button
@@ -2301,19 +2293,17 @@
       // Also re-scan when user returns to the tab (common source of "button stopped working")
       window.addEventListener('pageshow', ensureTallyEmbeds);
 
-      // Listen for Tally submission from another tab (new tab redirect case)
-      // This allows the cart to clear automatically without page refresh.
+      // Cross-tab cart clear after Tally submit (for Calendly → Tally flow)
       window.addEventListener('storage', function (e) {
         if (e.key === 'clearCartAfterTallySubmit') {
           checkForTallySubmissionAndClearCart()
         }
       })
 
-      // Also check on focus / tab return (very reliable)
       window.addEventListener('focus', checkForTallySubmissionAndClearCart)
       window.addEventListener('pageshow', checkForTallySubmissionAndClearCart)
 
-      // One initial check on load
+      // Initial check
       setTimeout(checkForTallySubmissionAndClearCart, 800)
     }
 
@@ -3021,17 +3011,11 @@
       }
     });
 
-    // RELIABLE: Clear the cart automatically only after successful Tally submission (lbvyR5)
+    // Clear cart after Tally lbvyR5 submit (calls the cross-tab safe clearer)
     window.addEventListener('Tally.FormSubmit', function(e) {
       if (e.detail && e.detail.formId === 'lbvyR5') {
-        // Use the shared clearer (also removes any pending flag)
         if (typeof checkForTallySubmissionAndClearCart === 'function') {
           checkForTallySubmissionAndClearCart()
-        } else {
-          // Fallback
-          cart = [];
-          if (typeof saveCartToStorage === 'function') saveCartToStorage();
-          if (typeof updateCartCount === 'function') updateCartCount();
         }
       }
     });
