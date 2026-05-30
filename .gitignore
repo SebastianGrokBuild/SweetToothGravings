@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Backups and checkpoints
+backups/
+*.backup*
+*.pre-*
+BACKUP_*.txt
+index.html.pre-*
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Misc
+*.log
