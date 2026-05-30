@@ -107,6 +107,12 @@
 
     .product-img {
       transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: contrast(1.1) brightness(0.97) saturate(1.08);
+      /* Disable iPhone Live Photo video playback on hover (prevents flickering) */
+      image-rendering: crisp-edges;
+      pointer-events: none;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
     
     .product-card:hover .product-img {
@@ -309,15 +315,15 @@
           <div class="flex items-center gap-x-5 mt-10 text-sm">
             <div class="flex items-center -space-x-1">
               <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
-                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CUPCAKES</div>
               </div>
               <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
-                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">FLAN</div>
               </div>
               <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
-                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CAKES</div>
               </div>
             </div>
@@ -717,7 +723,7 @@
       <!-- Image -->
       <div id="modal-image" class="w-full bg-[#FDF8F5] relative flex items-center justify-center overflow-hidden"
            style="max-height: 320px;">
-        <img id="modal-image-element" class="max-h-[320px] w-full object-contain" alt="">
+        <img id="modal-image-element" class="max-h-[320px] w-full object-contain" style="filter: contrast(1.1) brightness(0.97) saturate(1.08); image-rendering: crisp-edges; pointer-events: none; user-select: none; -webkit-touch-callout: none;" alt="">
         <div id="modal-image-fallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-[#6b5b5f]">
           <i class="fa-solid fa-image text-3xl mb-2 text-[#c9a9e8]"></i>
           <span class="text-sm font-medium">Photo not available</span>
@@ -850,6 +856,10 @@
           <span>Request Order &amp; Date</span>
           <i class="fa-solid fa-arrow-right"></i>
         </button>
+
+        <p class="mt-1.5 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
+          After you submit your order, we will review it and send you a secure Stripe payment link within 24 hours.
+        </p>
 
         <p class="mt-1.5 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
           After selecting your date, you will be taken to our order form to complete your request.
@@ -1150,6 +1160,7 @@
             <img src="${product.img}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="" 
+                 loading="eager"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1198,6 +1209,7 @@
             <img src="${product.img}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="" 
+                 loading="eager"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -2628,7 +2640,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
               <div class="flex items-center gap-x-3">
-                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" alt="">
+                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="">
                 <div>
                   <div class="font-semibold text-lg leading-tight">${product.name}</div>
                   <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>
