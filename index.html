@@ -6,8 +6,8 @@
   <title>Sweet Tooth Cravings • Miami, FL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Tally Embed Script (loaded early for reliable popup binding) -->
-  <script async src="https://tally.so/widgets/embed.js"></script>
+  <!-- Tally Embed Script (loaded early + synchronously for reliable binding to the hidden cart Submit button) -->
+  <script src="https://tally.so/widgets/embed.js" id="tally-embed"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
     
@@ -203,6 +203,14 @@
   </style>
 </head>
 <body class="bg-[#FDF8F5] text-[#3F2A2B] antialiased">
+  <!-- Force start at top on refresh / page load (prevents jumping to #policies etc.) -->
+  <script>
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  </script>
+
   <!-- NAVBAR -->
   <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-[#FDF8F5]/95 backdrop-blur-md border-b border-[#EDE4DC]">
     <div class="max-w-screen-2xl mx-auto">
@@ -220,7 +228,6 @@
           <a href="#how" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">How it Works</a>
           <a href="#about" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">About</a>
           <a href="#policies" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Policies</a>
-          <a href="#quick-order" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Quick Order</a>
           <button onclick="openReviewsModal()" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B] flex items-center gap-x-1">
             <i class="fa-solid fa-star text-sm"></i>
             <span>Reviews</span>
@@ -261,7 +268,6 @@
         <a href="#how" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">How it Works</a>
         <a href="#about" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">About</a>
         <a href="#policies" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Policies</a>
-        <a href="#quick-order" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Quick Order</a>
         <button onclick="openReviewsModal(); toggleMobileMenu()" class="py-1 text-left flex items-center gap-x-2 text-[#5C4A4B]">
           <i class="fa-solid fa-star"></i> <span>Reviews</span>
         </button>
@@ -298,11 +304,6 @@
               Browse Menu
               <i class="fa-solid fa-arrow-right"></i>
             </a>
-            <button onclick="openCustomOrder()"
-                    class="inline-flex items-center justify-center gap-x-3 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] text-white font-semibold px-8 h-13 sm:h-14 rounded-3xl transition-all text-base shadow-lg shadow-[#C9A9E8]/30">
-              <i class="fa-solid fa-magic"></i>
-              <span>Custom Order</span>
-            </button>
           </div>
 
           <div class="flex items-center gap-x-5 mt-10 text-sm">
@@ -661,11 +662,7 @@
         <div class="font-semibold text-3xl tracking-tight heading-serif">Ready to satisfy your cravings?</div>
         <div class="text-white/80 mt-1 text-lg">Let’s make something sweet together.</div>
       </div>
-      <div class="flex flex-wrap gap-3">
-        <button onclick="openCustomOrder()" 
-                class="px-9 h-14 rounded-3xl border border-white/70 hover:bg-white/10 transition font-semibold flex items-center gap-x-2">
-          <span>Start a Custom Order</span>
-        </button>
+      <div>
         <button onclick="document.getElementById('menu').scrollIntoView({ behavior: 'smooth' })" 
                 class="px-9 h-14 bg-white text-[#C9A9E8] hover:bg-[#FDF8F5] transition font-semibold flex items-center gap-x-2 rounded-3xl">
           <span>Browse Full Menu</span>
@@ -700,7 +697,6 @@
           <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="hover:text-[#C9A9E8] transition flex items-center gap-x-1.5">
             <i class="fa-brands fa-instagram"></i> <span>@sweettoothcravings__</span>
           </a>
-          <button onclick="openCustomOrder()" class="hover:text-[#C9A9E8] transition">Custom orders</button>
           <button onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">Ordering policies</button>
         </div>
 
@@ -843,6 +839,7 @@
         </div>
         
         <button data-tally-open="lbvyR5"
+                onclick="openTallyForm(); event.stopImmediatePropagation();"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
           <span>Submit Order Request</span>
           <i class="fa-solid fa-arrow-right"></i>
@@ -1154,8 +1151,6 @@
           <div class="p-5 flex-1 flex flex-col">
             <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
             
-            <div class="text-xs text-[#8B6F6F] mb-auto line-clamp-2">${product.shortDesc}</div>
-            
             <div class="flex flex-col sm:flex-row gap-2 mt-5">
               <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
                       class="flex-1 h-11 text-sm rounded-2xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium transition active:scale-[0.985]">
@@ -1203,8 +1198,6 @@
           
           <div class="p-5 flex-1 flex flex-col">
             <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
-            
-            <div class="text-xs text-[#8B6F6F] mb-auto line-clamp-3">${product.shortDesc}</div>
             
             <div class="flex flex-col sm:flex-row gap-2 mt-5">
               <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
@@ -2030,15 +2023,20 @@
         drawer.classList.add('flex')
         renderCartItems()
 
-        // Force Tally to scan for embeds (important for elements in hidden drawers)
+        // The Submit Order Request button has data-tally-open="lbvyR5" + a direct reliable
+        // onclick fallback (openTallyForm) so it always opens the Tally form, even if
+        // the embed script's automatic binding misses the initially-hidden button.
+        // We still call loadEmbeds on open for good measure.
         if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
           window.Tally.loadEmbeds()
-          // Call again shortly after in case the script was still loading
-          setTimeout(function() {
-            if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
-              window.Tally.loadEmbeds()
-            }
-          }, 300)
+          // Very aggressive retry schedule (covers slow networks + animation frames)
+          ;[30, 80, 180, 350, 650, 1100, 1800, 2500].forEach(function(delay) {
+            setTimeout(function() {
+              if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
+                window.Tally.loadEmbeds()
+              }
+            }, delay)
+          })
         }
       } else {
         drawer.classList.add('hidden')
@@ -2066,10 +2064,12 @@
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    function openCustomOrder() {
+    // Reliable helper to open the Tally form (used by the cart Submit button)
+    function openTallyForm() {
       if (typeof window.Tally !== 'undefined' && typeof window.Tally.openForm === 'function') {
         window.Tally.openForm('lbvyR5');
       } else {
+        // Fallback if script not ready yet
         window.open('https://tally.so/r/lbvyR5', '_blank');
       }
     }
@@ -2154,14 +2154,6 @@
       // Demo: Add one popular item on first visit hint (commented — keep clean)
       // console.log('%c[Sweet Tooth Cravings] Website ready.', 'color:#8B6F6F')
       
-      // Bonus: Press "?" to open custom order (fun)
-      document.addEventListener('keydown', (e) => {
-        if (e.key === '?' && document.activeElement.tagName === 'BODY') {
-          e.preventDefault()
-          openCustomOrder()
-        }
-      })
-      
       // Preload a couple images for smoothness (already local)
       console.log('%c[Sweet Tooth Cravings] Clean modern baking site initialized.', 'color:#C9A9E8')
 
@@ -2169,6 +2161,20 @@
       if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
         window.Tally.loadEmbeds()
       }
+
+      // Belt-and-suspenders: ensure Tally scans the (currently hidden) Submit Order Request button
+      function ensureTallyEmbeds() {
+        if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
+          window.Tally.loadEmbeds();
+        }
+      }
+      ensureTallyEmbeds();
+      // Extra late safety net
+      setTimeout(ensureTallyEmbeds, 1800);
+      setTimeout(ensureTallyEmbeds, 3200);
+
+      // Also re-scan when user returns to the tab (common source of "button stopped working")
+      window.addEventListener('pageshow', ensureTallyEmbeds);
     }
 
     // ==================== REVIEWS SYSTEM ====================
@@ -2850,15 +2856,24 @@
 
     // Boot app
     window.onload = function() {
+      // Always start at the very top on refresh / initial load
+      window.scrollTo(0, 0);
+
       initializeWebsite();
       initMobileBottomSheets();
+
+      // Final safety net in case something else tried to scroll
+      setTimeout(function() {
+        window.scrollTo(0, 0);
+      }, 50);
     };
   </script>
 
   <!-- TALLY INTEGRATION - DO NOT REMOVE -->
   <script>
-    // Close the cart drawer when the Tally form (lbvyR5) opens as a popup
-    // This is part of the protected Tally integration
+    // Auto-close the cart drawer when the Tally form (lbvyR5) opens as a popup.
+    // The purple "Submit Order Request" button in the cart uses data-tally-open="lbvyR5"
+    // plus a direct openTallyForm() call for guaranteed behavior.
     window.addEventListener('Tally.FormOpen', function(e) {
       if (e.detail && e.detail.formId === 'lbvyR5') {
         var cartDrawer = document.getElementById('cart-drawer');
