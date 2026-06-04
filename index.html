@@ -106,16 +106,22 @@
     }
 
     .product-img {
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       filter: contrast(1.1) brightness(0.97) saturate(1.08);
       /* Disable iPhone Live Photo video playback on hover (prevents flickering) */
       image-rendering: crisp-edges;
       pointer-events: none;
       user-select: none;
       -webkit-touch-callout: none;
+      -webkit-user-drag: none;
     }
-    
-    .product-card:hover .product-img {
+
+    /* Apply hover scale to the container instead of the image to avoid triggering Live Photo behavior */
+    .product-image-container {
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: center;
+    }
+
+    .product-card:hover .product-image-container {
       transform: scale(1.04);
     }
 
@@ -566,98 +572,57 @@
     </div>
   </section>
 
-  <!-- TESTIMONIALS -->
-  <section class="max-w-screen-2xl mx-auto px-8 pb-20">
-    <div class="bg-[#3F2A2B] text-white rounded-[3rem] px-9 py-12 md:py-14">
-      <div class="max-w-5xl mx-auto">
-        <div class="flex items-center justify-between mb-8">
-          <div class="flex items-center gap-x-3">
-            <div class="text-[#C9A9E8]">
-              <i class="fa-solid fa-star text-xl"></i>
-            </div>
-            <div class="uppercase tracking-[1.5px] text-xs font-semibold text-[#C8B3B5]">LOVED BY MIAMI</div>
-          </div>
-          <button onclick="openReviewsModal()" 
-                  class="text-sm font-medium text-[#C9A9E8] hover:underline flex items-center gap-x-1">
-            See all reviews &amp; leave yours →
-          </button>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-7">
-          <div>
-            <div class="flex text-[#C9A9E8] mb-3">
-              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-            </div>
-            <p class="leading-snug text-white/90">"The 2-tier cake for my daughter’s birthday was absolutely stunning and tasted even better. Everyone asked where I got it!"</p>
-            <div class="mt-4 text-xs text-[#C8B3B5]">— Maria G., Coral Gables</div>
-          </div>
-          <div>
-            <div class="flex text-[#C9A9E8] mb-3">
-              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-            </div>
-            <p class="leading-snug text-white/90">"The chocolate covered strawberries and flan were a hit at our Galentine’s party. Will definitely be ordering again."</p>
-            <div class="mt-4 text-xs text-[#C8B3B5]">— Jasmine T., Brickell</div>
-          </div>
-          <div>
-            <div class="flex text-[#C9A9E8] mb-3">
-              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-            </div>
-            <p class="leading-snug text-white/90">"Ordered the letter cake and churro cheesecake for my mom’s 60th. Both were gorgeous and perfectly sweet. Thank you!"</p>
-            <div class="mt-4 text-xs text-[#C8B3B5]">— Carlos R., Kendall</div>
-          </div>
-        </div>
-      </div>
+  <!-- INSTAGRAM GALLERY -->
+  <section class="max-w-screen-2xl mx-auto px-8 py-16 bg-white border-t border-[#EDE4DC]">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl md:text-3xl font-medium text-[#3F2A2B] tracking-tight">Follow our daily bakes on Instagram for behind-the-scenes magic.</h2>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" 
+         class="inline-flex items-center gap-x-1.5 mt-2 text-sm text-[#C9A9E8] hover:text-[#B48AE0] transition">
+        <i class="fa-brands fa-instagram text-lg"></i>
+        <span>@sweettoothcravings__</span>
+      </a>
     </div>
-  </section>
 
-  <!-- QUICK ORDER FORM -->
-  <section id="quick-order" class="max-w-screen-2xl mx-auto px-8 py-16 bg-white border-t border-[#EDE4DC]">
-    <div class="max-w-md mx-auto">
-      <div class="text-center mb-8">
-        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Ready to Order?</div>
-        <h2 class="heading-serif section-title mt-1.5">Quick Order Form</h2>
-        <p class="text-[#6B5B5F] mt-2">Fill this out and we’ll get back to you within 24 hours.</p>
-      </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+      <!-- Instagram photos - replace with your actual images -->
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/cupcakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Cupcakes from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/chocoflan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Chocoflan from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/coquito.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Coquito from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/churro-cheesecake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Churro Cheesecake from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/2-tier-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="2 Tier Cakes from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/custom-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Custom Cakes from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/bento-cake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Bento Cake from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/flan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Flan from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/breakable-heart.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Breakable Heart from Sweet Tooth Cravings">
+      </a>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
+        <img src="assets/images/mini-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Mini Cakes from Sweet Tooth Cravings">
+      </a>
+    </div>
 
-      <form action="https://formsubmit.co/sweettoothcravingsorder@gmail.com" method="POST" class="space-y-4">
-        <div>
-          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">YOUR FULL NAME *</label>
-          <input type="text" name="name" placeholder="Your Full Name" required
-                 class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">YOUR PHONE NUMBER *</label>
-          <input type="tel" name="phone" placeholder="Your Phone Number" required
-                 class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">CAKE FLAVOR OR TYPE *</label>
-          <input type="text" name="flavor" placeholder="Cake Flavor or Type" required
-                 class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-base">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold tracking-wider text-[#8B6F6F] mb-1">ORDER DETAILS / SPECIAL INSTRUCTIONS *</label>
-          <textarea name="details" placeholder="Order details, size, date needed, special instructions..." rows="5" required
-                    class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-base"></textarea>
-        </div>
-
-        <!-- FormSubmit hidden fields -->
-        <input type="hidden" name="_subject" value="New Cake Order Received!">
-        <input type="hidden" name="_next" value="https://sebastiangrokbuild.github.io/SweetToothGravings/">
-        <input type="hidden" name="_captcha" value="false">
-
-        <button type="submit" 
-                class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] text-white rounded-3xl font-semibold text-lg transition flex items-center justify-center gap-x-2">
-          Submit Order
-        </button>
-      </form>
-
-      <p class="text-center text-xs text-[#8B6F6F] mt-4">
-        We’ll reply within 24 hours to confirm details and arrange the 50% deposit.
-      </p>
+    <div class="mt-8 text-center">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" 
+         class="inline-flex items-center justify-center gap-x-2 px-8 h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold transition">
+        <i class="fa-brands fa-instagram"></i>
+        <span>Follow on Instagram</span>
+      </a>
     </div>
   </section>
 
@@ -1161,6 +1126,7 @@
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="" 
                  loading="eager"
+                 decoding="sync"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1210,6 +1176,7 @@
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="" 
                  loading="eager"
+                 decoding="sync"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1299,6 +1266,7 @@
       modalImgEl.src = currentProduct.img
       modalImgEl.alt = currentProduct.name || ''
       modalImgEl.loading = 'eager'
+      modalImgEl.decoding = 'sync'
       modalImgEl.style.display = ''   // reset in case it was hidden from previous error
       modalImgFallback.classList.add('hidden')
 
@@ -2640,7 +2608,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
               <div class="flex items-center gap-x-3">
-                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="">
+                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" decoding="sync" alt="">
                 <div>
                   <div class="font-semibold text-lg leading-tight">${product.name}</div>
                   <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>
