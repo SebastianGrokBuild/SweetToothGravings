@@ -1,0 +1,15 @@
+# Deploy full site + API on Render (recommended for sweettoothcravings.shop)
+# Dashboard: New → Blueprint → connect repo → use this file
+services:
+  - type: web
+    name: sweettooth-cravings
+    runtime: node
+    plan: free
+    buildCommand: echo "No build"
+    startCommand: node serve.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: PORT
+        value: "10000"

@@ -186,10 +186,12 @@ async function parseCartSubmitRequest(req) {
 
 function json(res, code, data, headers = {}) {
   const body = JSON.stringify(data);
+  const cors = activeApiRequest ? corsHeaders(activeApiRequest) : {};
   res.writeHead(code, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "Content-Length": Buffer.byteLength(body),
+    ...cors,
     ...headers,
   });
   res.end(body);
@@ -289,10 +291,43 @@ function stripeCheckout(order, cents, baseUrl) {
   });
 }
 
+// ─── CORS (live shop on GitHub Pages → API on another host) ───────────────
+
+const LIVE_ORIGINS = new Set([
+  "https://sweettoothcravings.shop",
+  "https://www.sweettoothcravings.shop",
+]);
+
+function corsHeaders(req) {
+  const origin = req.headers.origin || "";
+  const headers = {
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+  const allow =
+    LIVE_ORIGINS.has(origin) ||
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+  if (origin && allow) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Access-Control-Allow-Credentials"] = "true";
+  }
+  return headers;
+}
+
+let activeApiRequest = null;
+
 // ─── API routes ────────────────────────────────────────────────────────────
 
 async function api(req, res, pathname, baseUrl) {
+  activeApiRequest = req;
   const method = req.method;
+
+  if (method === "OPTIONS") {
+    res.writeHead(204, { ...corsHeaders(req), "Content-Length": "0" });
+    res.end();
+    return;
+  }
 
   if (method === "GET" && pathname === "/api/health") {
     const orderEmail = await notify.checkEmailReady();
@@ -562,6 +597,13 @@ async function api(req, res, pathname, baseUrl) {
       console.error("[orders]", e);
       return json(res, 500, { error: e.message });
     }
+  }
+
+  if (pathname === "/api/cart-submit") {
+    return json(res, 405, {
+      error: "Method not allowed. Submit orders with POST.",
+      allowed: ["POST", "OPTIONS"],
+    });
   }
 
   return json(res, 404, { error: "Not found" });

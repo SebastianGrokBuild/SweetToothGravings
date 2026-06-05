@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Sweet Tooth Cravings • Miami, FL</title>
+  <script src="/config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
@@ -2104,6 +2105,36 @@
 
     const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
+    function stcApiUrl(path) {
+      const base = (window.STC_API_BASE || '').replace(/\/$/, '')
+      return base ? base + path : path
+    }
+
+    function stcEnsureApiConfigured() {
+      const host = location.hostname
+      const isLiveShop = host === 'sweettoothcravings.shop' || host === 'www.sweettoothcravings.shop'
+      if (isLiveShop && !window.STC_API_BASE) {
+        throw new Error(
+          'Orders are not connected to this website yet. Deploy the order server (node serve.js) and set PRODUCTION_API in config.js. See DEPLOY.md in the project folder.'
+        )
+      }
+    }
+
+    async function stcParseJsonResponse(res) {
+      const text = await res.text()
+      if (!text) return {}
+      try {
+        return JSON.parse(text)
+      } catch {
+        if (res.status === 405) {
+          throw new Error(
+            'Order server returned 405 (not allowed). The live site must use a running API — deploy node serve.js (Render/Railway) or run locally with node serve.js.'
+          )
+        }
+        throw new Error(`Server error (${res.status}). Could not read response.`)
+      }
+    }
+
     function cartSubmitAddImages(fileList) {
       if (!fileList) return
       const incoming = []
@@ -2237,6 +2268,8 @@
       }
 
       try {
+        stcEnsureApiConfigured()
+        const submitUrl = stcApiUrl('/api/cart-submit')
         let res
         if (cartSubmitImages.length) {
           const fd = new FormData()
@@ -2247,16 +2280,16 @@
             }
             fd.append('photos', file, file.name || 'photo.jpg')
           }
-          res = await fetch('/api/cart-submit', { method: 'POST', body: fd })
+          res = await fetch(submitUrl, { method: 'POST', body: fd })
         } else {
-          res = await fetch('/api/cart-submit', {
+          res = await fetch(submitUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           })
         }
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'Could not submit')
+        const json = await stcParseJsonResponse(res)
+        if (!res.ok) throw new Error(json.error || `Could not submit (${res.status})`)
 
         const orderId = json.orderId
         const photoErrors = json.photoErrors || []
