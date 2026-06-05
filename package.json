@@ -1,0 +1,8 @@
+{
+  "name": "sweettooth-cravings",
+  "private": true,
+  "scripts": {
+    "start": "node serve.js",
+    "dev": "node serve.js"
+  }
+}

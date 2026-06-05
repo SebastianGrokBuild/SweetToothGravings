@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Sweet Tooth Cravings • Miami, FL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <!-- Tally Embed Script (loaded early + synchronously for reliable binding to the hidden cart Submit button) -->
-  <script src="https://tally.so/widgets/embed.js" id="tally-embed"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
     
@@ -212,6 +211,16 @@
     #mobile-quick-order button {
       min-height: 40px;
     }
+
+    /* Submit Request modal — tall, scrollable body, sticky submit */
+    #cart-submit-modal .cart-submit-panel {
+      max-height: min(92vh, 900px);
+    }
+    #cart-submit-modal .cart-submit-scroll {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
   </style>
 </head>
 <body class="bg-[#FDF8F5] text-[#3F2A2B] antialiased">
@@ -346,7 +355,7 @@
             <span class="font-medium">4–5 day lead time</span>
           </div>
           <div class="h-3 w-px bg-[#EDE4DC]"></div>
-          <div class="text-[#C9A9E8] font-semibold">50% deposit to book</div>
+          <div class="text-[#C9A9E8] font-semibold">50% deposit after your quote</div>
         </div>
       </div>
     </div>
@@ -465,8 +474,8 @@
           <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
             <i class="fa-solid fa-credit-card"></i>
           </div>
-          <div class="font-semibold text-lg mb-1.5">3. Secure with 50% deposit</div>
-          <p class="text-sm leading-relaxed text-[#6B5B5F]">A non-refundable 50% deposit is required to confirm your order. No deposit = no order.</p>
+          <div class="font-semibold text-lg mb-1.5">3. Review &amp; secure payment</div>
+          <p class="text-sm leading-relaxed text-[#6B5B5F]">We review your request, send your final price, then a secure Stripe link for the 50% deposit to confirm your order.</p>
         </div>
         
         <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
@@ -514,7 +523,7 @@
             <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Most orders: <span class="font-semibold">4–5 days</span> in advance</li>
             <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Full catering: <span class="font-semibold">1 week</span> minimum</li>
             <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Pickup or Delivery (+ fee)</li>
-            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> 50% non-refundable deposit required</li>
+            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> 50% deposit via Stripe after we send your quote</li>
           </ul>
           <div class="mt-6 pt-5 border-t text-[#8B6F6F] text-xs">Final pricing depends on decoration, size, and custom requests.</div>
         </div>
@@ -539,8 +548,8 @@
           <h3 class="text-2xl font-semibold tracking-tight">Payments</h3>
         </div>
         <div class="text-[#5C4A4B] leading-relaxed space-y-3">
-          <p>I accept <strong>Cash App, Apple Pay, or Zelle</strong>. Cash if exact change only.</p>
-          <p>All orders require a <strong>50% non-refundable deposit</strong> that must be paid within 24 hours of placing your order or it will be cancelled. Remaining balance is due the day BEFORE pickup or drop-off.</p>
+          <p>After we review your request, we&apos;ll send your <strong>final price</strong> and a <strong>secure Stripe payment link</strong> for the 50% non-refundable deposit to confirm your order.</p>
+          <p>The remaining balance is due the day before pickup or delivery. We&apos;ll reach out via <strong>text or Instagram</strong> within 24 hours.</p>
         </div>
       </div>
 
@@ -806,28 +815,17 @@
 
       <div class="p-7 border-t bg-[#FDF8F5]">
         <div class="text-xs text-[#6B5B5F] mb-3 px-1">
-          <strong>Reminder:</strong> A 50% non-refundable deposit is required to confirm this order.
+          <strong>Reminder:</strong> No payment today — we&apos;ll review your request, then send final pricing and a Stripe link for the 50% deposit.
         </div>
-        
-        <!-- GATED CHECKOUT FLOW: Must click "Copy Order Details" before "Submit Order Request" becomes available -->
-        <button onclick="copyOrderDetails(); event.stopImmediatePropagation();"
-                class="w-full h-12 mb-3 bg-white border-2 border-[#C9A9E8] hover:bg-[#FDF8F5] text-[#C9A9E8] hover:text-[#B48AE0] rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition active:scale-[0.985]">
-          <i class="fa-solid fa-copy text-sm"></i>
-          <span>Copy Order Details</span>
+
+        <button type="button" id="submit-order-btn" onclick="openCartSubmitModal()"
+                class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition active:scale-[0.985] disabled:opacity-50 disabled:pointer-events-none">
+          <span>Submit Request</span>
+          <i class="fa-solid fa-paper-plane text-sm"></i>
         </button>
 
-        <button id="submit-order-btn"
-                class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition">
-          <span>Request Order &amp; Date</span>
-          <i class="fa-solid fa-arrow-right"></i>
-        </button>
-
-        <p class="mt-1.5 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
-          After you submit your order, we will review it and send you a secure Stripe payment link within 24 hours.
-        </p>
-
-        <p class="mt-1.5 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
-          After selecting your date, you will be taken to our order form to complete your request.
+        <p class="mt-2 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
+          Your order is saved securely. We&apos;ll review everything and follow up with pricing and next steps.
         </p>
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
@@ -837,26 +835,17 @@
 
   <!-- SUCCESS MODAL -->
   <div id="success-modal" onclick="if (event.target.id === 'success-modal') closeSuccessModal()" class="hidden fixed inset-0 z-[100] bg-black/70 backdrop-blur flex items-center justify-center p-4">
-    <div onclick="event.stopImmediatePropagation()" class="modal bg-white rounded-3xl max-w-md w-full px-8 py-9 text-center">
-      <div class="mx-auto w-16 h-16 flex items-center justify-center bg-[#FDF8F5] rounded-full mb-6">
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white rounded-3xl max-w-lg w-full px-8 py-9 text-center max-h-[90vh] overflow-y-auto">
+      <div class="mx-auto w-16 h-16 flex items-center justify-center bg-[#F5EEFC] rounded-full mb-6">
         <i class="fa-solid fa-check text-4xl text-[#C9A9E8]"></i>
       </div>
       
       <div class="heading-serif text-3xl tracking-tight">Thank you!</div>
-      <div class="mt-2 text-lg">Your order request has been sent to our team.</div>
-      
-      <div class="mt-6 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-left text-sm text-[#3F2A2B]">
-        <strong>Important — 50% Non-Refundable Deposit Required</strong><br>
-        A 50% deposit must be paid via Cash App, Apple Pay, or Zelle within <strong>24 hours</strong> of placing your order, or it will be automatically cancelled.<br>
-        Remaining balance is due the day before pickup/delivery.
-      </div>
-
-      <div class="mt-7 p-4 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl text-left text-xs text-[#6B5B5F]">
-        We will contact you via phone or text. You can also reach us directly on Instagram <span class="font-medium">@sweettoothcravings__</span>.
-      </div>
+      <div id="success-modal-body" class="mt-5 text-left text-sm text-[#5C4A4B] leading-relaxed space-y-3"></div>
+      <p id="success-modal-ref" class="mt-4 text-xs text-[#8B6F6F] font-mono hidden"></p>
 
       <button onclick="closeSuccessModal()" 
-              class="mt-4 w-full h-11 text-[#8B6F6F] hover:text-[#3F2A2B] font-medium">Back to site</button>
+              class="mt-6 w-full h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold">Done</button>
     </div>
   </div>
 
@@ -929,6 +918,71 @@
         </form>
       </div>
 
+    </div>
+  </div>
+
+  <!-- CART SUBMIT MODAL (menu orders → Google Sheet) -->
+  <div id="cart-submit-modal" onclick="if (event.target.id === 'cart-submit-modal') closeCartSubmitModal()" class="hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div onclick="event.stopImmediatePropagation()" class="cart-submit-panel modal bg-white w-full sm:max-w-lg md:max-w-xl md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden">
+      <div class="sm:hidden flex justify-center pt-2 pb-1 shrink-0">
+        <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
+      </div>
+
+      <div class="shrink-0 px-6 sm:px-8 pt-5 sm:pt-7 pb-4 border-b border-[#EDE4DC]">
+        <div class="flex justify-between items-start gap-3">
+          <div>
+            <div class="heading-serif text-2xl sm:text-3xl tracking-tight">Submit Request</div>
+            <p class="text-sm text-[#6B5B5F] mt-1">We&apos;ll review your order and get back to you.</p>
+          </div>
+          <button type="button" onclick="closeCartSubmitModal()" class="text-[#8B6F6F] p-1 shrink-0" aria-label="Close"><i class="fa-solid fa-times text-2xl"></i></button>
+        </div>
+      </div>
+
+      <form id="cart-submit-form" onsubmit="submitCartRequest(event)" class="flex flex-col flex-1 min-h-0">
+        <div class="cart-submit-scroll flex-1 overflow-y-auto px-6 sm:px-8 py-5 space-y-4">
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">YOUR NAME *</label>
+            <input type="text" id="cart-submit-name" required class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">EMAIL *</label>
+            <input type="email" id="cart-submit-email" required class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">PHONE</label>
+            <input type="tel" id="cart-submit-phone" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">DATE NEEDED</label>
+            <input type="date" id="cart-submit-date" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">ALLERGIES</label>
+            <input type="text" id="cart-submit-allergies" placeholder="List any allergies" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">ORDER NOTES</label>
+            <textarea id="cart-submit-notes" rows="3" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm" placeholder="Pickup or delivery, decoration details, custom cake vision..."></textarea>
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">INSPIRATION PHOTOS (OPTIONAL)</label>
+            <p class="text-[10px] text-[#a38a8f] mt-0.5">Up to 6 photos, 10MB each</p>
+            <p class="text-[10px] text-[#8B6F6F] mt-0.5 mb-2">Instagram screenshots or reference images — up to 6</p>
+            <label class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C9A9E8]/40 bg-[#FDF8F5] py-6 cursor-pointer hover:border-[#C9A9E8] transition">
+              <i class="fa-solid fa-camera text-xl text-[#C9A9E8]"></i>
+              <span class="mt-1.5 text-xs font-semibold">Tap to add photos</span>
+              <input type="file" id="cart-submit-photos" accept="image/*" multiple class="hidden" onchange="cartSubmitAddImages(this.files)">
+            </label>
+            <div id="cart-submit-previews" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+          </div>
+        </div>
+
+        <div class="shrink-0 border-t border-[#EDE4DC] bg-[#FDF8F5] px-6 sm:px-8 py-4 sm:py-5">
+          <button type="submit" id="cart-submit-btn" class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold text-base shadow-sm">
+            Submit Request
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1107,7 +1161,7 @@
 
     let cart = []
     let currentProduct = null
-    let orderDetailsCopied = false   // Gating flag: must copy details before Submit is enabled
+
 
     // Render all products — every user-provided image now has its own card
     function renderProducts(filteredProducts = mainDesserts) {
@@ -1119,6 +1173,11 @@
         card.className = `product-card group bg-white border border-[#EDE4DC] rounded-3xl overflow-hidden flex flex-col`
         
         const priceLabel = product.startingAt ? `Starting at $${product.price}` : `$${product.price}`
+        const selectBtn = `<button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
+                      class="flex-1 h-11 text-sm rounded-2xl bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Select</span>
+              </button>`
         
         card.innerHTML = `
           <div class="relative overflow-hidden aspect-[4/3] bg-[#F9F1EB] product-image-container">
@@ -1144,11 +1203,7 @@
                       class="flex-1 h-11 text-sm rounded-2xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium transition active:scale-[0.985]">
                 View Details
               </button>
-              <button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="flex-1 h-11 text-sm rounded-2xl bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
-                <i class="fa-solid fa-plus text-xs"></i>
-                <span>Select</span>
-              </button>
+              ${selectBtn}
             </div>
           </div>
         `
@@ -1211,7 +1266,7 @@
     
     // Main menu items (excludes Party Packages which has its own dedicated section)
     const mainDesserts = products.filter(p => p.category !== 'party')
-    
+
     function filterProducts(category) {
       currentFilter = category
       
@@ -1887,7 +1942,7 @@
         subtotalEl.textContent = ''
 
         // Make sure Submit stays disabled when cart is emptied
-        if (typeof resetSubmitButtonState === 'function') resetSubmitButtonState()
+        updateCartSubmitButton()
         return
       }
 
@@ -1955,6 +2010,7 @@
 
       container.innerHTML = html
       subtotalEl.innerHTML = `<span class="font-medium">Est. starting total:</span> <span class="font-semibold">$${startingTotal}</span>`
+      updateCartSubmitButton()
     }
 
     function changeCartQty(index, delta) {
@@ -2017,142 +2073,213 @@
         drawer.classList.add('flex')
         renderCartItems()
 
-        // === GATED FLOW: Every time the cart opens, Submit must be disabled until Copy is clicked ===
-        resetSubmitButtonState()
-
-        // Still try to scan any other Tally elements (defensive)
-        if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
-          window.Tally.loadEmbeds()
-        }
+        updateCartSubmitButton()
       } else {
         drawer.classList.add('hidden')
         drawer.classList.remove('flex')
       }
     }
 
-    // === GATED CART CHECKOUT HELPERS (mimics product modal flavor/filling requirement) ===
-    function resetSubmitButtonState() {
+    function updateCartSubmitButton() {
       const btn = document.getElementById('submit-order-btn')
       if (!btn) return
-
-      orderDetailsCopied = false
-
-      // Visually disable + prevent interaction
-      btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none', 'bg-gray-300', 'text-gray-500')
-      btn.classList.remove('bg-[#C9A9E8]', 'hover:bg-[#B48AE0]', 'text-white')
-
-      // Remove any previous handler so the button is inert until Copy is done
-      btn.onclick = null
+      const empty = !cart.length
+      btn.disabled = empty
+      btn.classList.toggle('opacity-50', empty)
+      btn.classList.toggle('pointer-events-none', empty)
     }
 
-    function enableSubmitButtonAfterCopy() {
-      orderDetailsCopied = true
-      checkAndEnableSubmit()
+    let cartSubmitImages = []
+    let cartSubmitPreviews = []
+
+    function cartSubmitClearImages() {
+      cartSubmitPreviews.forEach(u => URL.revokeObjectURL(u))
+      cartSubmitImages = []
+      cartSubmitPreviews = []
+      const el = document.getElementById('cart-submit-previews')
+      if (el) el.innerHTML = ''
+      const input = document.getElementById('cart-submit-photos')
+      if (input) input.value = ''
     }
 
-    function checkAndEnableSubmit() {
-      const btn = document.getElementById('submit-order-btn')
-      if (!btn) return
+    const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
-      if (orderDetailsCopied) {
-        // Copy step completed → enable Submit
-        btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none', 'bg-gray-300', 'text-gray-500')
-        btn.classList.add('bg-[#C9A9E8]', 'hover:bg-[#B48AE0]', 'text-white')
-
-        // Open Calendly. Also set flag so cart can clear after the user later submits Tally (cross-tab safe).
-        btn.onclick = function (e) {
-          if (e) e.preventDefault()
-          localStorage.setItem('clearCartAfterTallySubmit', Date.now().toString())
-          window.open('https://calendly.com/sweettoothcravingsorder/15min', '_blank')
+    function cartSubmitAddImages(fileList) {
+      if (!fileList) return
+      const incoming = []
+      for (const file of Array.from(fileList)) {
+        if (!file.type.startsWith('image/')) {
+          alert(`"${file.name}" is not an image file.`)
+          continue
         }
+        if (file.size > MAX_PHOTO_BYTES) {
+          alert(`"${file.name}" is over 10MB. Please choose a smaller photo.`)
+          continue
+        }
+        incoming.push(file)
+      }
+      if (!incoming.length) return
+      cartSubmitImages = [...cartSubmitImages, ...incoming].slice(0, 6)
+      cartSubmitPreviews.forEach(u => URL.revokeObjectURL(u))
+      cartSubmitPreviews = cartSubmitImages.map(f => URL.createObjectURL(f))
+      const el = document.getElementById('cart-submit-previews')
+      if (el) {
+        el.innerHTML = cartSubmitPreviews.map((src, i) => `
+          <div class="relative aspect-square rounded-2xl overflow-hidden">
+            <img src="${src}" class="w-full h-full object-cover" alt="">
+            <button type="button" onclick="cartSubmitRemoveImage(${i})" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs">×</button>
+          </div>
+        `).join('')
       }
     }
 
-    // === AUTO CLEAR CART AFTER TALLY SUBMISSION (works across tabs) ===
-    function checkForTallySubmissionAndClearCart() {
-      const flag = localStorage.getItem('clearCartAfterTallySubmit')
-      if (!flag) return false
-
-      // Clear the cart
-      cart = []
-      if (typeof saveCartToStorage === 'function') saveCartToStorage()
-      if (typeof updateCartCount === 'function') updateCartCount()
-
-      // If drawer is open, refresh its contents and close it
-      const drawer = document.getElementById('cart-drawer')
-      if (drawer && !drawer.classList.contains('hidden')) {
-        if (typeof renderCartItems === 'function') renderCartItems()
-        setTimeout(function () {
-          if (drawer && typeof toggleCart === 'function' && !drawer.classList.contains('hidden')) {
-            toggleCart()
-          }
-        }, 600)
-      }
-
-      // Remove the flag
-      localStorage.removeItem('clearCartAfterTallySubmit')
-
-      return true
+    function cartSubmitRemoveImage(index) {
+      cartSubmitImages.splice(index, 1)
+      cartSubmitPreviews.forEach(u => URL.revokeObjectURL(u))
+      cartSubmitPreviews = cartSubmitImages.map(f => URL.createObjectURL(f))
+      const el = document.getElementById('cart-submit-previews')
+      if (!el) return
+      el.innerHTML = cartSubmitPreviews.map((src, i) => `
+        <div class="relative aspect-square rounded-2xl overflow-hidden">
+          <img src="${src}" class="w-full h-full object-cover" alt="">
+          <button type="button" onclick="cartSubmitRemoveImage(${i})" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs">×</button>
+        </div>
+      `).join('')
     }
 
-    function copyOrderDetails() {
+    function orderIncludesCustomCake(items) {
+      return items.some(item => /custom cake/i.test(item.name || ''))
+    }
+
+    function showSubmitSuccessModal(submittedItems, orderId, photoErrors = []) {
+      const body = document.getElementById('success-modal-body')
+      const ref = document.getElementById('success-modal-ref')
+      if (!body) return
+
+      const isCustom = orderIncludesCustomCake(submittedItems)
+      const photoNote = photoErrors.length
+        ? `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2">Some inspiration photos could not be uploaded to Google Drive (${photoErrors.join('; ')}). Your order details were still saved.</p>`
+        : ''
+
+      if (isCustom) {
+        body.innerHTML = `
+          <p><strong>Your custom cake request has been submitted.</strong></p>
+          <p>We will review your order details and inspiration photos, then get back to you shortly with a <strong>final price</strong> and a <strong>secure Stripe payment link</strong> for the 50% deposit.</p>
+          <p>You will receive a message via <strong>text or Instagram</strong> within <strong>24 hours</strong>.</p>
+          <p class="text-xs text-[#8B6F6F]">No payment is due today — we&apos;ll confirm everything with you first.</p>
+          ${photoNote}
+        `
+      } else {
+        body.innerHTML = `
+          <p><strong>Your order request has been submitted.</strong></p>
+          <p>We&apos;ll review your items and notes, then send your <strong>final price</strong> and a <strong>secure Stripe payment link</strong> to confirm with the 50% deposit.</p>
+          <p>You will receive a message via <strong>text or Instagram</strong> within <strong>24 hours</strong>.</p>
+          ${photoNote}
+        `
+      }
+
+      if (ref && orderId) {
+        ref.textContent = `Reference: ${orderId}`
+        ref.classList.remove('hidden')
+      } else if (ref) {
+        ref.classList.add('hidden')
+      }
+
+      document.getElementById('success-modal').classList.remove('hidden')
+      document.getElementById('success-modal').classList.add('flex')
+      document.body.style.overflow = 'hidden'
+    }
+
+    function openCartSubmitModal() {
       if (!cart.length) {
-        alert("Your cart is empty.")
+        alert('Your cart is empty.')
         return
       }
+      const d = new Date()
+      d.setDate(d.getDate() + 4)
+      const minDate = d.toISOString().split('T')[0]
+      const dateEl = document.getElementById('cart-submit-date')
+      if (dateEl) dateEl.min = minDate
 
-      let summary = "Sweet Tooth Cravings — Order Request\n\n"
-      let total = 0
+      document.getElementById('cart-submit-modal').classList.remove('hidden')
+      document.getElementById('cart-submit-modal').classList.add('flex')
+      document.body.style.overflow = 'hidden'
+    }
 
-      cart.forEach((item, index) => {
-        const itemTotal = item.price * item.quantity
-        total += itemTotal
+    function closeCartSubmitModal() {
+      document.getElementById('cart-submit-modal').classList.add('hidden')
+      document.getElementById('cart-submit-modal').classList.remove('flex')
+      document.body.style.overflow = ''
+      cartSubmitClearImages()
+    }
 
-        summary += `${index + 1}. ${item.quantity} × ${item.name}\n`
+    async function submitCartRequest(e) {
+      e.preventDefault()
+      const btn = document.getElementById('cart-submit-btn')
+      btn.disabled = true
+      btn.textContent = 'Submitting...'
 
-        const c = item.customizations || {}
-        if (c.tier) summary += `   Tier/Size: ${c.tier}\n`
-        if (c.size && c.size !== c.tier) summary += `   Size: ${c.size}\n`
-        if (c.flavor) summary += `   Flavor: ${c.flavor}\n`
-        if (c.fillings && c.fillings.length) summary += `   Fillings: ${c.fillings.join(', ')}\n`
-        if (c.toppings && c.toppings.length) summary += `   Toppings: ${c.toppings.join(', ')}\n`
-        if (c.notes) summary += `   Notes: "${c.notes}"\n`
+      const submittedItems = cart.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        customizations: item.customizations || {}
+      }))
 
-        summary += `   $${item.price} × ${item.quantity} = $${itemTotal}\n\n`
-      })
+      const payload = {
+        customerName: document.getElementById('cart-submit-name').value.trim(),
+        customerEmail: document.getElementById('cart-submit-email').value.trim(),
+        customerPhone: document.getElementById('cart-submit-phone').value.trim(),
+        eventDate: document.getElementById('cart-submit-date').value,
+        allergies: document.getElementById('cart-submit-allergies').value.trim(),
+        orderNotes: document.getElementById('cart-submit-notes').value.trim(),
+        items: submittedItems
+      }
 
-      summary += `Estimated Total: $${total}\n\n`
-      summary += "A 50% non-refundable deposit is required to confirm this order.\n"
-      summary += "Please contact us to arrange date and payment (Cash App / Zelle / Apple Pay)."
-
-      navigator.clipboard.writeText(summary).then(() => {
-        // Enable the Submit button now that Copy step is done
-        enableSubmitButtonAfterCopy()
-
-        // Nice feedback on the Copy button
-        const copyBtn = document.querySelector('#cart-drawer button[onclick*="copyOrderDetails"]')
-        if (copyBtn) {
-          const originalText = copyBtn.innerHTML
-          copyBtn.innerHTML = '<i class="fa-solid fa-check text-sm"></i> <span>Copied!</span>'
-          copyBtn.disabled = true
-
-          setTimeout(() => {
-            if (copyBtn) {
-              copyBtn.innerHTML = originalText
-              copyBtn.disabled = false
+      try {
+        let res
+        if (cartSubmitImages.length) {
+          const fd = new FormData()
+          fd.append('payload', JSON.stringify(payload))
+          for (const file of cartSubmitImages) {
+            if (file.size > MAX_PHOTO_BYTES) {
+              throw new Error(`"${file.name}" is over 10MB. Maximum is 10MB per photo.`)
             }
-          }, 2200)
+            fd.append('photos', file, file.name || 'photo.jpg')
+          }
+          res = await fetch('/api/cart-submit', { method: 'POST', body: fd })
+        } else {
+          res = await fetch('/api/cart-submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
         }
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || 'Could not submit')
 
-        // Optional subtle toast
-        if (typeof showToast === 'function') {
-          showToast("Order details copied. Submit button is now enabled.")
+        const orderId = json.orderId
+        const photoErrors = json.photoErrors || []
+
+        closeCartSubmitModal()
+        cartSubmitClearImages()
+        if (typeof toggleCart === 'function') {
+          const drawer = document.getElementById('cart-drawer')
+          if (drawer && !drawer.classList.contains('hidden')) toggleCart()
         }
-      }).catch(() => {
-        // Fallback for very old browsers
-        alert("Copied to clipboard:\n\n" + summary)
-        enableSubmitButtonAfterCopy()
-      })
+        cart = []
+        saveCartToStorage()
+        updateCartCount()
+        updateCartSubmitButton()
+
+        showSubmitSuccessModal(submittedItems, orderId, photoErrors)
+        showToast('Request saved — we\'ll be in touch soon.')
+      } catch (err) {
+        alert((err.message || 'Could not submit') + '\n\nMake sure the server is running (node serve.js) and Google Sheets is set up.')
+      } finally {
+        btn.disabled = false
+        btn.textContent = 'Submit Request'
+      }
     }
 
 
@@ -2166,6 +2293,7 @@
       const modal = document.getElementById('success-modal')
       modal.classList.add('hidden')
       modal.classList.remove('flex')
+      document.body.style.overflow = ''
       
       // Scroll to top nicely
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -2225,7 +2353,18 @@
     }
 
     // Main initialization
+    function removeLegacyCustomCakesCTAs() {
+      const selectors = '#navbar a, #navbar button, header .dessert-bg a, header .dessert-bg button'
+      document.querySelectorAll(selectors).forEach((el) => {
+        const label = (el.textContent || '').replace(/\s+/g, ' ').trim()
+        if (/custom cakes?/i.test(label) || /custom order/i.test(label)) {
+          el.remove()
+        }
+      })
+    }
+
     function initializeWebsite() {
+      removeLegacyCustomCakesCTAs()
       initializeTailwind()
       
       // Render the simplified menu
@@ -2254,37 +2393,14 @@
       // Preload a couple images for smoothness (already local)
       console.log('%c[Sweet Tooth Cravings] Clean modern baking site initialized.', 'color:#C9A9E8')
 
-      // Ensure Tally embeds are scanned (for the Submit button in cart)
-      if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
-        window.Tally.loadEmbeds()
+      updateCartSubmitButton()
+
+      // Stripe payment return (if customer paid via link you sent later)
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('payment') === 'success') {
+        showToast('Payment received — thank you!')
+        window.history.replaceState({}, '', window.location.pathname)
       }
-
-      // Belt-and-suspenders: ensure Tally scans the (currently hidden) Submit Order Request button
-      function ensureTallyEmbeds() {
-        if (window.Tally && typeof window.Tally.loadEmbeds === 'function') {
-          window.Tally.loadEmbeds();
-        }
-      }
-      ensureTallyEmbeds();
-      // Extra late safety net
-      setTimeout(ensureTallyEmbeds, 1800);
-      setTimeout(ensureTallyEmbeds, 3200);
-
-      // Also re-scan when user returns to the tab (common source of "button stopped working")
-      window.addEventListener('pageshow', ensureTallyEmbeds);
-
-      // Cross-tab cart clear after Tally submit (for Calendly → Tally flow)
-      window.addEventListener('storage', function (e) {
-        if (e.key === 'clearCartAfterTallySubmit') {
-          checkForTallySubmissionAndClearCart()
-        }
-      })
-
-      window.addEventListener('focus', checkForTallySubmissionAndClearCart)
-      window.addEventListener('pageshow', checkForTallySubmissionAndClearCart)
-
-      // Initial check
-      setTimeout(checkForTallySubmissionAndClearCart, 800)
     }
 
     // ==================== REVIEWS SYSTEM ====================
@@ -2979,27 +3095,5 @@
     };
   </script>
 
-  <!-- TALLY INTEGRATION - DO NOT REMOVE -->
-  <script>
-    // Auto-close the cart drawer when the Tally form (lbvyR5) opens as a popup.
-    window.addEventListener('Tally.FormOpen', function(e) {
-      if (e.detail && e.detail.formId === 'lbvyR5') {
-        var cartDrawer = document.getElementById('cart-drawer');
-        if (cartDrawer && typeof toggleCart === 'function' && !cartDrawer.classList.contains('hidden')) {
-          toggleCart();
-        }
-      }
-    });
-
-    // Clear cart after Tally lbvyR5 submit (calls the cross-tab safe clearer)
-    window.addEventListener('Tally.FormSubmit', function(e) {
-      if (e.detail && e.detail.formId === 'lbvyR5') {
-        if (typeof checkForTallySubmissionAndClearCart === 'function') {
-          checkForTallySubmissionAndClearCart()
-        }
-      }
-    });
-  </script>
-  <!-- End Tally integration -->
 </body>
 </html>

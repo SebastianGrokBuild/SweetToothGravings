@@ -24,14 +24,22 @@ A clean, modern, and easy-to-order baking website for Sweet Tooth Cravings in Mi
 
 ## Getting Started
 
-1. Open `index.html` directly in any browser, **or**
-2. Run a local server:
+Run the site with the built-in server (required for custom cake orders & admin):
 
 ```bash
-# From this folder
-python3 -m http.server 8000
-# Then visit http://localhost:8000
+cd sweettooth-cravings
+node serve.js
 ```
+
+Or double-click **`Run Server.command`** (Mac), or run `./start.sh` / `npm start`.
+
+- Website: **http://localhost:8080** (if port is busy, the next free port is used automatically)
+- Admin: **http://localhost:8080/admin.html** (password in `.env`, default `sweettooth-admin`)
+- Health check: **http://localhost:8080/api/health** → should show `{"ok":true}`
+
+**Keep the terminal window open** while you use the site. If you only open `index.html` in the browser, the menu works but custom orders will say “can’t connect.”
+
+No `npm install` needed — the server uses only Node.js built-ins.
 
 ## Customization
 
@@ -46,12 +54,22 @@ python3 -m http.server 8000
 - Pickup or delivery (+ fee) in Miami area
 - Allergies must be listed in the form
 
+## Order requests → Google Sheets
+
+All **Submit Request** actions (custom cakes + menu cart) save to your Google Sheet. Inspiration photos upload to Google Drive with links in the sheet.
+
+**Setup (one time):** follow **GOOGLE-SHEETS-SETUP.md**
+
+- Custom cakes: menu banner, nav, or Custom Cakes card → wizard with photos
+- Menu items: add to cart → **Submit Request** → contact form → saved to sheet
+
+Optional: **admin.html** for Stripe payment links after you set a final price.
+
 ## Next Steps (Recommended)
 
-- **Images from Bakesy** → ✅ Your real high-quality product photos from the Bakesy shop have been added and are now live on the website (assigned to each item).
-- Connect the order form to a real backend (Formspree, Netlify Forms, or custom email endpoint)
-- Add actual Google reviews / Instagram feed embed
-- Add a small admin view or Google Sheet integration for incoming requests
+- Add `STRIPE_SECRET_KEY` in `.env` for live payment links
+- Set up a Stripe webhook to `https://your-domain.com/api/webhooks/stripe` (event: `checkout.session.completed`)
+- Deploy to Railway, Render, or a VPS so the API runs 24/7 (not static hosting alone)
 
 Built with ❤️ for Sweet Tooth Cravings. Enjoy the sweetness!
 
