@@ -16,6 +16,18 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/images/logo.gpj.png" type="image/png">
   <script src="config.js"></script>
+  <script>
+    (function () {
+      var host = location.hostname;
+      var isLive =
+        host === 'sweettoothcravings.shop' ||
+        host === 'www.sweettoothcravings.shop' ||
+        host.endsWith('.github.io');
+      if (isLive && !window.STC_API_BASE) {
+        window.STC_API_BASE = 'https://sweettooth-cravings.onrender.com';
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script async src="https://tally.so/widgets/embed.js" id="tally-embed"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -2329,11 +2341,28 @@
     const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
     function stcApiUrl(path) {
-      const base = (window.STC_API_BASE || '').replace(/\/$/, '')
+      const base = (stcResolveApiBase() || '').replace(/\/$/, '')
       return base ? base + path : path
     }
 
+    const STC_PRODUCTION_API = 'https://sweettooth-cravings.onrender.com'
+
+    function stcResolveApiBase() {
+      if (window.STC_API_BASE) return window.STC_API_BASE
+      const host = location.hostname
+      const isLiveShop =
+        host === 'sweettoothcravings.shop' ||
+        host === 'www.sweettoothcravings.shop' ||
+        host.endsWith('.github.io')
+      if (isLiveShop) {
+        window.STC_API_BASE = STC_PRODUCTION_API
+        return STC_PRODUCTION_API
+      }
+      return ''
+    }
+
     function stcEnsureApiConfigured() {
+      stcResolveApiBase()
       const host = location.hostname
       const isLiveShop = host === 'sweettoothcravings.shop' || host === 'www.sweettoothcravings.shop'
       if (isLiveShop && !window.STC_API_BASE) {
@@ -2352,6 +2381,11 @@
         if (res.status === 405) {
           throw new Error(
             'Order server returned 405 (not allowed). The live site must use a running API — deploy node serve.js (Render/Railway) or run locally with node serve.js.'
+          )
+        }
+        if (res.status === 404) {
+          throw new Error(
+            'Order server is not running yet. Deploy node serve.js on Render (see DEPLOY.md), then try again. First request after idle may take up to 60 seconds.'
           )
         }
         throw new Error(`Server error (${res.status}). Could not read response.`)
