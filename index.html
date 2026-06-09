@@ -244,6 +244,13 @@
       overscroll-behavior: contain;
     }
 
+    @keyframes submitSpin {
+      to { transform: rotate(360deg); }
+    }
+    .submit-spinner {
+      animation: submitSpin 0.8s linear infinite;
+    }
+
     .showcase-card {
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
@@ -949,17 +956,26 @@
 
   <!-- SUCCESS MODAL -->
   <div id="success-modal" onclick="if (event.target.id === 'success-modal') closeSuccessModal()" class="hidden fixed inset-0 z-[100] bg-black/70 backdrop-blur flex items-center justify-center p-4">
-    <div onclick="event.stopImmediatePropagation()" class="modal bg-white rounded-3xl max-w-lg w-full px-8 py-9 text-center max-h-[90vh] overflow-y-auto">
-      <div class="mx-auto w-16 h-16 flex items-center justify-center bg-[#F5EEFC] rounded-full mb-6">
-        <i class="fa-solid fa-check text-4xl text-[#C9A9E8]"></i>
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white rounded-3xl max-w-lg w-full px-8 py-9 max-h-[90vh] overflow-y-auto border border-[#EDE4DC] shadow-2xl">
+      <div class="text-center">
+        <div class="mx-auto w-16 h-16 flex items-center justify-center bg-[#F5EEFC] rounded-full mb-5 ring-4 ring-[#F5EEFC]/50">
+          <i class="fa-solid fa-check text-4xl text-[#C9A9E8]"></i>
+        </div>
+        <div class="heading-serif text-3xl tracking-tight text-[#3F2A2B]">Request received!</div>
+        <p class="text-sm text-[#8B6F6F] mt-1">Your order details are saved — we&apos;ll be in touch soon.</p>
       </div>
-      
-      <div class="heading-serif text-3xl tracking-tight">Thank you!</div>
-      <div id="success-modal-body" class="mt-5 text-left text-sm text-[#5C4A4B] leading-relaxed space-y-3"></div>
-      <p id="success-modal-ref" class="mt-4 text-xs text-[#8B6F6F] font-mono hidden"></p>
+
+      <div id="success-modal-ref" class="hidden mt-5 mx-auto max-w-xs text-center text-xs font-mono text-[#5C4A4B] bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl px-4 py-2.5"></div>
+
+      <div id="success-modal-body" class="mt-5 text-left text-sm text-[#5C4A4B] leading-relaxed space-y-3 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl p-5"></div>
+
+      <ul class="mt-4 text-xs text-[#6B5B5F] space-y-2">
+        <li class="flex items-start gap-2"><i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5"></i><span>We typically respond within <strong class="text-[#3F2A2B]">24 hours</strong></span></li>
+        <li class="flex items-start gap-2"><i class="fa-solid fa-wallet text-[#C9A9E8] mt-0.5"></i><span>No payment due today — we&apos;ll send your quote first</span></li>
+      </ul>
 
       <button onclick="closeSuccessModal()" 
-              class="mt-6 w-full h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold">Done</button>
+              class="mt-6 w-full h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold transition active:scale-[0.985]">Done</button>
     </div>
   </div>
 
@@ -1092,8 +1108,41 @@
         </div>
 
         <div class="shrink-0 border-t border-[#EDE4DC] bg-[#FDF8F5] px-6 sm:px-8 py-4 sm:py-5">
-          <button type="submit" id="cart-submit-btn" class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold text-base shadow-sm">
-            Submit Request
+          <div id="cart-submit-error" class="hidden mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-left">
+            <div class="flex gap-3">
+              <div class="w-9 h-9 shrink-0 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p id="cart-submit-error-title" class="font-semibold text-[#3F2A2B] text-sm"></p>
+                <p id="cart-submit-error-message" class="text-sm text-[#5C4A4B] mt-1 leading-relaxed"></p>
+                <ul id="cart-submit-error-steps" class="mt-2.5 space-y-1.5 text-xs text-[#6B5B5F]"></ul>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-col sm:flex-row gap-2">
+              <button type="button" id="cart-submit-retry-btn" onclick="retryCartSubmit()"
+                      class="flex-1 h-11 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-2xl font-semibold text-sm transition active:scale-[0.985]">
+                Try Again
+              </button>
+              <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener"
+                 class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/40 text-[#5C4A4B] rounded-2xl font-medium text-sm transition">
+                <i class="fa-brands fa-instagram text-[#C9A9E8]"></i> Message us
+              </a>
+            </div>
+            <p class="mt-2.5 text-[10px] text-[#8B6F6F] leading-snug">
+              <i class="fa-solid fa-shopping-bag text-[#C9A9E8] mr-0.5"></i>
+              Your cart and form details are still here — nothing was lost.
+            </p>
+          </div>
+
+          <p id="cart-submit-status" class="hidden mb-3 text-center text-xs text-[#6B5B5F]">
+            <i class="fa-solid fa-circle-notch submit-spinner text-[#C9A9E8] mr-1"></i>
+            <span id="cart-submit-status-text">Sending your request…</span>
+          </p>
+
+          <button type="submit" id="cart-submit-btn" class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
+            <span id="cart-submit-btn-label">Submit Request</span>
+            <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
           </button>
         </div>
       </form>
@@ -2273,35 +2322,276 @@
       return ''
     }
 
+    const STC_SUBMIT_MAX_ATTEMPTS = 3
+    const STC_SUBMIT_RETRY_MS = [0, 2500, 5000]
+    const STC_SUBMIT_TIMEOUT_MS = 55000
+
+    function stcSleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
+    }
+
     function stcEnsureApiConfigured() {
       stcResolveApiBase()
       const host = location.hostname
       const isLiveShop = host === 'sweettoothcravings.shop' || host === 'www.sweettoothcravings.shop'
       if (isLiveShop && !window.STC_API_BASE) {
-        throw new Error(
-          'Orders are not connected to this website yet. Deploy the order server (node serve.js) and set PRODUCTION_API in config.js. See DEPLOY.md in the project folder.'
-        )
+        const err = new Error('not_configured')
+        err.code = 'not_configured'
+        throw err
+      }
+    }
+
+    function stcIsRetryableSubmitError(err) {
+      if (!err) return false
+      if (err.retryable === false) return false
+      const code = err.code || ''
+      if (['network', 'timeout', 'server_unavailable', 'not_configured'].includes(code)) return true
+      const msg = String(err.message || '')
+      return (
+        msg === 'Load failed' ||
+        msg === 'Failed to fetch' ||
+        msg.includes('NetworkError') ||
+        err.name === 'TypeError' ||
+        err.name === 'AbortError'
+      )
+    }
+
+    function stcClassifySubmitError(err, res) {
+      const status = (res && res.status) || (err && err.status)
+      const raw = String((err && err.message) || err || '')
+
+      if (err && err.code === 'validation') {
+        return {
+          title: 'Photo too large',
+          message: raw,
+          steps: ['Choose a photo under 10MB, then tap Submit Request again.'],
+          retryable: false
+        }
+      }
+
+      if (err && err.code === 'not_configured') {
+        return {
+          title: 'Orders aren\u2019t connected yet',
+          message: 'The website can\u2019t reach our order system right now.',
+          steps: [
+            'Wait a moment, then tap Try Again.',
+            'If this keeps happening, message us on Instagram or email and we\u2019ll take your order manually.'
+          ],
+          retryable: true
+        }
+      }
+
+      if (err && (err.name === 'AbortError' || err.code === 'timeout')) {
+        return {
+          title: 'This is taking longer than usual',
+          message: 'Our order system may be waking up \u2014 the first request after a quiet period can take up to a minute.',
+          steps: [
+            'Wait about 30 seconds, then tap Try Again.',
+            'Your cart and details are still saved on this page.'
+          ],
+          retryable: true
+        }
+      }
+
+      if (
+        raw === 'Load failed' ||
+        raw === 'Failed to fetch' ||
+        raw.includes('NetworkError') ||
+        (err && err.name === 'TypeError')
+      ) {
+        return {
+          title: 'We couldn\u2019t connect just now',
+          message: 'This is usually temporary \u2014 our order server may be starting up or your connection hiccuped.',
+          steps: [
+            'Tap Try Again in a few seconds (we\u2019ll retry automatically too).',
+            'Still stuck? DM us on Instagram @sweettoothcravings__ or email sweettoothcravingsorder@gmail.com with your order details.'
+          ],
+          retryable: true
+        }
+      }
+
+      if (status === 502 || status === 503 || status === 404 || status === 405) {
+        return {
+          title: 'Order system temporarily unavailable',
+          message: status === 404 || status === 405
+            ? 'Our order server isn\u2019t responding yet. It may still be starting.'
+            : 'The server is busy or restarting. This usually clears up quickly.',
+          steps: [
+            'Wait 30\u201360 seconds, then tap Try Again.',
+            'Need help right away? Message us on Instagram \u2014 we\u2019ll help you place your order.'
+          ],
+          retryable: true
+        }
+      }
+
+      if (status === 400) {
+        return {
+          title: 'Please check your details',
+          message: raw || 'Something in the form needs a quick fix before we can save your order.',
+          steps: [
+            'Review the highlighted fields above and tap Submit Request again.',
+            'Questions? Reach out on Instagram or email.'
+          ],
+          retryable: false
+        }
+      }
+
+      if (status >= 500) {
+        return {
+          title: 'Something went wrong on our end',
+          message: raw || 'We couldn\u2019t save your order just now, but nothing was lost.',
+          steps: [
+            'Tap Try Again in a moment.',
+            'If it keeps failing, contact us and we\u2019ll enter your order manually.'
+          ],
+          retryable: true
+        }
+      }
+
+      return {
+        title: 'Couldn\u2019t submit your request',
+        message: raw || 'Please try once more.',
+        steps: [
+          'Tap Try Again.',
+          'Or message us on Instagram @sweettoothcravings__ for help.'
+        ],
+        retryable: true
+      }
+    }
+
+    function hideCartSubmitError() {
+      const panel = document.getElementById('cart-submit-error')
+      if (panel) panel.classList.add('hidden')
+    }
+
+    function showCartSubmitError(info) {
+      const panel = document.getElementById('cart-submit-error')
+      const title = document.getElementById('cart-submit-error-title')
+      const message = document.getElementById('cart-submit-error-message')
+      const steps = document.getElementById('cart-submit-error-steps')
+      const retryBtn = document.getElementById('cart-submit-retry-btn')
+      if (!panel || !title || !message || !steps) return
+
+      title.textContent = info.title || 'Something went wrong'
+      message.textContent = info.message || ''
+      steps.innerHTML = (info.steps || []).map(step =>
+        `<li class="flex items-start gap-2"><span class="text-[#C9A9E8] mt-0.5">\u2022</span><span>${step}</span></li>`
+      ).join('')
+
+      if (retryBtn) {
+        retryBtn.classList.toggle('hidden', info.retryable === false)
+      }
+
+      panel.classList.remove('hidden')
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+
+    function setCartSubmitLoading(active, statusText) {
+      const btn = document.getElementById('cart-submit-btn')
+      const label = document.getElementById('cart-submit-btn-label')
+      const spinner = document.getElementById('cart-submit-btn-spinner')
+      const status = document.getElementById('cart-submit-status')
+      const statusTextEl = document.getElementById('cart-submit-status-text')
+
+      if (btn) btn.disabled = !!active
+      if (label) label.textContent = active ? 'Sending…' : 'Submit Request'
+      if (spinner) spinner.classList.toggle('hidden', !active)
+      if (status) status.classList.toggle('hidden', !active)
+      if (statusTextEl && statusText) statusTextEl.textContent = statusText
+    }
+
+    async function stcFetchSubmit(url, options) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), STC_SUBMIT_TIMEOUT_MS)
+      try {
+        const res = await fetch(url, { ...options, signal: controller.signal })
+        return res
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          const timeoutErr = new Error('timeout')
+          timeoutErr.code = 'timeout'
+          timeoutErr.name = 'AbortError'
+          throw timeoutErr
+        }
+        const netErr = new Error(err.message || 'network')
+        netErr.code = 'network'
+        netErr.name = err.name
+        throw netErr
+      } finally {
+        clearTimeout(timer)
       }
     }
 
     async function stcParseJsonResponse(res) {
       const text = await res.text()
-      if (!text) return {}
+      if (!text) return { _parseFailed: true, _status: res.status }
       try {
         return JSON.parse(text)
       } catch {
-        if (res.status === 405) {
-          throw new Error(
-            'Order server returned 405 (not allowed). The live site must use a running API — deploy node serve.js (Render/Railway) or run locally with node serve.js.'
-          )
-        }
-        if (res.status === 404) {
-          throw new Error(
-            'Order server is not running yet. Deploy node serve.js on Render (see DEPLOY.md), then try again. First request after idle may take up to 60 seconds.'
-          )
-        }
-        throw new Error(`Server error (${res.status}). Could not read response.`)
+        const parseErr = new Error('bad_response')
+        parseErr.code = 'bad_response'
+        parseErr.status = res.status
+        throw parseErr
       }
+    }
+
+    function buildCartSubmitPayload() {
+      const submittedItems = cart.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        customizations: item.customizations || {}
+      }))
+
+      return {
+        customerName: document.getElementById('cart-submit-name').value.trim(),
+        customerEmail: document.getElementById('cart-submit-email').value.trim(),
+        customerPhone: document.getElementById('cart-submit-phone').value.trim(),
+        eventDate: document.getElementById('cart-submit-date').value,
+        allergies: document.getElementById('cart-submit-allergies').value.trim(),
+        orderNotes: document.getElementById('cart-submit-notes').value.trim(),
+        items: submittedItems
+      }
+    }
+
+    async function postCartSubmitPayload(payload) {
+      stcEnsureApiConfigured()
+      const submitUrl = stcApiUrl('/api/cart-submit')
+
+      if (cartSubmitImages.length) {
+        const fd = new FormData()
+        fd.append('payload', JSON.stringify(payload))
+        for (const file of cartSubmitImages) {
+          if (file.size > MAX_PHOTO_BYTES) {
+            const sizeErr = new Error(`"${file.name}" is over 10MB. Please choose a smaller photo.`)
+            sizeErr.code = 'validation'
+            sizeErr.retryable = false
+            throw sizeErr
+          }
+          fd.append('photos', file, file.name || 'photo.jpg')
+        }
+        const res = await stcFetchSubmit(submitUrl, { method: 'POST', body: fd })
+        const json = await stcParseJsonResponse(res)
+        if (!res.ok) {
+          const apiErr = new Error(json.error || `Could not submit (${res.status})`)
+          apiErr.status = res.status
+          throw apiErr
+        }
+        return { res, json, submittedItems: payload.items }
+      }
+
+      const res = await stcFetchSubmit(submitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const json = await stcParseJsonResponse(res)
+      if (!res.ok) {
+        const apiErr = new Error(json.error || `Could not submit (${res.status})`)
+        apiErr.status = res.status
+        throw apiErr
+      }
+      return { res, json, submittedItems: payload.items }
     }
 
     function cartSubmitAddImages(fileList) {
@@ -2379,7 +2669,7 @@
       }
 
       if (ref && orderId) {
-        ref.textContent = `Reference: ${orderId}`
+        ref.textContent = `Order reference: ${orderId}`
         ref.classList.remove('hidden')
       } else if (ref) {
         ref.classList.add('hidden')
@@ -2401,6 +2691,8 @@
       const dateEl = document.getElementById('cart-submit-date')
       if (dateEl) dateEl.min = minDate
 
+      hideCartSubmitError()
+      setCartSubmitLoading(false)
       document.getElementById('cart-submit-modal').classList.remove('hidden')
       document.getElementById('cart-submit-modal').classList.add('flex')
       document.body.style.overflow = 'hidden'
@@ -2410,92 +2702,81 @@
       document.getElementById('cart-submit-modal').classList.add('hidden')
       document.getElementById('cart-submit-modal').classList.remove('flex')
       document.body.style.overflow = ''
+      hideCartSubmitError()
+      setCartSubmitLoading(false)
       cartSubmitClearImages()
     }
 
-    async function submitCartRequest(e) {
-      e.preventDefault()
-      const btn = document.getElementById('cart-submit-btn')
-      btn.disabled = true
-      btn.textContent = 'Submitting...'
+    async function performCartSubmit() {
+      hideCartSubmitError()
+      setCartSubmitLoading(true, 'Sending your request…')
 
-      const submittedItems = cart.map(item => ({
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        customizations: item.customizations || {}
-      }))
-
-      const payload = {
-        customerName: document.getElementById('cart-submit-name').value.trim(),
-        customerEmail: document.getElementById('cart-submit-email').value.trim(),
-        customerPhone: document.getElementById('cart-submit-phone').value.trim(),
-        eventDate: document.getElementById('cart-submit-date').value,
-        allergies: document.getElementById('cart-submit-allergies').value.trim(),
-        orderNotes: document.getElementById('cart-submit-notes').value.trim(),
-        items: submittedItems
+      const payload = buildCartSubmitPayload()
+      if (!payload.customerName || !payload.customerEmail) {
+        setCartSubmitLoading(false)
+        showCartSubmitError({
+          title: 'Name and email required',
+          message: 'Please fill in your name and email so we can confirm your order.',
+          steps: ['Complete the fields above, then tap Submit Request again.'],
+          retryable: false
+        })
+        return
       }
 
-      try {
-        stcEnsureApiConfigured()
-        const submitUrl = stcApiUrl('/api/cart-submit')
-        let res
-        if (cartSubmitImages.length) {
-          const fd = new FormData()
-          fd.append('payload', JSON.stringify(payload))
-          for (const file of cartSubmitImages) {
-            if (file.size > MAX_PHOTO_BYTES) {
-              throw new Error(`"${file.name}" is over 10MB. Maximum is 10MB per photo.`)
-            }
-            fd.append('photos', file, file.name || 'photo.jpg')
+      let lastErr = null
+      let lastRes = null
+
+      for (let attempt = 1; attempt <= STC_SUBMIT_MAX_ATTEMPTS; attempt++) {
+        const delay = STC_SUBMIT_RETRY_MS[attempt - 1] || 0
+        if (delay > 0) {
+          setCartSubmitLoading(true, `Connecting… attempt ${attempt} of ${STC_SUBMIT_MAX_ATTEMPTS}`)
+          await stcSleep(delay)
+        } else if (attempt > 1) {
+          setCartSubmitLoading(true, `Trying again (${attempt}/${STC_SUBMIT_MAX_ATTEMPTS})…`)
+        }
+
+        try {
+          const result = await postCartSubmitPayload(payload)
+          const orderId = result.json.orderId
+          const photoErrors = result.json.photoErrors || []
+
+          setCartSubmitLoading(false)
+          closeCartSubmitModal()
+          cartSubmitClearImages()
+          if (typeof toggleCart === 'function') {
+            const drawer = document.getElementById('cart-drawer')
+            if (drawer && !drawer.classList.contains('hidden')) toggleCart()
           }
-          res = await fetch(submitUrl, { method: 'POST', body: fd })
-        } else {
-          res = await fetch(submitUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
+          cart = []
+          saveCartToStorage()
+          updateCartCount()
+          updateCartSubmitButton()
+
+          showSubmitSuccessModal(result.submittedItems, orderId, photoErrors)
+          showToast('Request saved — we\'ll be in touch soon.')
+          return
+        } catch (err) {
+          lastErr = err
+          lastRes = err.status ? { status: err.status } : null
+          if (attempt < STC_SUBMIT_MAX_ATTEMPTS && stcIsRetryableSubmitError(err)) {
+            continue
+          }
+          break
         }
-        const json = await stcParseJsonResponse(res)
-        if (!res.ok) throw new Error(json.error || `Could not submit (${res.status})`)
-
-        const orderId = json.orderId
-        const photoErrors = json.photoErrors || []
-
-        closeCartSubmitModal()
-        cartSubmitClearImages()
-        if (typeof toggleCart === 'function') {
-          const drawer = document.getElementById('cart-drawer')
-          if (drawer && !drawer.classList.contains('hidden')) toggleCart()
-        }
-        cart = []
-        saveCartToStorage()
-        updateCartCount()
-        updateCartSubmitButton()
-
-        showSubmitSuccessModal(submittedItems, orderId, photoErrors)
-        showToast('Request saved — we\'ll be in touch soon.')
-      } catch (err) {
-        const msg = String(err.message || err)
-        const isNetwork =
-          msg === 'Load failed' ||
-          msg === 'Failed to fetch' ||
-          msg.includes('NetworkError') ||
-          err.name === 'TypeError'
-
-        if (isNetwork) {
-          alert(
-            'Could not reach the order server. Please try again in a moment.\n\n' +
-            'If this keeps happening, the server may need to be restarted — contact us on Instagram or email.'
-          )
-        } else {
-          alert(msg + '\n\nMake sure the server is running (node serve.js) and Google Sheets is set up.')
-        }
-      } finally {
-        btn.disabled = false
-        btn.textContent = 'Submit Request'
       }
+
+      setCartSubmitLoading(false)
+      const info = stcClassifySubmitError(lastErr, lastRes)
+      showCartSubmitError(info)
+    }
+
+    async function submitCartRequest(e) {
+      if (e) e.preventDefault()
+      await performCartSubmit()
+    }
+
+    function retryCartSubmit() {
+      performCartSubmit()
     }
 
 
