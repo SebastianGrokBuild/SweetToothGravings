@@ -2565,7 +2565,33 @@
         showSubmitSuccessModal(submittedItems, orderId, photoErrors)
         showToast('Request saved — we\'ll be in touch soon.')
       } catch (err) {
-        alert((err.message || 'Could not submit') + '\n\nMake sure the server is running (node serve.js) and Google Sheets is set up.')
+        const msg = String(err.message || err)
+        const isNetwork =
+          msg === 'Load failed' ||
+          msg === 'Failed to fetch' ||
+          msg.includes('NetworkError') ||
+          err.name === 'TypeError'
+
+        if (isNetwork) {
+          const useTally = confirm(
+            'The order server is not reachable yet (it may not be deployed on Render).\n\n' +
+            'Submit your order via Tally form instead? Your cart details will be pre-filled.\n\n' +
+            'To fix permanently: deploy node serve.js on Render — see DEPLOY.md or run ./scripts/setup-render.sh'
+          )
+          if (useTally) {
+            closeCartSubmitModal()
+            submitCartToTally()
+            return
+          }
+          alert(
+            'Order server unavailable.\n\n' +
+            'Deploy on Render (one-time, ~15 min):\n' +
+            'https://render.com/deploy?repo=https://github.com/SebastianGrokBuild/SweetToothGravings\n\n' +
+            'Or use "Or submit via Tally form" in your cart.'
+          )
+        } else {
+          alert(msg + '\n\nIf this persists, run ./scripts/setup-render.sh and check DEPLOY.md.')
+        }
       } finally {
         btn.disabled = false
         btn.textContent = 'Submit Request'
