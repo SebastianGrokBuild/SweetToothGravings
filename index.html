@@ -5,8 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Sweet Tooth Cravings • Miami, FL</title>
-  <script src="/config.js"></script>
+  <meta name="description" content="Handcrafted cakes, flan, tres leches &amp; desserts made with love in Miami. Order online — pickup or delivery available.">
+  <meta name="theme-color" content="#C9A9E8">
+  <link rel="canonical" href="https://sweettoothcravings.shop/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Sweet Tooth Cravings • Miami, FL">
+  <meta property="og:description" content="Handcrafted cakes, flan, tres leches &amp; desserts made with love in Miami.">
+  <meta property="og:url" content="https://sweettoothcravings.shop/">
+  <meta property="og:image" content="https://sweettoothcravings.shop/assets/images/hero.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/images/logo.gpj.png" type="image/png">
+  <script src="config.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://tally.so/widgets/embed.js" id="tally-embed"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;family=Inter:wght@300;400;500;600&amp;display=swap');
@@ -222,6 +233,25 @@
       overscroll-behavior: contain;
     }
 
+    .showcase-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .showcase-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 32px -8px rgb(0 0 0 / 0.08);
+    }
+    .showcase-scroll {
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .showcase-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .showcase-scroll > * {
+      scroll-snap-align: start;
+    }
+
   </style>
 </head>
 <body class="bg-[#FDF8F5] text-[#3F2A2B] antialiased">
@@ -246,9 +276,10 @@
 
         <!-- Desktop Nav -->
         <div class="hidden md:flex items-center gap-x-9 text-sm font-medium">
+          <a href="#showcase" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Showcase</a>
           <a href="#menu" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Menu</a>
           <a href="#how" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">How it Works</a>
-          <a href="#about" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">About</a>
+          <a href="#contact" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Contact</a>
           <a href="#policies" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Policies</a>
           <button onclick="openReviewsModal()" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B] flex items-center gap-x-1">
             <i class="fa-solid fa-star text-sm"></i>
@@ -286,9 +317,10 @@
     <!-- Mobile Menu -->
     <div id="mobile-menu" class="hidden md:hidden border-t border-[#EDE4DC] bg-[#FDF8F5]">
       <div class="px-8 py-6 flex flex-col gap-y-4 text-sm font-medium">
+        <a href="#showcase" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Showcase</a>
         <a href="#menu" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Menu</a>
         <a href="#how" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">How it Works</a>
-        <a href="#about" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">About</a>
+        <a href="#contact" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Contact</a>
         <a href="#policies" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Policies</a>
         <button onclick="openReviewsModal(); toggleMobileMenu()" class="py-1 text-left flex items-center gap-x-2 text-[#5C4A4B]">
           <i class="fa-solid fa-star"></i> <span>Reviews</span>
@@ -396,6 +428,23 @@
       </div>
     </div>
   </div>
+
+  <!-- FEATURED SHOWCASE -->
+  <section id="showcase" class="max-w-screen-2xl mx-auto px-8 pt-6 pb-4">
+    <div class="flex items-end justify-between mb-6">
+      <div>
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Customer Favorites</div>
+        <h2 class="section-title heading-serif text-[#3F2A2B]">Featured Treats</h2>
+      </div>
+      <a href="#menu" class="hidden sm:inline-flex items-center gap-x-1.5 text-sm font-medium text-[#C9A9E8] hover:text-[#B48AE0] transition">
+        View full menu <i class="fa-solid fa-arrow-right text-xs"></i>
+      </a>
+    </div>
+
+    <div id="featured-showcase" class="showcase-scroll flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+      <!-- Populated by JavaScript -->
+    </div>
+  </section>
 
   <!-- MENU / PRODUCTS -->
   <section id="menu" class="max-w-screen-2xl mx-auto px-8 pt-8 pb-16">
@@ -582,6 +631,76 @@
     </div>
   </section>
 
+  <!-- CONTACT & SCHEDULING -->
+  <section id="contact" class="max-w-screen-2xl mx-auto px-8 py-16 border-t border-[#EDE4DC]">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-10">
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Get in Touch</div>
+        <h2 class="section-title heading-serif mt-1.5">Contact &amp; Scheduling</h2>
+        <p class="text-[#6B5B5F] mt-2 max-w-lg mx-auto">Questions about a custom order? Need to plan ahead? Reach out — we typically respond within 24 hours.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="space-y-4">
+          <div class="bg-white border border-[#EDE4DC] rounded-3xl p-6 flex items-start gap-x-4">
+            <div class="w-11 h-11 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-lg shrink-0">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-[#3F2A2B]">Email</div>
+              <a href="mailto:sweettoothcravingsorder@gmail.com" class="text-sm text-[#C9A9E8] hover:text-[#B48AE0] transition">sweettoothcravingsorder@gmail.com</a>
+            </div>
+          </div>
+
+          <div class="bg-white border border-[#EDE4DC] rounded-3xl p-6 flex items-start gap-x-4">
+            <div class="w-11 h-11 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-lg shrink-0">
+              <i class="fa-brands fa-instagram"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-[#3F2A2B]">Instagram</div>
+              <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="text-sm text-[#C9A9E8] hover:text-[#B48AE0] transition">@sweettoothcravings__</a>
+              <p class="text-xs text-[#8B6F6F] mt-1">DM us for quick questions or inspiration photos.</p>
+            </div>
+          </div>
+
+          <div class="bg-white border border-[#EDE4DC] rounded-3xl p-6 flex items-start gap-x-4">
+            <div class="w-11 h-11 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-lg shrink-0">
+              <i class="fa-solid fa-location-dot"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-[#3F2A2B]">Location</div>
+              <p class="text-sm text-[#5C4A4B]">Miami, Florida</p>
+              <p class="text-xs text-[#8B6F6F] mt-1">Pickup or delivery available (+ small delivery fee).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-[#FDF8F5] to-white border border-[#EDE4DC] rounded-3xl p-8 flex flex-col">
+          <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8] mb-2">Plan Your Order</div>
+          <h3 class="heading-serif text-2xl text-[#3F2A2B] mb-3">Schedule a quick call</h3>
+          <p class="text-sm text-[#5C4A4B] leading-relaxed mb-6">For custom cakes, party packages, or large orders — book a free 15-minute consultation to discuss your vision, timeline, and pricing.</p>
+
+          <a href="https://calendly.com/sweettoothcravingsorder/15min" target="_blank" rel="noopener"
+             class="inline-flex items-center justify-center gap-x-2 h-13 bg-[#3F2A2B] hover:bg-black text-white rounded-3xl font-semibold text-sm transition mb-3">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Book on Calendly</span>
+          </a>
+
+          <button type="button" onclick="openTallyInquiry()"
+                  class="inline-flex items-center justify-center gap-x-2 h-12 bg-white border-2 border-[#C9A9E8] text-[#C9A9E8] hover:bg-[#FDF8F5] rounded-3xl font-semibold text-sm transition">
+            <i class="fa-solid fa-file-lines"></i>
+            <span>Send Inquiry Form</span>
+          </button>
+
+          <p class="mt-5 text-xs text-[#8B6F6F] leading-relaxed">
+            <i class="fa-solid fa-clock text-[#C9A9E8] mr-1"></i>
+            Most orders need <strong>4–5 days</strong> notice. Party packages require <strong>1 week</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- INSTAGRAM GALLERY -->
   <section class="max-w-screen-2xl mx-auto px-8 py-16 bg-white border-t border-[#EDE4DC]">
     <div class="text-center mb-8">
@@ -675,9 +794,11 @@
         </div>
 
         <div class="flex flex-wrap gap-x-8 gap-y-2 text-[#6B5B5F]">
-          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="hover:text-[#C9A9E8] transition flex items-center gap-x-1.5">
+          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="hover:text-[#C9A9E8] transition flex items-center gap-x-1.5">
             <i class="fa-brands fa-instagram"></i> <span>@sweettoothcravings__</span>
           </a>
+          <a href="mailto:sweettoothcravingsorder@gmail.com" class="hover:text-[#C9A9E8] transition">Email us</a>
+          <button onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">Contact</button>
           <button onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">Ordering policies</button>
         </div>
 
@@ -825,8 +946,14 @@
           <i class="fa-solid fa-paper-plane text-sm"></i>
         </button>
 
+        <button type="button" id="submit-tally-btn" onclick="submitCartToTally()"
+                class="w-full h-11 mt-2 bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/40 text-[#5C4A4B] hover:text-[#3F2A2B] rounded-3xl font-medium flex items-center justify-center gap-x-2 transition text-sm disabled:opacity-50 disabled:pointer-events-none">
+          <i class="fa-solid fa-file-lines text-[#C9A9E8] text-xs"></i>
+          <span>Or submit via Tally form</span>
+        </button>
+
         <p class="mt-2 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
-          Your order is saved securely. We&apos;ll review everything and follow up with pricing and next steps.
+          Submit Request saves to our system with photos. Tally form is an alternative — your cart details are pre-filled.
         </p>
         
         <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
@@ -1267,6 +1394,41 @@
     
     // Main menu items (excludes Party Packages which has its own dedicated section)
     const mainDesserts = products.filter(p => p.category !== 'party')
+
+    const featuredProductIds = [13, 12, 16, 4, 6, 7]
+    const TALLY_FORM_ID = 'lbvyR5'
+
+    function renderFeaturedShowcase() {
+      const container = document.getElementById('featured-showcase')
+      if (!container) return
+      container.innerHTML = ''
+
+      featuredProductIds.forEach(id => {
+        const product = products.find(p => p.id === id)
+        if (!product) return
+
+        const priceLabel = product.startingAt ? `From $${product.price}` : `$${product.price}`
+        const card = document.createElement('article')
+        card.className = 'showcase-card shrink-0 w-[220px] sm:w-[240px] bg-white border border-[#EDE4DC] rounded-3xl overflow-hidden flex flex-col'
+        card.innerHTML = `
+          <div class="relative aspect-[4/3] bg-[#F9F1EB] overflow-hidden">
+            <img src="${product.img}" alt="${product.name}" class="product-img absolute inset-0 w-full h-full object-cover" loading="lazy">
+          </div>
+          <div class="p-4 flex flex-col flex-1">
+            <h3 class="font-semibold text-[#3F2A2B] leading-tight">${product.name}</h3>
+            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2">${product.shortDesc}</p>
+            <div class="mt-auto pt-3 flex items-center justify-between gap-2">
+              <span class="text-sm font-semibold text-[#C9A9E8]">${priceLabel}</span>
+              <button type="button" onclick="openProductModal(${product.id}, 'select')"
+                      class="h-9 px-4 rounded-2xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white text-xs font-semibold transition">
+                Select
+              </button>
+            </div>
+          </div>
+        `
+        container.appendChild(card)
+      })
+    }
 
     function filterProducts(category) {
       currentFilter = category
@@ -2082,12 +2244,73 @@
     }
 
     function updateCartSubmitButton() {
-      const btn = document.getElementById('submit-order-btn')
-      if (!btn) return
       const empty = !cart.length
-      btn.disabled = empty
-      btn.classList.toggle('opacity-50', empty)
-      btn.classList.toggle('pointer-events-none', empty)
+      ;['submit-order-btn', 'submit-tally-btn'].forEach(id => {
+        const btn = document.getElementById(id)
+        if (!btn) return
+        btn.disabled = empty
+        btn.classList.toggle('opacity-50', empty)
+        btn.classList.toggle('pointer-events-none', empty)
+      })
+    }
+
+    function buildOrderSummary() {
+      if (!cart.length) return ''
+      let summary = 'Sweet Tooth Cravings — Order Request\n\n'
+      let total = 0
+
+      cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity
+        total += itemTotal
+        summary += `${index + 1}. ${item.quantity} × ${item.name}\n`
+        const c = item.customizations || {}
+        if (c.tier) summary += `   Tier/Size: ${c.tier}\n`
+        if (c.flavor) summary += `   Flavor: ${c.flavor}\n`
+        if (c.fillings && c.fillings.length) summary += `   Fillings: ${c.fillings.join(', ')}\n`
+        if (c.toppings && c.toppings.length) summary += `   Toppings: ${c.toppings.join(', ')}\n`
+        if (c.notes) summary += `   Notes: "${c.notes}"\n`
+        summary += `   $${item.price} × ${item.quantity} = $${itemTotal}\n\n`
+      })
+
+      summary += `Estimated total: $${total}\n`
+      summary += '(Final price confirmed after review)'
+      return summary
+    }
+
+    function submitCartToTally() {
+      if (!cart.length) {
+        alert('Your cart is empty.')
+        return
+      }
+
+      const summary = buildOrderSummary()
+      const clearAndClose = () => {
+        cart = []
+        saveCartToStorage()
+        updateCartCount()
+        updateCartSubmitButton()
+        const drawer = document.getElementById('cart-drawer')
+        if (drawer && !drawer.classList.contains('hidden')) toggleCart()
+      }
+
+      if (typeof window.Tally !== 'undefined' && typeof window.Tally.openForm === 'function') {
+        window.Tally.openForm(TALLY_FORM_ID, { hidden: { 'Order Details': summary } })
+        clearAndClose()
+        showToast('Tally form opened — your order details are pre-filled.')
+      } else {
+        const url = 'https://tally.so/r/' + TALLY_FORM_ID + '?Order+Details=' + encodeURIComponent(summary)
+        window.open(url, '_blank')
+        clearAndClose()
+        showToast('Tally form opened in a new tab.')
+      }
+    }
+
+    function openTallyInquiry() {
+      if (typeof window.Tally !== 'undefined' && typeof window.Tally.openForm === 'function') {
+        window.Tally.openForm(TALLY_FORM_ID)
+      } else {
+        window.open('https://tally.so/r/' + TALLY_FORM_ID, '_blank')
+      }
     }
 
     let cartSubmitImages = []
@@ -2400,7 +2623,8 @@
       removeLegacyCustomCakesCTAs()
       initializeTailwind()
       
-      // Render the simplified menu
+      // Featured showcase + full menu
+      renderFeaturedShowcase()
       renderProducts(mainDesserts)
       
       // Dedicated Party Packages section (separate from main tabs)
