@@ -23,7 +23,8 @@
         host === 'sweettoothcravings.shop' ||
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
-      if (isLive && !window.STC_API_BASE) {
+      // Live shop always uses the production order API (Order Log + Drive forced server-side).
+      if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
     })();
@@ -2306,7 +2307,10 @@
       return base ? base + path : path
     }
 
+    // Live shop always posts to this API (Order Log + Drive are forced on the server).
     const STC_PRODUCTION_API = 'https://sweettooth-cravings-api.onrender.com'
+    const STC_EXPECTED_SHEET_ID = '13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs'
+    const STC_EXPECTED_DRIVE_ID = '1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE'
 
     function stcIsLiveShopHost() {
       const host = location.hostname
@@ -2318,35 +2322,113 @@
     }
 
     function stcResolveApiBase() {
-      if (window.STC_API_BASE) return window.STC_API_BASE
+      // Live shop: always the production API (ignore stale config.js).
       if (stcIsLiveShopHost()) {
         window.STC_API_BASE = STC_PRODUCTION_API
         return STC_PRODUCTION_API
       }
+      if (window.STC_API_BASE) return window.STC_API_BASE
       return ''
     }
 
     let stcApiWarmPromise = null
+    let stcApiReady = false
 
-    /** Wake Render free tier while the customer fills the submit form. */
+    function stcSleepMs(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms))
+    }
+
+    /** Wake Render free tier early so the first submit does not hit a cold start. */
     function stcWarmApiIfLive() {
-      if (!stcIsLiveShopHost()) return Promise.resolve()
-      stcResolveApiBase()
-      const base = (window.STC_API_BASE || '').replace(/\/$/, '')
-      if (!base) return Promise.resolve()
+      if (!stcIsLiveShopHost()) return Promise.resolve(null)
+      const base = stcResolveApiBase().replace(/\/$/, '')
+      if (!base) return Promise.resolve(null)
       if (!stcApiWarmPromise) {
-        stcApiWarmPromise = fetch(base + '/api/health', { method: 'GET', mode: 'cors' })
-          .catch(() => {})
+        stcApiWarmPromise = fetch(base + '/api/health', {
+          method: 'GET',
+          mode: 'cors',
+          cache: 'no-store',
+        })
+          .then(async (res) => {
+            if (!res.ok) return null
+            try {
+              const j = await res.json()
+              if (j && j.ok && j.googleSheets) stcApiReady = true
+              return j
+            } catch (_) {
+              return null
+            }
+          })
+          .catch(() => null)
           .finally(() => {
-            window.setTimeout(() => { stcApiWarmPromise = null }, 120000)
+            window.setTimeout(() => { stcApiWarmPromise = null }, 90000)
           })
       }
       return stcApiWarmPromise
     }
 
-    // Single attempt only — no automatic retries (prevents duplicate sheet rows).
+    /**
+     * Wait until the order API is awake and Sheets is configured — once, before a single POST.
+     * No POST retries (avoids duplicate orders).
+     */
+    async function stcWaitForApiReady(onStatus) {
+      if (!stcIsLiveShopHost()) return null
+      const base = stcResolveApiBase().replace(/\/$/, '')
+      if (!base) {
+        const err = new Error('not_configured')
+        err.code = 'not_configured'
+        throw err
+      }
+
+      const deadline = Date.now() + 55000
+      let attempt = 0
+      while (Date.now() < deadline) {
+        attempt += 1
+        if (onStatus) {
+          onStatus(
+            attempt === 1
+              ? 'Connecting to order system…'
+              : 'Waking order system… almost ready'
+          )
+        }
+        try {
+          const controller = new AbortController()
+          const timer = setTimeout(() => controller.abort(), 10000)
+          const res = await fetch(base + '/api/health', {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-store',
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timer))
+          if (res.ok) {
+            const j = await res.json().catch(() => null)
+            if (j && j.ok && j.googleSheets) {
+              stcApiReady = true
+              // Soft check: server should report the forced sheet / drive IDs
+              const sheetOk =
+                !j.googleSheetId || j.googleSheetId === STC_EXPECTED_SHEET_ID
+              const driveOk =
+                !j.googleDriveFolderId || j.googleDriveFolderId === STC_EXPECTED_DRIVE_ID
+              if (!sheetOk || !driveOk) {
+                console.warn('[stc] health IDs unexpected', j.googleSheetId, j.googleDriveFolderId)
+              }
+              return j
+            }
+          }
+        } catch (_) {
+          /* keep waiting */
+        }
+        await stcSleepMs(1800)
+      }
+
+      const err = new Error('server_unavailable')
+      err.code = 'server_unavailable'
+      throw err
+    }
+
+    // Single attempt only — no automatic POST retries (prevents duplicate sheet rows).
     // Manual "Try Again" reuses the same clientRequestId so the server stays idempotent.
-    const STC_SUBMIT_TIMEOUT_MS = 90000
+    const STC_SUBMIT_TIMEOUT_MS = 100000
 
     /** Stable per open of the submit modal; reused on manual Try Again only. */
     let stcClientRequestId = ''
@@ -2368,6 +2450,11 @@
       }
     }
 
+    // Start warming the API as soon as the page loads on the live shop
+    try {
+      if (stcIsLiveShopHost()) stcWarmApiIfLive()
+    } catch (_) { /* ignore */ }
+
     function stcClassifySubmitError(err, res) {
       const status = (res && res.status) || (err && err.status)
       const raw = String((err && err.message) || err || '')
@@ -2381,12 +2468,12 @@
         }
       }
 
-      if (err && err.code === 'not_configured') {
+      if (err && (err.code === 'not_configured' || err.code === 'server_unavailable')) {
         return {
           title: 'Orders aren\u2019t connected yet',
           message: 'The website can\u2019t reach our order system right now.',
           steps: [
-            'Wait a moment, then tap Try Again once.',
+            'Wait a moment, then tap Try Again once (safe — will not create a duplicate).',
             'If this keeps happening, message us on Instagram or email and we\u2019ll take your order manually.'
           ],
           retryable: true
@@ -2773,12 +2860,12 @@
     }
 
     async function performCartSubmit() {
-      // Hard lock: one in-flight request only (no auto retries, no double-click dups)
+      // Hard lock: one in-flight request only (no auto POST retries, no double-click dups)
       if (stcSubmitInFlight) return
       stcSubmitInFlight = true
 
       hideCartSubmitError()
-      setCartSubmitLoading(true, 'Sending your request…', 'submit')
+      setCartSubmitLoading(true, 'Connecting to order system…', 'submit')
 
       const payload = buildCartSubmitPayload()
       if (!payload.customerName || !payload.customerEmail) {
@@ -2794,6 +2881,10 @@
       }
 
       try {
+        // Ensure API is awake once, then a single cart-submit (no multi-attempt POST loop)
+        await stcWaitForApiReady((msg) => setCartSubmitLoading(true, msg, 'submit'))
+        setCartSubmitLoading(true, 'Sending your request…', 'submit')
+
         const result = await postCartSubmitPayload(payload)
         const orderId = result.json.orderId
         const photoErrors = result.json.photoErrors || []
@@ -2828,6 +2919,18 @@
       } catch (err) {
         stcSubmitInFlight = false
         setCartSubmitLoading(false)
+        if (err && err.code === 'server_unavailable') {
+          showCartSubmitError({
+            title: 'Order system is starting up',
+            message: 'We could not reach the order server in time. Your cart is still here — nothing was submitted twice.',
+            steps: [
+              'Wait about 30 seconds, then tap Try Again once.',
+              'Or message us on Instagram @sweettoothcravings__ with your order details.'
+            ],
+            retryable: true
+          })
+          return
+        }
         const info = stcClassifySubmitError(err, err.status ? { status: err.status } : null)
         showCartSubmitError(info)
       }

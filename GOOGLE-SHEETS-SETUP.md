@@ -254,25 +254,25 @@ Body includes `orderId`, `customerEmail`, `customerName`, `estimatedSubtotal` / 
 
 ---
 
-## Sheet columns (taxes & bookkeeping)
+## Sheet columns (left → right)
 
 | Column | Purpose |
 |--------|---------|
-| Order ID | Unique reference |
-| Submitted At | Timestamp |
-| Order Type | Menu Order |
+| Order | Unique reference |
+| Submit Date | Timestamp |
+| Order Type | Menu Order / Custom Cake Order |
 | Status | Pending Review |
-| Customer Name, Email, Phone | Contact |
+| Customer Name | Contact |
+| Email | Contact |
+| Phone | Contact |
 | Event Date | When they need it |
-| Product / Cake | Summary |
-| Size / Tier, Flavor, Filling | From line items / notes |
-| Decoration & Custom Notes | Order notes |
-| Line Items (full detail) | Full cart breakdown |
+| Line Items | Full cart + notes / allergies |
 | Estimated Subtotal | Starting total |
-| Deposit Due (50%) | Auto-calculated |
-| Photo 1–3 | Google Drive photo links (max 3) |
-| Tax Year | Auto from submit date |
+| Deposit Due | Auto 50% |
+| Photo 1–3 | Google Drive links (max 3) |
 | Stripe Deposit | Checkbox — one-click 50% deposit invoice after review |
+
+The API **always** writes to spreadsheet `13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs` and Drive folder `1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE`.
 
 Filter by **Tax Year** or **Order Type** for records.
 

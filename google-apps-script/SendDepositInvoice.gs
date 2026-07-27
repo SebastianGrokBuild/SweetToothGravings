@@ -1,32 +1,27 @@
 /**
  * Sweet Tooth Cravings — Google Sheet: "Stripe Deposit" one-click invoice
  *
- * Order Log columns (cleaned schema):
- *   … Photo 1–3, Tax Year, Stripe Deposit
- *   (no Source; no Photo 4–6)
+ * Order Log columns (left → right):
+ *   Order | Submit Date | Order Type | Status | Customer Name | Email | Phone |
+ *   Event Date | Line Items | Estimated Subtotal | Deposit Due |
+ *   Photo 1 | Photo 2 | Photo 3 | Stripe Deposit
  *
  * After you review a row:
- *   • Check the box in **Stripe Deposit** on that row (one-click), or
+ *   • Check the box in **Stripe Deposit** (last column), or
  *   • Menu: Sweet Tooth → Send Deposit Invoice (selected row)
  *
  * Calls Render API → Stripe Checkout (Sweet Tooth STRIPE_SECRET_KEY)
  * → emails the customer the 50% deposit link → updates Status.
  *
- * SETUP (one time) — see GOOGLE-SHEETS-SETUP.md
- * 1. Extensions → Apps Script → paste this file → Save
- * 2. Reload spreadsheet → Sweet Tooth menu
- * 3. Configure API: https://sweettooth-cravings-api.onrender.com
- * 4. Sweet Tooth → Install Stripe Deposit button column
- * 5. STRIPE_SECRET_KEY must be set on Render
- *
- * Website form submission (Sheets + Drive) is unchanged.
+ * SETUP — see GOOGLE-SHEETS-SETUP.md
+ * Website form submission still goes to the same Order Log + Drive folder.
  */
 
 var DEFAULT_API_BASE = "https://sweettooth-cravings-api.onrender.com";
 var STRIPE_DEPOSIT_HEADER = "Stripe Deposit";
 
 var HEADER_MAP = {
-  orderId: ["Order ID", "Order Id", "order id"],
+  orderId: ["Order", "Order ID", "Order Id", "order id"],
   status: ["Status"],
   customerName: ["Customer Name", "Name"],
   email: ["Email", "Customer Email"],
@@ -36,14 +31,14 @@ var HEADER_MAP = {
   size: ["Size / Tier", "Size"],
   flavor: ["Flavor"],
   filling: ["Filling"],
-  notes: ["Decoration & Custom Notes", "Decoration Notes", "Notes"],
+  notes: ["Decoration & Custom Notes", "Decoration Notes", "Notes", "Line Items"],
   allergies: ["Allergies"],
   additionalNotes: ["Additional Notes"],
-  lineItems: ["Line Items (full detail)", "Line Items"],
+  lineItems: ["Line Items", "Line Items (full detail)"],
   estimatedSubtotal: ["Estimated Subtotal", "Subtotal", "Final Total", "Final Price"],
-  depositDue: ["Deposit Due (50%)", "Deposit Due", "Deposit"],
+  depositDue: ["Deposit Due", "Deposit Due (50%)", "Deposit"],
   orderType: ["Order Type"],
-  // Checkbox / button column
+  // Last column — one-click checkbox button
   sendDeposit: [
     "Stripe Deposit",
     "Send Deposit Invoice",
@@ -129,82 +124,90 @@ function showSetupHelp() {
 }
 
 /**
- * Ensures a "Stripe Deposit" checkbox column exists (after Tax Year).
+ * Ensures "Stripe Deposit" is the last column (after Photo 3) with checkboxes.
  * Checking a box = one-click Send Deposit Invoice.
  */
 function installStripeDepositColumn() {
   var ui = SpreadsheetApp.getUi();
   var sheet = SpreadsheetApp.getActiveSheet();
-  var headers = getHeaderRow_(sheet);
-  var existing = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
 
-  if (existing >= 0) {
-    // Normalize header name to "Stripe Deposit"
-    sheet.getRange(1, existing + 1).setValue(STRIPE_DEPOSIT_HEADER);
-    sheet.getRange(1, existing + 1).setFontWeight("bold");
+  // Preferred header order written by the website API
+  var preferred = [
+    "Order",
+    "Submit Date",
+    "Order Type",
+    "Status",
+    "Customer Name",
+    "Email",
+    "Phone",
+    "Event Date",
+    "Line Items",
+    "Estimated Subtotal",
+    "Deposit Due",
+    "Photo 1",
+    "Photo 2",
+    "Photo 3",
+    "Stripe Deposit",
+  ];
+
+  // If row 1 is empty / wrong, write preferred headers for columns A–O
+  var headers = getHeaderRow_(sheet);
+  var first = String(headers[0] || "").trim().toLowerCase();
+  if (!first || first === "order id" || first.indexOf("order") !== 0) {
+    sheet.getRange(1, 1, 1, preferred.length).setValues([preferred]);
     sheet
-      .getRange(1, existing + 1)
-      .setBackground("#7B4DB8")
-      .setFontColor("#ffffff");
-    sheet.setColumnWidth(existing + 1, 130);
-    var lastRow = Math.max(sheet.getLastRow(), 2);
-    if (lastRow >= 2) {
-      sheet.getRange(2, existing + 1, lastRow - 1, 1).insertCheckboxes();
-    }
-    ui.alert(
-      'Column "' +
-        STRIPE_DEPOSIT_HEADER +
-        '" ready (column ' +
-        columnLetter_(existing + 1) +
-        ").\n\nCheck a box on a reviewed row to email the 50% Stripe deposit invoice."
-    );
-    return;
+      .getRange(1, 1, 1, preferred.length)
+      .setFontWeight("bold")
+      .setBackground("#C9A9E8");
   }
 
-  // Prefer after Tax Year; else after last used header
-  var taxIdx = findHeaderIndex_(headers, ["Tax Year"]);
+  headers = getHeaderRow_(sheet);
+  var existing = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
+  var photo3 = findHeaderIndex_(headers, ["Photo 3"]);
   var col;
-  if (taxIdx >= 0) {
-    col = taxIdx + 2; // insert after Tax Year
-    sheet.insertColumnAfter(taxIdx + 1);
+
+  if (existing >= 0) {
+    col = existing + 1;
+  } else if (photo3 >= 0) {
+    col = photo3 + 2;
+    sheet.insertColumnAfter(photo3 + 1);
   } else {
-    col = Math.max(headers.filter(Boolean).length, 1) + 1;
-    sheet.insertColumnAfter(col - 1);
+    col = Math.max(headers.filter(Boolean).length, preferred.length - 1) + 1;
+    if (col > 1) sheet.insertColumnAfter(col - 1);
   }
 
   sheet.getRange(1, col).setValue(STRIPE_DEPOSIT_HEADER);
-  sheet.getRange(1, col).setFontWeight("bold");
-  sheet.getRange(1, col).setBackground("#7B4DB8").setFontColor("#ffffff");
+  sheet
+    .getRange(1, col)
+    .setFontWeight("bold")
+    .setBackground("#7B4DB8")
+    .setFontColor("#ffffff");
   sheet.setColumnWidth(col, 130);
   sheet
     .getRange(1, col)
     .setNote(
-      "Check the box after reviewing the order to email a 50% Stripe deposit invoice (Sweet Tooth Stripe account)."
+      "Check after reviewing Estimated Subtotal to email a 50% Stripe deposit invoice (Sweet Tooth Stripe account)."
     );
 
-  var lastRow2 = Math.max(sheet.getLastRow(), 50);
-  if (lastRow2 >= 2) {
-    sheet.getRange(2, col, lastRow2 - 1, 1).insertCheckboxes();
+  var lastRow = Math.max(sheet.getLastRow(), 50);
+  if (lastRow >= 2) {
+    sheet.getRange(2, col, lastRow - 1, 1).insertCheckboxes();
   }
 
-  // Soft cleanup: clear old header labels if present
   clearObsoleteHeaders_(sheet);
 
   ui.alert(
-    'Added "' +
+    '"' +
       STRIPE_DEPOSIT_HEADER +
-      '" column (' +
+      '" is ready in column ' +
       columnLetter_(col) +
-      ").\n\n" +
-      "How to use:\n" +
-      "1. Review Estimated Subtotal\n" +
-      "2. Check the Stripe Deposit box → invoice emailed\n" +
-      "3. Status becomes Deposit invoice sent\n\n" +
-      "You can delete old Photo 4–6 and Source columns if they are still on the sheet."
+      ".\n\n" +
+      "After review: check the box → 50% deposit invoice is emailed.\n" +
+      "Or use menu: Sweet Tooth → Send Deposit Invoice."
   );
 }
 
-/** Remove obsolete header text if leftover columns still say Photo 4–6 or Source. */
+/** Clear leftover obsolete header labels past the cleaned schema. */
 function clearObsoleteHeaders_(sheet) {
   var headers = getHeaderRow_(sheet);
   var obsolete = {
@@ -212,6 +215,17 @@ function clearObsoleteHeaders_(sheet) {
     "photo 5": true,
     "photo 6": true,
     source: true,
+    "tax year": true,
+    "product / cake": true,
+    "size / tier": true,
+    flavor: true,
+    filling: true,
+    "decoration & custom notes": true,
+    "additional notes": true,
+    "order id": true,
+    "submitted at": true,
+    "line items (full detail)": true,
+    "deposit due (50%)": true,
   };
   for (var i = 0; i < headers.length; i++) {
     var key = String(headers[i] || "")

@@ -23,6 +23,11 @@ const ORDERS = path.join(DATA, "orders.json");
 
 loadEnv(path.join(ROOT, ".env"));
 
+// Always pin Order Log + Drive folder — never write to a wrong spreadsheet.
+if (typeof google.forceProductionTargets === "function") {
+  google.forceProductionTargets();
+}
+
 const CONFIG = {
   adminPassword: process.env.ADMIN_PASSWORD || "sweettooth-admin",
   sessionSecret: process.env.SESSION_SECRET || "sweettooth-local-secret",
