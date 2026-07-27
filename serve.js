@@ -1043,23 +1043,33 @@ async function api(req, res, pathname, baseUrl) {
       let lineDetail = "";
       let subtotal = 0;
       body.items.forEach((item, i) => {
-        const line = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+        const qty = Number(item.quantity) || 1;
+        const unit = Number(item.price) || 0;
+        const line = unit * qty;
         subtotal += line;
-        lineDetail += `${i + 1}. ${item.quantity}× ${item.name}`;
         const c = item.customizations || {};
-        if (c.tier) lineDetail += ` | ${c.tier}`;
-        if (c.flavor) lineDetail += ` | ${c.flavor}`;
-        if (c.fillings?.length) lineDetail += ` | ${c.fillings.join(", ")}`;
-        if (c.notes) lineDetail += ` | Notes: ${c.notes}`;
-        lineDetail += ` | $${line}\n`;
+        const bits = [`${i + 1}. ${qty}× ${item.name || "Item"}`];
+        if (c.tier) bits.push(`Size/Tier: ${c.tier}`);
+        if (c.flavor) bits.push(`Flavor: ${c.flavor}`);
+        if (c.fillings?.length) bits.push(`Filling: ${c.fillings.join(", ")}`);
+        if (c.notes) bits.push(`Item notes: ${c.notes}`);
+        bits.push(`Line total: $${line.toFixed(2)}`);
+        lineDetail += `${bits.join(" | ")}\n`;
       });
 
       const hasCustomCake = body.items.some((item) =>
         /custom cake/i.test(item.name || ""),
       );
 
-      // Form submit = Sheets + Drive only.
-      // 50% deposit Checkout is created later via Sheet "Send Deposit Invoice" (or admin payment-link).
+      const phone = String(body.customerPhone || body.phone || "").trim();
+      const eventDate = String(body.eventDate || body.date || "").trim();
+      const allergies = String(body.allergies || "").trim();
+      const orderNotes = String(
+        body.orderNotes || body.notes || body.decorationNotes || "",
+      ).trim();
+
+      // Form submit = Sheets + Drive only (full contact + cart → correct columns).
+      // 50% deposit Checkout is created later via Sheet "Send Deposit Invoice".
       const saved = await google.saveOrder({
         orderId,
         submittedAt: now,
@@ -1067,14 +1077,14 @@ async function api(req, res, pathname, baseUrl) {
         status: "Pending Review",
         customerName: name,
         customerEmail: email,
-        customerPhone: body.customerPhone || "",
-        eventDate: body.eventDate || "",
-        product: "Menu items (see line items)",
+        customerPhone: phone,
+        eventDate,
+        product: hasCustomCake ? "Custom cake (see line items)" : "Menu items (see line items)",
         size: "",
         flavor: "",
         filling: "",
-        decorationNotes: body.orderNotes || "",
-        allergies: body.allergies || "",
+        decorationNotes: orderNotes,
+        allergies,
         additionalNotes: "",
         lineItemsDetail: lineDetail.trim(),
         estimatedSubtotal: subtotal,
@@ -1118,10 +1128,12 @@ async function api(req, res, pathname, baseUrl) {
         depositCents: null,
         depositDollars: null,
         estimatedSubtotal: subtotal,
+        depositDue: subtotal > 0 ? Math.round(subtotal * 50) / 100 : null,
         stripe: { ok: false, skipped: true, reason: "deposit_after_review_only" },
         googleSheetId: google.getSheetId(),
         googleDriveFolderId: google.getDriveFolderId(),
         clientRequestId: clientRequestId || null,
+        columnsWritten: saved.columns || null,
       };
       setCachedCartSubmit(clientRequestId, responseBody);
       return responseBody;
