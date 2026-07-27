@@ -1,33 +1,32 @@
 /**
- * Sweet Tooth Cravings — Send Deposit Invoice (dropdown button)
+ * Sweet Tooth Cravings — Send Deposit Invoice (Stripe Deposit column)
  *
- * Column is narrow purple “button” cells (not checkboxes).
- * Open the dropdown → choose “Send” → Stripe emails a 50% deposit invoice.
+ * Column: "Stripe Deposit" (narrow ~120px)
+ * Dropdown options: only "Send Deposit Invoice" (no checkbox, no Sent option)
+ * After success the cell text becomes "✓ Sent" (not a dropdown choice)
  *
- * Requires installable onEdit (simple onEdit cannot call UrlFetch).
+ * Reads Email (and name/subtotal/etc.) from the SAME row.
+ * Calls Render API → Stripe invoices the customer 50% deposit.
  *
  * SETUP (one time)
- * 1. Extensions → Apps Script → paste this whole file → Save
- * 2. Reload the sheet
+ * 1. Extensions → Apps Script → paste this file → Save
+ * 2. Reload spreadsheet
  * 3. Sweet Tooth → Install Send Deposit Invoice button + trigger
- * 4. Click Allow when Google asks for authorization
+ * 4. Authorize when prompted
  *
- * API: https://sweettooth-cravings-api.onrender.com
- * Secret: ADMIN_PASSWORD on Render (default: sweettooth-admin)
- * Stripe: STRIPE_SECRET_KEY on Render for acct_1TcrMNHTYIZb4z2l
+ * API secret defaults to ADMIN_PASSWORD on Render (sweettooth-admin).
+ * Stripe secret key lives only on Render (never in this script).
  */
 
 var DEFAULT_API_BASE = "https://sweettooth-cravings-api.onrender.com";
 var DEFAULT_SHEET_SECRET = "sweettooth-admin";
 
-/** Short labels so the column stays narrow (~90px). */
-var COLUMN_HEADER = "Invoice";
-var BUTTON_LABEL = "Send";
+var COLUMN_HEADER = "Stripe Deposit";
+var BUTTON_LABEL = "Send Deposit Invoice";
 var SENT_LABEL = "✓ Sent";
 var SENDING_LABEL = "…";
-var COLUMN_WIDTH = 88;
+var COLUMN_WIDTH = 120;
 
-var EXPECTED_STRIPE_ACCOUNT = "acct_1TcrMNHTYIZb4z2l";
 var INSTALLABLE_HANDLER = "onSendDepositButtonEdit";
 
 var HEADER_MAP = {
@@ -41,7 +40,7 @@ var HEADER_MAP = {
   size: ["Size / Tier", "Size"],
   flavor: ["Flavor"],
   filling: ["Filling"],
-  notes: ["Decoration & Custom Notes", "Decoration Notes", "Notes", "Line Items"],
+  notes: ["Decoration & Custom Notes", "Decoration Notes", "Notes"],
   allergies: ["Allergies"],
   additionalNotes: ["Additional Notes"],
   lineItems: ["Line Items", "Line Items (full detail)"],
@@ -49,12 +48,11 @@ var HEADER_MAP = {
   depositDue: ["Deposit Due", "Deposit Due (50%)", "Deposit"],
   orderType: ["Order Type"],
   sendDeposit: [
-    "Invoice",
-    "Send Deposit Invoice",
     "Stripe Deposit",
+    "Send Deposit Invoice",
+    "Invoice",
     "Send Deposit",
     "Send Invoice",
-    "Deposit",
   ],
 };
 
@@ -67,7 +65,6 @@ function onOpen() {
     .addSeparator()
     .addItem("Show setup help", "showSetupHelp")
     .addToUi();
-
   try {
     ensureDefaultProps_();
   } catch (e) {
@@ -92,11 +89,10 @@ function ensureDefaultProps_() {
 function configureApiConnection() {
   var ui = SpreadsheetApp.getUi();
   var props = PropertiesService.getScriptProperties();
-
   var currentBase = props.getProperty("API_BASE_URL") || DEFAULT_API_BASE;
   var baseRes = ui.prompt(
     "API base URL",
-    "Render order API (no trailing slash):\nCurrent: " + currentBase,
+    "Render API (no trailing slash):\nCurrent: " + currentBase,
     ui.ButtonSet.OK_CANCEL
   );
   if (baseRes.getSelectedButton() !== ui.Button.OK) return;
@@ -107,16 +103,13 @@ function configureApiConnection() {
     ui.alert("API base URL is required.");
     return;
   }
-  if (
-    base === "https://sweettooth-cravings.onrender.com" ||
-    base === "http://sweettooth-cravings.onrender.com"
-  ) {
+  if (base.indexOf("sweettooth-cravings.onrender.com") >= 0 && base.indexOf("-api") < 0) {
     base = DEFAULT_API_BASE;
   }
 
   var secretRes = ui.prompt(
     "Sheet actions secret",
-    "ADMIN_PASSWORD or SHEET_ACTIONS_SECRET on Render.\nLeave blank to keep existing (default: sweettooth-admin).",
+    "ADMIN_PASSWORD on Render (default sweettooth-admin).\nLeave blank to keep existing.",
     ui.ButtonSet.OK_CANCEL
   );
   if (secretRes.getSelectedButton() !== ui.Button.OK) return;
@@ -127,7 +120,6 @@ function configureApiConnection() {
   if (!props.getProperty("SHEET_ACTIONS_SECRET")) {
     props.setProperty("SHEET_ACTIONS_SECRET", DEFAULT_SHEET_SECRET);
   }
-
   ensureInstallableOnEditTrigger_();
   ui.alert("Saved.\n\nAPI: " + base);
 }
@@ -135,20 +127,16 @@ function configureApiConnection() {
 function showSetupHelp() {
   SpreadsheetApp.getUi().alert(
     "Send Deposit Invoice\n\n" +
-      "1) Sweet Tooth → Install Send Deposit Invoice button + trigger\n" +
-      "2) Authorize when Google asks\n" +
-      "3) Review Estimated Subtotal\n" +
-      "4) In the narrow Invoice column, open the dropdown → Send\n\n" +
-      "Stripe emails the 50% deposit invoice (" +
-      EXPECTED_STRIPE_ACCOUNT +
-      ").\n\nAPI: " +
+      "1) Install Send Deposit Invoice button + trigger\n" +
+      "2) Authorize the script\n" +
+      "3) Review Estimated Subtotal on a row\n" +
+      "4) Stripe Deposit column → dropdown → Send Deposit Invoice\n\n" +
+      "Uses that row’s Email column. Stripe emails the 50% deposit link.\n" +
+      "API: " +
       DEFAULT_API_BASE
   );
 }
 
-/**
- * Install narrow Invoice column with Send dropdown + installable trigger.
- */
 function installSendDepositButton() {
   var ui = SpreadsheetApp.getUi();
   ensureDefaultProps_();
@@ -184,11 +172,25 @@ function installSendDepositButton() {
       .setBackground("#C9A9E8");
   }
 
+  // Rename old Invoice / Send Deposit Invoice header → Stripe Deposit
+  headers = getHeaderRow_(sheet);
+  for (var hi = 0; hi < headers.length; hi++) {
+    var hn = String(headers[hi] || "")
+      .trim()
+      .toLowerCase();
+    if (
+      hn === "invoice" ||
+      hn === "send deposit invoice" ||
+      hn === "send deposit"
+    ) {
+      sheet.getRange(1, hi + 1).setValue(COLUMN_HEADER);
+    }
+  }
+
   headers = getHeaderRow_(sheet);
   var existing = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
   var photo3 = findHeaderIndex_(headers, ["Photo 3"]);
   var col;
-
   if (existing >= 0) {
     col = existing + 1;
   } else if (photo3 >= 0) {
@@ -202,15 +204,15 @@ function installSendDepositButton() {
   var headerCell = sheet.getRange(1, col);
   headerCell.setValue(COLUMN_HEADER);
   headerCell.setFontWeight("bold");
+  headerCell.setFontSize(8);
   headerCell.setBackground("#7B4DB8");
   headerCell.setFontColor("#ffffff");
   headerCell.setHorizontalAlignment("center");
   headerCell.setWrap(false);
   headerCell.setNote(
-    "Send Deposit Invoice — open the dropdown and choose Send after reviewing Estimated Subtotal."
+    "Choose “Send Deposit Invoice” to email a 50% Stripe deposit to this row’s Email address."
   );
 
-  // Narrow column so the row does not stretch
   sheet.setColumnWidth(col, COLUMN_WIDTH);
 
   var lastRow = Math.max(sheet.getLastRow(), 80);
@@ -219,6 +221,7 @@ function installSendDepositButton() {
     range.clearDataValidations();
     range.setWrap(false);
     range.setHorizontalAlignment("center");
+    range.setFontSize(8);
 
     var values = range.getValues();
     for (var r = 0; r < values.length; r++) {
@@ -226,39 +229,38 @@ function installSendDepositButton() {
       var v = values[r][0];
       var s = String(v == null ? "" : v).trim();
 
-      if (s.indexOf("✓") === 0 || /^sent/i.test(s) || s === SENT_LABEL) {
+      if (s.indexOf("✓") === 0 || s === SENT_LABEL) {
         styleSentCell_(cell);
         continue;
       }
 
-      // Clear old checkboxes / long labels / booleans
+      // Strip checkboxes / TRUE / FALSE / old labels
       if (
         v === true ||
         v === false ||
         s === "TRUE" ||
         s === "FALSE" ||
         s === "" ||
-        s.toLowerCase() === "send deposit invoice" ||
-        s.toLowerCase() === "stripe deposit" ||
-        s === SENDING_LABEL
+        s === "Send" ||
+        s === SENDING_LABEL ||
+        s.toLowerCase() === "send deposit invoice"
       ) {
         cell.setValue("");
       }
-
       styleButtonCell_(cell);
     }
 
+    // ONLY the action label in the dropdown (no Sent, no checkbox)
     var rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList([BUTTON_LABEL, SENT_LABEL], true)
+      .requireValueInList([BUTTON_LABEL], true)
       .setAllowInvalid(true)
-      .setHelpText("Send Deposit Invoice — choose Send to email the 50% deposit.")
+      .setHelpText("Send Deposit Invoice — emails 50% deposit to this row’s Email.")
       .build();
     range.setDataValidation(rule);
   }
 
   ensureInstallableOnEditTrigger_();
 
-  // Warm API so first send is less likely to hit a cold start
   try {
     UrlFetchApp.fetch(DEFAULT_API_BASE + "/api/health", {
       muteHttpExceptions: true,
@@ -269,17 +271,14 @@ function installSendDepositButton() {
   }
 
   ui.alert(
-    "Send Deposit Invoice is ready (column " +
-      columnLetter_(col) +
-      ", width " +
+    "Stripe Deposit column ready (width " +
       COLUMN_WIDTH +
       "px).\n\n" +
-      "How to use:\n" +
       "1. Review Estimated Subtotal\n" +
-      "2. In Invoice column, open dropdown → Send\n" +
-      "3. Stripe emails the 50% deposit\n" +
+      "2. Open dropdown → Send Deposit Invoice\n" +
+      "3. Stripe emails that row’s Email\n" +
       "4. Cell shows ✓ Sent\n\n" +
-      "Authorize the script if Google prompts you."
+      "Authorize if Google asks."
   );
 }
 
@@ -287,20 +286,21 @@ function styleButtonCell_(cell) {
   cell.setBackground("#7B4DB8");
   cell.setFontColor("#ffffff");
   cell.setFontWeight("bold");
-  cell.setFontSize(9);
+  cell.setFontSize(8);
   cell.setHorizontalAlignment("center");
   cell.setVerticalAlignment("middle");
   cell.setWrap(false);
-  cell.setNote("Send Deposit Invoice — choose Send from the dropdown.");
+  cell.setNote("Send Deposit Invoice — uses Email on this row.");
 }
 
 function styleSentCell_(cell) {
   cell.setBackground("#E8F5E9");
   cell.setFontColor("#1B5E20");
   cell.setFontWeight("bold");
-  cell.setFontSize(9);
+  cell.setFontSize(8);
   cell.setHorizontalAlignment("center");
   cell.setWrap(false);
+  cell.clearDataValidations();
 }
 
 function ensureInstallableOnEditTrigger_() {
@@ -365,15 +365,14 @@ function onStripeDepositEdit(e) {
   handleSendDepositEdit_(e);
 }
 
-/** Simple onEdit cannot call UrlFetch — leave empty. */
 function onEdit(e) {
-  /* intentionally empty */
+  /* simple trigger cannot UrlFetch — installable handler does the work */
 }
 
 function handleSendDepositEdit_(e) {
   var lock = LockService.getDocumentLock();
   try {
-    if (!lock.tryLock(5000)) return;
+    if (!lock.tryLock(8000)) return;
     if (!e || !e.range) return;
 
     var sheet = e.range.getSheet();
@@ -384,15 +383,14 @@ function handleSendDepositEdit_(e) {
 
     var headers = getHeaderRow_(sheet);
     var sendCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
-    if (sendCol < 0) return;
-    if (col !== sendCol + 1) return;
+    if (sendCol < 0 || col !== sendCol + 1) return;
 
     var val = String(e.range.getValue() == null ? "" : e.range.getValue()).trim();
     var trigger =
       val === BUTTON_LABEL ||
-      val === "Send Deposit Invoice" ||
-      val.toLowerCase() === "send" ||
       val.toLowerCase() === "send deposit invoice" ||
+      val === "Send" ||
+      val.toLowerCase() === "send" ||
       val === true ||
       val === "TRUE";
 
@@ -408,13 +406,13 @@ function handleSendDepositEdit_(e) {
 
     if (result && result.ok) {
       SpreadsheetApp.getActiveSpreadsheet().toast(
-        "50% deposit emailed via Stripe.",
+        "50% deposit emailed to " + (result.emailedTo || "customer") + ".",
         "Send Deposit Invoice",
         8
       );
     } else if (result && result.error !== "cancelled") {
       SpreadsheetApp.getActiveSpreadsheet().toast(
-        String(result.error || "Send failed").slice(0, 140),
+        String(result.error || "Send failed").slice(0, 150),
         "Send failed",
         12
       );
@@ -440,12 +438,12 @@ function handleSendDepositEdit_(e) {
 function applyResultToCell_(cell, result) {
   if (!cell) return;
   if (result && result.ok) {
+    cell.clearDataValidations();
     cell.setValue(SENT_LABEL);
     styleSentCell_(cell);
     var note = "Deposit invoice sent " + new Date().toLocaleString();
-    if (result.data && result.data.checkoutUrl) {
-      note += "\n" + result.data.checkoutUrl;
-    }
+    if (result.emailedTo) note += "\nTo: " + result.emailedTo;
+    if (result.data && result.data.checkoutUrl) note += "\n" + result.data.checkoutUrl;
     cell.setNote(note);
   } else if (result && result.error === "cancelled") {
     cell.setValue("");
@@ -453,6 +451,12 @@ function applyResultToCell_(cell, result) {
   } else {
     cell.setValue("");
     styleButtonCell_(cell);
+    // restore dropdown only
+    var rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([BUTTON_LABEL], true)
+      .setAllowInvalid(true)
+      .build();
+    cell.setDataValidation(rule);
     cell.setNote("Failed: " + ((result && result.error) || "unknown"));
   }
 }
@@ -460,7 +464,11 @@ function applyResultToCell_(cell, result) {
 function formatCellValue_(v) {
   if (v == null || v === "") return "";
   if (Object.prototype.toString.call(v) === "[object Date]" && !isNaN(v.getTime())) {
-    return Utilities.formatDate(v, Session.getScriptTimeZone() || "America/New_York", "yyyy-MM-dd");
+    return Utilities.formatDate(
+      v,
+      Session.getScriptTimeZone() || "America/New_York",
+      "yyyy-MM-dd"
+    );
   }
   return String(v).trim();
 }
@@ -476,44 +484,45 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var secret =
     props.getProperty("SHEET_ACTIONS_SECRET") || DEFAULT_SHEET_SECRET || "";
 
-  if (
-    base === "https://sweettooth-cravings.onrender.com" ||
-    base === "http://sweettooth-cravings.onrender.com"
-  ) {
+  if (base.indexOf("sweettooth-cravings.onrender.com") >= 0 && base.indexOf("-api") < 0) {
     base = DEFAULT_API_BASE;
     props.setProperty("API_BASE_URL", base);
   }
 
   if (!base || !secret) {
-    if (showAlerts) {
-      ui.alert("API not configured.\n\nSweet Tooth → Configure API connection…");
-    }
+    if (showAlerts) ui.alert("API not configured.\nSweet Tooth → Configure API connection…");
     return { ok: false, error: "not_configured" };
   }
 
-  // Wake cold Render instance first (avoids timeout errors)
+  // Wake API (Render free tier)
   try {
     UrlFetchApp.fetch(base + "/api/health", {
       muteHttpExceptions: true,
       method: "get",
     });
   } catch (wakeErr) {
-    /* continue — send may still work */
+    /* continue */
   }
 
   var headers = getHeaderRow_(sheet);
   var record = readRowAsObject_(sheet, row, headers);
 
-  if (!record.email || record.email.indexOf("@") < 0) {
-    if (showAlerts) ui.alert("This row has no valid Email.");
-    return { ok: false, error: "no_email" };
+  // Email MUST come from this row’s Email column
+  var email = record.email;
+  if (!email || email.indexOf("@") < 0) {
+    if (showAlerts) {
+      ui.alert(
+        "No valid Email on this row.\n\nAdd the customer email in the Email column, then try again."
+      );
+    }
+    return { ok: false, error: "no_email on this row" };
   }
 
   var statusStr = String(record.status || "").toLowerCase();
   if (statusStr.indexOf("deposit invoice sent") >= 0 && showAlerts) {
     var again = ui.alert(
       "Already sent",
-      "Status is already “Deposit invoice sent”. Send another?",
+      "Status is already “Deposit invoice sent”. Send another to " + email + "?",
       ui.ButtonSet.YES_NO
     );
     if (again !== ui.Button.YES) return { ok: false, error: "cancelled" };
@@ -529,7 +538,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   if (!deposit || deposit < 0.5) {
     if (showAlerts) {
       ui.alert(
-        "Need at least $0.50 deposit.\nSet Estimated Subtotal on this row, then try again."
+        "Need at least $0.50 deposit.\nSet Estimated Subtotal (or Deposit Due) on this row."
       );
     }
     return { ok: false, error: "no_amount — set Estimated Subtotal first" };
@@ -548,7 +557,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var payload = {
     orderId: record.orderId || "",
     customerName: record.customerName || "",
-    customerEmail: record.email,
+    customerEmail: email,
     customerPhone: record.phone || "",
     eventDate: record.eventDate || "",
     orderType: record.orderType || "",
@@ -562,16 +571,16 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   if (showAlerts) {
     var confirm = ui.alert(
       "Send 50% deposit invoice?",
-      "Customer: " +
-        (record.customerName || "(no name)") +
-        "\nEmail: " +
-        record.email +
+      "To: " +
+        email +
+        "\nName: " +
+        (record.customerName || "(none)") +
         "\nDeposit: $" +
         deposit.toFixed(2) +
         (subtotal ? " (50% of $" + subtotal.toFixed(2) + ")" : "") +
         "\nOrder: " +
         (record.orderId || "(none)") +
-        "\n\nStripe will email the payment invoice.",
+        "\n\nStripe will email the payment link.",
       ui.ButtonSet.YES_NO
     );
     if (confirm !== ui.Button.YES) return { ok: false, error: "cancelled" };
@@ -592,9 +601,9 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     var em = String(err.message || err);
     if (showAlerts) {
       ui.alert(
-        "Could not reach the API.\n\n" +
+        "Could not reach API.\n\n" +
           em +
-          "\n\nTry again in 30 seconds (Render free tier may be waking up).\n" +
+          "\n\nWait 30s if Render is waking up.\n" +
           DEFAULT_API_BASE
       );
     }
@@ -607,20 +616,16 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   try {
     data = JSON.parse(text);
   } catch (e) {
-    data = { error: text || "Invalid JSON from API" };
+    data = { error: text || "Invalid API response" };
   }
 
   if (code < 200 || code >= 300 || !data.success) {
-    var msg =
-      (data && data.error) ||
-      text ||
-      "Request failed (HTTP " + code + ")";
-    // Friendlier cold-start / auth messages
+    var msg = (data && data.error) || text || "HTTP " + code;
     if (code === 401) {
       msg =
-        "Unauthorized — run Configure API connection and set secret to sweettooth-admin (or your ADMIN_PASSWORD).";
+        "Unauthorized — Configure API connection; secret should be sweettooth-admin (or your ADMIN_PASSWORD).";
     } else if (code === 502 || code === 503 || code === 504) {
-      msg = "API is starting up. Wait 30s and try Send again.";
+      msg = "API starting up. Wait 30 seconds and choose Send Deposit Invoice again.";
     }
     if (showAlerts) ui.alert("Send failed\n\n" + msg);
     setStatusIfPossible_(sheet, row, headers, "Deposit send failed");
@@ -645,8 +650,8 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   if (showAlerts) {
     var emailNote =
       data.email && data.email.sent
-        ? "Emailed to " + record.email + " (" + (data.email.method || "Stripe") + ")"
-        : "Link created — if email failed, copy:\n" + (data.checkoutUrl || "");
+        ? "Emailed to " + email
+        : "Link created — copy if needed:\n" + (data.checkoutUrl || "");
     ui.alert(
       "Deposit invoice ready\n\n" +
         "Amount: $" +
@@ -658,7 +663,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     );
   }
 
-  return { ok: true, data: data };
+  return { ok: true, data: data, emailedTo: email };
 }
 
 function getHeaderRow_(sheet) {

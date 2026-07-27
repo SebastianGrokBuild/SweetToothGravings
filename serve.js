@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-invoice-narrow-v9";
+const DEPLOY_BUILD = "2026-07-27-st-ids-send-v10";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -108,6 +108,18 @@ function loadEnv(file) {
 
 function id() {
   return crypto.randomBytes(10).toString("hex");
+}
+
+/** Prefer short ST-YYMMDD-NNN order numbers; fall back to hex id. */
+async function nextOrderId() {
+  try {
+    if (typeof google.allocateOrderId === "function") {
+      return await google.allocateOrderId();
+    }
+  } catch (e) {
+    console.warn("[orderId] allocate failed, using random:", e.message);
+  }
+  return id();
 }
 
 /**
@@ -1195,7 +1207,7 @@ async function api(req, res, pathname, baseUrl) {
         }
       }
 
-      const orderId = id();
+      const orderId = await nextOrderId();
       const now = new Date().toISOString();
       let lineDetail = "";
       let subtotal = 0;
@@ -1226,8 +1238,8 @@ async function api(req, res, pathname, baseUrl) {
       ).trim();
 
       // Form submit = Sheets + Drive only (full contact + cart → correct columns).
-      // 50% deposit Checkout is created later via Sheet "Send Deposit Invoice".
-      // Guaranteed sheet write: saveOrder throws if Sheets API fails — we never return success without it.
+      // 50% deposit is created later via Sheet "Send Deposit Invoice".
+      // Guaranteed sheet write: saveOrder throws if Sheets API fails.
       google.forceProductionTargets();
       const saved = await google.saveOrder({
         orderId,
@@ -1340,7 +1352,7 @@ async function api(req, res, pathname, baseUrl) {
     }
     if (!notes) return json(res, 400, { error: "Decoration notes required" });
 
-    const orderId = id();
+    const orderId = await nextOrderId();
     const now = new Date().toISOString();
     const subtotal = body.sizePriceHint ? Number(body.sizePriceHint) : 0;
 
