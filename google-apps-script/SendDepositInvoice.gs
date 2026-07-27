@@ -1,26 +1,29 @@
 /**
- * Sweet Tooth Cravings — Google Sheet: "Send Deposit Invoice"
+ * Sweet Tooth Cravings — Google Sheet: "Stripe Deposit" one-click invoice
  *
- * After you review a row in the Order Log, send a 50% Stripe deposit:
+ * Order Log columns (cleaned schema):
+ *   … Photo 1–3, Tax Year, Stripe Deposit
+ *   (no Source; no Photo 4–6)
+ *
+ * After you review a row:
+ *   • Check the box in **Stripe Deposit** on that row (one-click), or
  *   • Menu: Sweet Tooth → Send Deposit Invoice (selected row)
- *   • Or check the "Send Deposit Invoice" checkbox column (true one-click)
  *
- * Calls your Render API → Stripe Checkout (Sweet Tooth account via STRIPE_SECRET_KEY)
- * → emails the customer the pay link → updates Status on the row.
+ * Calls Render API → Stripe Checkout (Sweet Tooth STRIPE_SECRET_KEY)
+ * → emails the customer the 50% deposit link → updates Status.
  *
  * SETUP (one time) — see GOOGLE-SHEETS-SETUP.md
- * 1. Extensions → Apps Script → paste this entire file → Save
- * 2. Reload the spreadsheet → Sweet Tooth menu appears
- * 3. Sweet Tooth → Configure API connection…
- *      API: https://sweettooth-cravings-api.onrender.com
- *      Secret: SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD) from Render
- * 4. Sweet Tooth → Install "Send Deposit Invoice" button column
- * 5. Set STRIPE_SECRET_KEY on Render (required for invoices)
+ * 1. Extensions → Apps Script → paste this file → Save
+ * 2. Reload spreadsheet → Sweet Tooth menu
+ * 3. Configure API: https://sweettooth-cravings-api.onrender.com
+ * 4. Sweet Tooth → Install Stripe Deposit button column
+ * 5. STRIPE_SECRET_KEY must be set on Render
  *
- * Does NOT change website → Sheets/Drive submission.
+ * Website form submission (Sheets + Drive) is unchanged.
  */
 
 var DEFAULT_API_BASE = "https://sweettooth-cravings-api.onrender.com";
+var STRIPE_DEPOSIT_HEADER = "Stripe Deposit";
 
 var HEADER_MAP = {
   orderId: ["Order ID", "Order Id", "order id"],
@@ -40,14 +43,20 @@ var HEADER_MAP = {
   estimatedSubtotal: ["Estimated Subtotal", "Subtotal", "Final Total", "Final Price"],
   depositDue: ["Deposit Due (50%)", "Deposit Due", "Deposit"],
   orderType: ["Order Type"],
-  sendDeposit: ["Send Deposit Invoice", "Send Deposit", "Send Invoice"],
+  // Checkbox / button column
+  sendDeposit: [
+    "Stripe Deposit",
+    "Send Deposit Invoice",
+    "Send Deposit",
+    "Send Invoice",
+  ],
 };
 
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("Sweet Tooth")
     .addItem("Send Deposit Invoice (selected row)", "sendDepositInvoiceForActiveRow")
-    .addItem('Install "Send Deposit Invoice" button column', "installSendDepositInvoiceColumn")
+    .addItem("Install Stripe Deposit button column", "installStripeDepositColumn")
     .addItem("Configure API connection…", "configureApiConnection")
     .addSeparator()
     .addItem("Show setup help", "showSetupHelp")
@@ -73,7 +82,6 @@ function configureApiConnection() {
     return;
   }
 
-  // Migrate known stale hostnames from older docs
   if (
     base === "https://sweettooth-cravings.onrender.com" ||
     base === "http://sweettooth-cravings.onrender.com"
@@ -83,7 +91,7 @@ function configureApiConnection() {
 
   var secretRes = ui.prompt(
     "Sheet actions secret",
-    "Same value as SHEET_ACTIONS_SECRET on Render (or ADMIN_PASSWORD if you did not set SHEET_ACTIONS_SECRET).\nLeave blank to keep the existing secret.",
+    "Same value as SHEET_ACTIONS_SECRET on Render (or ADMIN_PASSWORD).\nLeave blank to keep the existing secret.",
     ui.ButtonSet.OK_CANCEL
   );
   if (secretRes.getSelectedButton() !== ui.Button.OK) return;
@@ -102,74 +110,117 @@ function configureApiConnection() {
   ui.alert(
     "Saved.\n\nAPI: " +
       base +
-      "\n\nNext:\n• Sweet Tooth → Install button column (optional)\n• Select a row → Send Deposit Invoice"
+      "\n\nNext: Sweet Tooth → Install Stripe Deposit button column\nThen check a box after reviewing an order."
   );
 }
 
 function showSetupHelp() {
   SpreadsheetApp.getUi().alert(
-    "Send Deposit Invoice\n\n" +
-      "1) Review the order row (edit Estimated Subtotal if the final price changed).\n" +
-      "2) Click any cell in that row, then menu:\n" +
-      "   Sweet Tooth → Send Deposit Invoice\n" +
-      "   — or — check the Send Deposit Invoice checkbox on the row.\n\n" +
-      "Creates a Stripe 50% deposit Checkout link and emails the customer.\n" +
-      "Website → Sheets + Drive submit is unchanged.\n\n" +
-      "API must be: " +
+    "Stripe Deposit — one-click invoice\n\n" +
+      "1) Review Estimated Subtotal on the order row.\n" +
+      "2) Check the box under **Stripe Deposit** on that row\n" +
+      "   (or menu: Send Deposit Invoice).\n\n" +
+      "Creates a Stripe 50% deposit Checkout and emails the customer.\n" +
+      "Form → Sheets/Drive flow is unchanged.\n\n" +
+      "API: " +
       DEFAULT_API_BASE +
-      "\nStripe: set STRIPE_SECRET_KEY on Render.\n\n" +
-      "Full guide: GOOGLE-SHEETS-SETUP.md"
+      "\nRequires STRIPE_SECRET_KEY on Render."
   );
 }
 
 /**
- * Adds a "Send Deposit Invoice" checkbox column (after Source, or last column).
- * Checking a box on a data row sends the invoice (see onEdit).
+ * Ensures a "Stripe Deposit" checkbox column exists (after Tax Year).
+ * Checking a box = one-click Send Deposit Invoice.
  */
-function installSendDepositInvoiceColumn() {
+function installStripeDepositColumn() {
   var ui = SpreadsheetApp.getUi();
   var sheet = SpreadsheetApp.getActiveSheet();
   var headers = getHeaderRow_(sheet);
   var existing = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
 
   if (existing >= 0) {
+    // Normalize header name to "Stripe Deposit"
+    sheet.getRange(1, existing + 1).setValue(STRIPE_DEPOSIT_HEADER);
+    sheet.getRange(1, existing + 1).setFontWeight("bold");
+    sheet
+      .getRange(1, existing + 1)
+      .setBackground("#7B4DB8")
+      .setFontColor("#ffffff");
+    sheet.setColumnWidth(existing + 1, 130);
     var lastRow = Math.max(sheet.getLastRow(), 2);
     if (lastRow >= 2) {
       sheet.getRange(2, existing + 1, lastRow - 1, 1).insertCheckboxes();
     }
     ui.alert(
-      'Column "Send Deposit Invoice" already exists (column ' +
+      'Column "' +
+        STRIPE_DEPOSIT_HEADER +
+        '" ready (column ' +
         columnLetter_(existing + 1) +
-        ").\n\nCheckboxes refreshed on data rows.\nCheck a box on a row to send the 50% deposit invoice."
+        ").\n\nCheck a box on a reviewed row to email the 50% Stripe deposit invoice."
     );
     return;
   }
 
-  var col = headers.length + 1;
-  // Prefer inserting after Source if present
-  var sourceIdx = findHeaderIndex_(headers, ["Source"]);
-  if (sourceIdx >= 0) col = sourceIdx + 2;
-
-  sheet.insertColumnAfter(col - 1);
-  sheet.getRange(1, col).setValue("Send Deposit Invoice");
-  sheet.getRange(1, col).setFontWeight("bold");
-  sheet.setColumnWidth(col, 160);
-
-  var lastRow = Math.max(sheet.getLastRow(), 50);
-  if (lastRow >= 2) {
-    sheet.getRange(2, col, lastRow - 1, 1).insertCheckboxes();
+  // Prefer after Tax Year; else after last used header
+  var taxIdx = findHeaderIndex_(headers, ["Tax Year"]);
+  var col;
+  if (taxIdx >= 0) {
+    col = taxIdx + 2; // insert after Tax Year
+    sheet.insertColumnAfter(taxIdx + 1);
+  } else {
+    col = Math.max(headers.filter(Boolean).length, 1) + 1;
+    sheet.insertColumnAfter(col - 1);
   }
 
+  sheet.getRange(1, col).setValue(STRIPE_DEPOSIT_HEADER);
+  sheet.getRange(1, col).setFontWeight("bold");
+  sheet.getRange(1, col).setBackground("#7B4DB8").setFontColor("#ffffff");
+  sheet.setColumnWidth(col, 130);
+  sheet
+    .getRange(1, col)
+    .setNote(
+      "Check the box after reviewing the order to email a 50% Stripe deposit invoice (Sweet Tooth Stripe account)."
+    );
+
+  var lastRow2 = Math.max(sheet.getLastRow(), 50);
+  if (lastRow2 >= 2) {
+    sheet.getRange(2, col, lastRow2 - 1, 1).insertCheckboxes();
+  }
+
+  // Soft cleanup: clear old header labels if present
+  clearObsoleteHeaders_(sheet);
+
   ui.alert(
-    'Added column "Send Deposit Invoice" (' +
+    'Added "' +
+      STRIPE_DEPOSIT_HEADER +
+      '" column (' +
       columnLetter_(col) +
       ").\n\n" +
       "How to use:\n" +
-      "1. Review Estimated Subtotal on the row\n" +
-      "2. Check the box → Stripe deposit invoice is emailed\n" +
+      "1. Review Estimated Subtotal\n" +
+      "2. Check the Stripe Deposit box → invoice emailed\n" +
       "3. Status becomes Deposit invoice sent\n\n" +
-      "Or use menu: Sweet Tooth → Send Deposit Invoice (selected row)."
+      "You can delete old Photo 4–6 and Source columns if they are still on the sheet."
   );
+}
+
+/** Remove obsolete header text if leftover columns still say Photo 4–6 or Source. */
+function clearObsoleteHeaders_(sheet) {
+  var headers = getHeaderRow_(sheet);
+  var obsolete = {
+    "photo 4": true,
+    "photo 5": true,
+    "photo 6": true,
+    source: true,
+  };
+  for (var i = 0; i < headers.length; i++) {
+    var key = String(headers[i] || "")
+      .trim()
+      .toLowerCase();
+    if (obsolete[key]) {
+      sheet.getRange(1, i + 1).setValue("");
+    }
+  }
 }
 
 function columnLetter_(col) {
@@ -194,7 +245,7 @@ function sendDepositInvoiceForActiveRow() {
 }
 
 /**
- * Checkbox one-click: when "Send Deposit Invoice" is checked, send and clear the box.
+ * One-click: checking Stripe Deposit on a data row sends the invoice.
  */
 function onEdit(e) {
   try {
@@ -214,7 +265,6 @@ function onEdit(e) {
     if (!checked) return;
 
     sendDepositInvoiceForRow_(sheet, row, false);
-    // Clear checkbox after attempt so it is one-click again next time
     e.range.setValue(false);
   } catch (err) {
     console.error(err);
@@ -327,9 +377,9 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
       ui.alert(
         "Could not reach the API.\n\n" +
           err.message +
-          "\n\nCheck API_BASE_URL is " +
+          "\n\nCheck API is " +
           DEFAULT_API_BASE +
-          " and that Render is awake."
+          " and Render is awake."
       );
     }
     return { ok: false, error: String(err.message || err) };
@@ -358,6 +408,23 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     var cell = sheet.getRange(row, depCol + 1);
     if (!String(cell.getValue() || "").trim()) {
       cell.setValue(Number(data.depositDollars));
+    }
+  }
+
+  // Optional: write a short note under Stripe Deposit status in a note on the cell
+  var stripeCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
+  if (stripeCol >= 0 && data.checkoutUrl) {
+    try {
+      sheet
+        .getRange(row, stripeCol + 1)
+        .setNote(
+          "Deposit invoice sent " +
+            new Date().toISOString() +
+            "\n" +
+            data.checkoutUrl
+        );
+    } catch (noteErr) {
+      /* ignore */
     }
   }
 

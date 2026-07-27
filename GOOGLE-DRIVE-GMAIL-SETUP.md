@@ -4,7 +4,7 @@ Orders save to Google Sheets via the **service account**.
 
 Inspiration photos upload to **your** Google Drive folder using **your Gmail** (one-time sign-in). The sheet stores **Drive links only** (not base64).
 
-**Max size:** 10MB per photo, up to 6 photos per order.
+**Max size:** 10MB per photo, up to 3 photos per order (Photo 1–3 on the Order Log).
 
 ---
 

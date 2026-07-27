@@ -204,8 +204,8 @@ function parseMoneyValue(raw) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-/** Up to 6 photos × 10MB raw + multipart overhead */
-const MAX_UPLOAD_BODY_BYTES = 80 * 1024 * 1024;
+/** Up to 3 photos × 10MB raw + multipart overhead */
+const MAX_UPLOAD_BODY_BYTES = 40 * 1024 * 1024;
 
 function readBody(req, maxBytes = MAX_UPLOAD_BODY_BYTES) {
   return new Promise((resolve, reject) => {
@@ -246,7 +246,7 @@ async function parseCartSubmitRequest(req) {
     const photoFiles = [];
 
     for (const f of files) {
-      if (photoFiles.length >= 6) break;
+      if (photoFiles.length >= (google.MAX_SHEET_PHOTOS || 3)) break;
       if (!f.data?.length) continue;
 
       if (f.data.length > google.MAX_PHOTO_BYTES) {

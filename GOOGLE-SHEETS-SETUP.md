@@ -1,6 +1,6 @@
 # Google Sheets setup (required for order requests)
 
-Every order request from your website is saved to one Google Sheet. Inspiration photos are uploaded to **Google Drive**; the sheet stores **links** in Photo 1–6 (up to 10MB per photo).
+Every order request from your website is saved to one Google Sheet. Inspiration photos are uploaded to **Google Drive**; the sheet stores **links** in Photo 1–3 (up to 10MB per photo).
 
 **Time needed:** about 15–20 minutes, one time only.
 
@@ -167,7 +167,7 @@ You should see JSON like:
 3. Fill name + email → submit.
 4. Open **Sweet Tooth — Order Log** → tab **Orders**.
 
-You should see a new row (headers appear on first submit). If you attached photos, **Photo 1–6** columns will contain Google Drive links.
+You should see a new row (headers appear on first submit). If you attached photos, **Photo 1–3** columns will contain Google Drive links. The last column is **Stripe Deposit** (checkbox for one-click invoice after review).
 
 If submit fails, read the alert message and check Terminal where `node serve.js` is running for errors like “permission denied” (usually means Sheet/folder not shared with the service account).
 
@@ -226,21 +226,21 @@ Redeploy after saving env vars.
    - API base URL: **`https://sweettooth-cravings-api.onrender.com`** (must include `-api`)
    - Secret: same as `SHEET_ACTIONS_SECRET` (or `ADMIN_PASSWORD`)
 7. Authorize when Google asks (your Google account that owns the sheet).
-8. **Sweet Tooth → Install "Send Deposit Invoice" button column**  
-   Adds a checkbox column so you can send from the row without the menu.
+8. **Sweet Tooth → Install Stripe Deposit button column**  
+   Adds/normalizes the **Stripe Deposit** checkbox column (one-click invoice).
 
 ### Everyday use
 
 1. Review the row (customer, line items, photos).
 2. If price changed, update **Estimated Subtotal** to the reviewed total.
 3. Either:
-   - Check the **Send Deposit Invoice** box on that row, **or**
+   - Check the **Stripe Deposit** box on that row (one-click), **or**
    - Click any cell in the row → **Sweet Tooth → Send Deposit Invoice** → confirm.
 4. Customer receives the deposit email; **Status** becomes `Deposit invoice sent`.
 
-### Checkbox button column
+### Stripe Deposit button column
 
-Menu **Install "Send Deposit Invoice" button column** creates a header + checkboxes after **Source**. Checking a box runs the same Stripe invoice flow and then clears the box.
+Menu **Install Stripe Deposit button column** creates (or refreshes) a purple **Stripe Deposit** header with checkboxes. Checking a box runs Send Deposit Invoice via the API (Sweet Tooth Stripe account) and clears the box.
 
 ### API reference
 
@@ -270,9 +270,9 @@ Body includes `orderId`, `customerEmail`, `customerName`, `estimatedSubtotal` / 
 | Line Items (full detail) | Full cart breakdown |
 | Estimated Subtotal | Starting total |
 | Deposit Due (50%) | Auto-calculated |
-| Photo 1–6 | Google Drive photo links |
+| Photo 1–3 | Google Drive photo links (max 3) |
 | Tax Year | Auto from submit date |
-| Source | Sweet Tooth Website |
+| Stripe Deposit | Checkbox — one-click 50% deposit invoice after review |
 
 Filter by **Tax Year** or **Order Type** for records.
 

@@ -1096,8 +1096,8 @@
           </div>
           <div>
             <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">INSPIRATION PHOTOS (OPTIONAL)</label>
-            <p class="text-[10px] text-[#a38a8f] mt-0.5">Up to 6 photos, 10MB each</p>
-            <p class="text-[10px] text-[#8B6F6F] mt-0.5 mb-2">Instagram screenshots or reference images — up to 6</p>
+            <p class="text-[10px] text-[#a38a8f] mt-0.5">Up to 3 photos, 10MB each</p>
+            <p class="text-[10px] text-[#8B6F6F] mt-0.5 mb-2">Instagram screenshots or reference images — up to 3</p>
             <label class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C9A9E8]/40 bg-[#FDF8F5] py-6 cursor-pointer hover:border-[#C9A9E8] transition">
               <i class="fa-solid fa-camera text-xl text-[#C9A9E8]"></i>
               <span class="mt-1.5 text-xs font-semibold">Tap to add photos</span>
@@ -2630,7 +2630,7 @@
         incoming.push(file)
       }
       if (!incoming.length) return
-      cartSubmitImages = [...cartSubmitImages, ...incoming].slice(0, 6)
+      cartSubmitImages = [...cartSubmitImages, ...incoming].slice(0, 3)
       cartSubmitPreviews.forEach(u => URL.revokeObjectURL(u))
       cartSubmitPreviews = cartSubmitImages.map(f => URL.createObjectURL(f))
       const el = document.getElementById('cart-submit-previews')
