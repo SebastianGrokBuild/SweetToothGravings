@@ -28,6 +28,11 @@ if (typeof google.forceProductionTargets === "function") {
   google.forceProductionTargets();
 }
 
+/** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
+const DEPLOY_BUILD = "2026-07-27-force-sheet-v4";
+const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
+const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
+
 /** Sweet Tooth Cravings Stripe account — deposit invoices must use this account. */
 const EXPECTED_STRIPE_ACCOUNT_ID =
   (process.env.STRIPE_ACCOUNT_ID || "acct_1TcrMNHTYIZb4z2l").trim();
@@ -40,6 +45,10 @@ const CONFIG = {
 };
 
 ensureDirs();
+console.log(
+  `[boot] ${DEPLOY_BUILD} sheet=${EXPECTED_SHEET_ID} drive=${EXPECTED_DRIVE_ID} ` +
+    `forced=${google.getSheetId() === EXPECTED_SHEET_ID && google.getDriveFolderId() === EXPECTED_DRIVE_ID}`,
+);
 
 /** Cache of Stripe /v1/account probe (id must match EXPECTED_STRIPE_ACCOUNT_ID). */
 let stripeAccountCache = null;
@@ -668,13 +677,20 @@ async function api(req, res, pathname, baseUrl) {
     const setup = google.sheetsSetupStatus();
     const stripeStatus = await getStripeAccountStatus();
     const stripeOk = stripeConfigured() && stripeStatus.ok;
+    google.forceProductionTargets();
     return json(res, 200, {
       ok: true,
       time: new Date().toISOString(),
+      deployBuild: DEPLOY_BUILD,
       googleSheets: google.isConfigured(),
       googleSheetsSetup: setup,
-      googleSheetId: setup.sheetId || null,
-      googleDriveFolderId: setup.driveFolderId || null,
+      googleSheetId: google.getSheetId(),
+      googleDriveFolderId: google.getDriveFolderId(),
+      expectedSheetId: EXPECTED_SHEET_ID,
+      expectedDriveFolderId: EXPECTED_DRIVE_ID,
+      targetsMatch:
+        google.getSheetId() === EXPECTED_SHEET_ID &&
+        google.getDriveFolderId() === EXPECTED_DRIVE_ID,
       googleDriveOAuth: google.isDriveOAuthReady(),
       stripe: stripeOk,
       stripeAccount: stripeStatus,
@@ -689,8 +705,7 @@ async function api(req, res, pathname, baseUrl) {
       maxPhotoMb: Math.round(google.MAX_PHOTO_BYTES / (1024 * 1024)),
       cartSubmitIdempotency: true,
       noAutoRetry: true,
-      forcedSheetId: google.getSheetId(),
-      forcedDriveFolderId: google.getDriveFolderId(),
+      sheetWriteOnEverySubmit: true,
     });
   }
 
@@ -975,6 +990,22 @@ async function api(req, res, pathname, baseUrl) {
   }
 
   if (method === "POST" && pathname === "/api/cart-submit") {
+    // Hard pin targets on every request (no stale process.env from old deploys)
+    google.forceProductionTargets();
+    if (
+      google.getSheetId() !== EXPECTED_SHEET_ID ||
+      google.getDriveFolderId() !== EXPECTED_DRIVE_ID
+    ) {
+      return json(res, 500, {
+        error: "Order targets misconfigured",
+        expectedSheetId: EXPECTED_SHEET_ID,
+        expectedDriveFolderId: EXPECTED_DRIVE_ID,
+        gotSheetId: google.getSheetId(),
+        gotDriveFolderId: google.getDriveFolderId(),
+        deployBuild: DEPLOY_BUILD,
+      });
+    }
+
     let body;
     let photoFiles = [];
     try {
@@ -1075,6 +1106,8 @@ async function api(req, res, pathname, baseUrl) {
 
       // Form submit = Sheets + Drive only (full contact + cart → correct columns).
       // 50% deposit Checkout is created later via Sheet "Send Deposit Invoice".
+      // Guaranteed sheet write: saveOrder throws if Sheets API fails — we never return success without it.
+      google.forceProductionTargets();
       const saved = await google.saveOrder({
         orderId,
         submittedAt: now,
@@ -1097,6 +1130,13 @@ async function api(req, res, pathname, baseUrl) {
         inspirationImages: photoFiles.length ? undefined : body.inspirationImages,
       });
 
+      if (!saved || !saved.ok || !saved.orderId) {
+        throw new Error("Sheet write did not confirm success");
+      }
+      if (saved.sheetId && saved.sheetId !== EXPECTED_SHEET_ID) {
+        throw new Error(`Sheet write used wrong spreadsheet: ${saved.sheetId}`);
+      }
+
       const drivePhotos = (saved.photoLinks || []).filter((p) => isDrivePhotoLink(p));
 
       const order = {
@@ -1107,8 +1147,8 @@ async function api(req, res, pathname, baseUrl) {
         orderType: "menu",
         customerName: name,
         customerEmail: email,
-        customerPhone: body.customerPhone || null,
-        eventDate: body.eventDate || null,
+        customerPhone: phone || null,
+        eventDate: eventDate || null,
         lineItemsDetail: lineDetail,
         estimatedSubtotal: subtotal,
         inspirationImages: JSON.stringify(drivePhotos),
@@ -1125,6 +1165,8 @@ async function api(req, res, pathname, baseUrl) {
         success: true,
         orderId,
         savedTo: "google_sheets",
+        sheetWriteConfirmed: true,
+        deployBuild: DEPLOY_BUILD,
         photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
@@ -1135,12 +1177,15 @@ async function api(req, res, pathname, baseUrl) {
         estimatedSubtotal: subtotal,
         depositDue: subtotal > 0 ? Math.round(subtotal * 50) / 100 : null,
         stripe: { ok: false, skipped: true, reason: "deposit_after_review_only" },
-        googleSheetId: google.getSheetId(),
-        googleDriveFolderId: google.getDriveFolderId(),
+        googleSheetId: EXPECTED_SHEET_ID,
+        googleDriveFolderId: EXPECTED_DRIVE_ID,
         clientRequestId: clientRequestId || null,
         columnsWritten: saved.columns || null,
       };
       setCachedCartSubmit(clientRequestId, responseBody);
+      console.log(
+        `[cart-submit] ${DEPLOY_BUILD} order=${orderId} sheet=${EXPECTED_SHEET_ID} drive=${EXPECTED_DRIVE_ID} photos=${drivePhotos.length}`,
+      );
       return responseBody;
     };
 

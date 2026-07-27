@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Sweet Tooth Cravings • Miami, FL</title>
   <meta name="description" content="Handcrafted cakes, flan, tres leches &amp; desserts made with love in Miami. Order online — pickup or delivery available.">
   <meta name="theme-color" content="#C9A9E8">
@@ -15,7 +17,8 @@
   <meta property="og:image" content="https://sweettoothcravings.shop/assets/images/hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/images/logo.gpj.png" type="image/png">
-  <script src="config.js"></script>
+  <!-- cache-bust: force browsers off stale order form / config after deploy -->
+  <script src="config.js?v=20260727-force-v4"></script>
   <script>
     (function () {
       var host = location.hostname;
@@ -24,6 +27,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       // Live shop always uses the production order API (Order Log + Drive forced server-side).
+      window.STC_DEPLOY_BUILD = '2026-07-27-force-sheet-v4';
       if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
@@ -2310,6 +2314,8 @@
     }
 
     // Live shop always posts to this API (Order Log + Drive are forced on the server).
+    // deployBuild must match serve.js DEPLOY_BUILD after a full redeploy.
+    const STC_DEPLOY_BUILD = window.STC_DEPLOY_BUILD || '2026-07-27-force-sheet-v4'
     const STC_PRODUCTION_API = 'https://sweettooth-cravings-api.onrender.com'
     const STC_EXPECTED_SHEET_ID = '13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs'
     const STC_EXPECTED_DRIVE_ID = '1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE'
@@ -2430,11 +2436,22 @@
                 !j.googleDriveFolderId || j.googleDriveFolderId === STC_EXPECTED_DRIVE_ID
               if (!sheetOk || !driveOk) {
                 console.warn('[stc] health IDs unexpected', j.googleSheetId, j.googleDriveFolderId)
+                await stcSleepMs(1500)
+                continue
               }
               // Prefer waiting until Drive OAuth is ready when photos may be attached
               if (cartSubmitImages.length && j.googleDriveOAuth === false) {
                 await stcSleepMs(1500)
                 continue
+              }
+              // Prefer the new deploy binary when health reports deployBuild
+              if (j.deployBuild && j.deployBuild !== STC_DEPLOY_BUILD) {
+                console.warn('[stc] waiting for new deploy', j.deployBuild, '!=', STC_DEPLOY_BUILD)
+                // Still accept after first few tries so a partial roll doesn't hard-block
+                if (attempt < 4) {
+                  await stcSleepMs(2000)
+                  continue
+                }
               }
               stcApiReady = true
               return j
