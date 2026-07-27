@@ -197,7 +197,15 @@ After you review an order, send the customer a **50% Stripe deposit** email with
 3. Your API creates a Stripe Checkout session (Sweet Tooth Stripe account / `STRIPE_SECRET_KEY` on Render).
 4. Customer is emailed the pay link; bakery gets a copy; **Status** becomes `Deposit invoice sent`; cell shows **✓ Sent**.
 
-**Required on Render:** `STRIPE_SECRET_KEY=sk_live_…` — without it, health shows `"stripe": false` and the button cannot create invoices.
+**Required on Render:** `STRIPE_SECRET_KEY=sk_live_…` for Stripe account **`acct_1TcrMNHTYIZb4z2l`** (Sweet Tooth Cravings).  
+Without it, health shows `"stripe": false` and the Stripe Deposit button cannot create invoices.
+
+```bash
+# One-shot (after render login): verifies account ID then deploys
+./scripts/set-stripe-key-on-render.sh sk_live_YOUR_KEY
+```
+
+Or set **STRIPE_SECRET_KEY** in the Render dashboard for `sweettooth-cravings-api`, then redeploy.
 
 ### One-time setup
 

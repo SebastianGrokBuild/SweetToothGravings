@@ -28,13 +28,21 @@ if (typeof google.forceProductionTargets === "function") {
   google.forceProductionTargets();
 }
 
+/** Sweet Tooth Cravings Stripe account — deposit invoices must use this account. */
+const EXPECTED_STRIPE_ACCOUNT_ID =
+  (process.env.STRIPE_ACCOUNT_ID || "acct_1TcrMNHTYIZb4z2l").trim();
+
 const CONFIG = {
   adminPassword: process.env.ADMIN_PASSWORD || "sweettooth-admin",
   sessionSecret: process.env.SESSION_SECRET || "sweettooth-local-secret",
   stripeKey: process.env.STRIPE_SECRET_KEY || "",
+  stripeAccountId: EXPECTED_STRIPE_ACCOUNT_ID,
 };
 
 ensureDirs();
+
+/** Cache of Stripe /v1/account probe (id must match EXPECTED_STRIPE_ACCOUNT_ID). */
+let stripeAccountCache = null;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -364,8 +372,93 @@ function stripeConfigured() {
   return /^sk_(live|test)_/.test(String(CONFIG.stripeKey || "").trim());
 }
 
+function stripeGet(path) {
+  return new Promise((resolve, reject) => {
+    if (!stripeConfigured()) {
+      reject(new Error("STRIPE_SECRET_KEY not set"));
+      return;
+    }
+    const req = https.request(
+      {
+        hostname: "api.stripe.com",
+        path: path.startsWith("/v1/") ? path : `/v1/${path.replace(/^\//, "")}`,
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${CONFIG.stripeKey.trim()}`,
+        },
+      },
+      (r) => {
+        let d = "";
+        r.on("data", (c) => (d += c));
+        r.on("end", () => {
+          try {
+            const j = JSON.parse(d);
+            if (j.error) reject(new Error(j.error.message));
+            else resolve(j);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+
 /**
- * Create a Stripe Checkout Session.
+ * Confirm the secret key belongs to Sweet Tooth account acct_1TcrMNHTYIZb4z2l.
+ * Result is cached for a few minutes.
+ */
+async function getStripeAccountStatus() {
+  if (!stripeConfigured()) {
+    return {
+      configured: false,
+      expectedAccountId: CONFIG.stripeAccountId,
+      ok: false,
+      error: "STRIPE_SECRET_KEY not set on the API (Render)",
+    };
+  }
+  const now = Date.now();
+  if (stripeAccountCache && now - stripeAccountCache.at < 5 * 60 * 1000) {
+    return stripeAccountCache.status;
+  }
+  try {
+    const acct = await stripeGet("/v1/account");
+    const id = String(acct.id || "");
+    const ok = id === CONFIG.stripeAccountId;
+    const status = {
+      configured: true,
+      ok,
+      accountId: id,
+      expectedAccountId: CONFIG.stripeAccountId,
+      chargesEnabled: !!acct.charges_enabled,
+      payoutsEnabled: !!acct.payouts_enabled,
+      businessName:
+        (acct.business_profile && acct.business_profile.name) ||
+        acct.settings?.dashboard?.display_name ||
+        null,
+      livemode: !!acct.livemode,
+      error: ok
+        ? null
+        : `Stripe key is for ${id || "unknown"}, expected ${CONFIG.stripeAccountId}`,
+    };
+    stripeAccountCache = { at: now, status };
+    return status;
+  } catch (e) {
+    const status = {
+      configured: true,
+      ok: false,
+      expectedAccountId: CONFIG.stripeAccountId,
+      error: e.message || String(e),
+    };
+    stripeAccountCache = { at: now, status };
+    return status;
+  }
+}
+
+/**
+ * Create a Stripe Checkout Session on the Sweet Tooth account.
  * @param {object} opts
  * @param {string} opts.orderId
  * @param {string} opts.customerEmail
@@ -378,7 +471,11 @@ function stripeConfigured() {
 function stripeCheckout(opts) {
   return new Promise((resolve, reject) => {
     if (!stripeConfigured()) {
-      reject(new Error("Add STRIPE_SECRET_KEY to .env to create payment links"));
+      reject(
+        new Error(
+          "Add STRIPE_SECRET_KEY for Sweet Tooth Stripe account acct_1TcrMNHTYIZb4z2l on Render",
+        ),
+      );
       return;
     }
     const amountCents = Math.round(Number(opts.amountCents) || 0);
@@ -404,6 +501,8 @@ function stripeCheckout(opts) {
     p.set("cancel_url", `${shopUrl}/?payment=cancelled&order=${encodeURIComponent(orderId)}`);
     p.set("metadata[orderId]", orderId);
     p.set("metadata[paymentType]", opts.paymentType || "payment");
+    p.set("metadata[stripeAccountId]", CONFIG.stripeAccountId);
+    p.set("metadata[source]", "sweet_tooth_order_log");
     if (opts.depositCents != null) {
       p.set("metadata[depositCents]", String(opts.depositCents));
     }
@@ -418,6 +517,7 @@ function stripeCheckout(opts) {
     // Show a clear receipt-style description on the Checkout page
     p.set("payment_intent_data[description]", `${productName} · order ${orderId}`.slice(0, 1000));
     p.set("payment_intent_data[metadata][orderId]", orderId);
+    p.set("payment_intent_data[metadata][stripeAccountId]", CONFIG.stripeAccountId);
 
     const body = p.toString();
     const req = https.request(
@@ -560,6 +660,8 @@ async function api(req, res, pathname, baseUrl) {
   if (method === "GET" && pathname === "/api/health") {
     const orderEmail = await notify.checkEmailReady();
     const setup = google.sheetsSetupStatus();
+    const stripeStatus = await getStripeAccountStatus();
+    const stripeOk = stripeConfigured() && stripeStatus.ok;
     return json(res, 200, {
       ok: true,
       time: new Date().toISOString(),
@@ -568,9 +670,11 @@ async function api(req, res, pathname, baseUrl) {
       googleSheetId: setup.sheetId || null,
       googleDriveFolderId: setup.driveFolderId || null,
       googleDriveOAuth: google.isDriveOAuthReady(),
-      stripe: stripeConfigured(),
-      depositCheckout: stripeConfigured(),
-      sheetDepositInvoice: stripeConfigured() && !!sheetActionsSecret(),
+      stripe: stripeOk,
+      stripeAccount: stripeStatus,
+      expectedStripeAccountId: CONFIG.stripeAccountId,
+      depositCheckout: stripeOk,
+      sheetDepositInvoice: stripeOk && !!sheetActionsSecret(),
       orderEmail,
       photoStorage: "google_drive",
       uploadMode: "multipart",
@@ -731,7 +835,16 @@ async function api(req, res, pathname, baseUrl) {
     if (!stripeConfigured()) {
       return json(res, 503, {
         error:
-          "Stripe is not configured. Set STRIPE_SECRET_KEY on the API server (Render).",
+          "Stripe is not configured. On Render set STRIPE_SECRET_KEY to the Secret key for Sweet Tooth account acct_1TcrMNHTYIZb4z2l (Stripe Dashboard → Developers → API keys).",
+      });
+    }
+
+    const stripeStatus = await getStripeAccountStatus();
+    if (!stripeStatus.ok) {
+      return json(res, 503, {
+        error:
+          stripeStatus.error ||
+          `Stripe key must belong to account ${CONFIG.stripeAccountId}`,
       });
     }
 

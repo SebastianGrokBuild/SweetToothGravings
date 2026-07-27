@@ -1,24 +1,29 @@
 /**
- * Sweet Tooth Cravings — Google Sheet: "Stripe Deposit" one-click invoice
+ * Sweet Tooth Cravings — Google Sheet: "Send Deposit Invoice" (Stripe Deposit column)
  *
- * Order Log columns (left → right):
- *   Order | Submit Date | Order Type | Status | Customer Name | Email | Phone |
- *   Event Date | Line Items | Estimated Subtotal | Deposit Due |
- *   Photo 1 | Photo 2 | Photo 3 | Stripe Deposit
+ * After reviewing a row in Sweet Tooth - Order Log:
+ *   1. Confirm Estimated Subtotal / Deposit Due
+ *   2. Check the box in the **Stripe Deposit** column  ← one-click button
+ *      (or menu: Sweet Tooth → Send Deposit Invoice)
  *
- * After you review a row:
- *   • Check the box in **Stripe Deposit** (last column), or
- *   • Menu: Sweet Tooth → Send Deposit Invoice (selected row)
+ * That calls the Render API, which creates a Stripe Checkout session on
+ * Sweet Tooth account acct_1TcrMNHTYIZb4z2l and emails the customer the 50% deposit link.
  *
- * Calls Render API → Stripe Checkout (Sweet Tooth STRIPE_SECRET_KEY)
- * → emails the customer the 50% deposit link → updates Status.
- *
- * SETUP — see GOOGLE-SHEETS-SETUP.md
- * Website form submission still goes to the same Order Log + Drive folder.
+ * SETUP (one time)
+ * 1. Extensions → Apps Script → paste this file → Save
+ * 2. Reload the sheet → Sweet Tooth menu
+ * 3. Sweet Tooth → Install Stripe Deposit button column
+ * 4. Sweet Tooth → Configure API connection…
+ *      API: https://sweettooth-cravings-api.onrender.com
+ *      Secret: ADMIN_PASSWORD from Render (default sweettooth-admin) or SHEET_ACTIONS_SECRET
+ * 5. On Render: STRIPE_SECRET_KEY = sk_live_… for account acct_1TcrMNHTYIZb4z2l
  */
 
 var DEFAULT_API_BASE = "https://sweettooth-cravings-api.onrender.com";
+/** Matches Render ADMIN_PASSWORD when SHEET_ACTIONS_SECRET is not set. */
+var DEFAULT_SHEET_SECRET = "sweettooth-admin";
 var STRIPE_DEPOSIT_HEADER = "Stripe Deposit";
+var EXPECTED_STRIPE_ACCOUNT = "acct_1TcrMNHTYIZb4z2l";
 
 var HEADER_MAP = {
   orderId: ["Order", "Order ID", "Order Id", "order id"],
@@ -57,11 +62,28 @@ function onOpen() {
     .addItem("Show setup help", "showSetupHelp")
     .addToUi();
 
+  // Ensure API defaults exist so the button works after install
+  try {
+    ensureDefaultProps_();
+  } catch (e) {
+    /* ignore */
+  }
+
   // Soft-refresh checkboxes on open so the button column stays usable
   try {
     refreshStripeDepositCheckboxesQuiet_();
   } catch (e) {
     /* ignore */
+  }
+}
+
+function ensureDefaultProps_() {
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty("API_BASE_URL")) {
+    props.setProperty("API_BASE_URL", DEFAULT_API_BASE);
+  }
+  if (!props.getProperty("SHEET_ACTIONS_SECRET")) {
+    props.setProperty("SHEET_ACTIONS_SECRET", DEFAULT_SHEET_SECRET);
   }
 }
 
@@ -118,15 +140,16 @@ function configureApiConnection() {
 
 function showSetupHelp() {
   SpreadsheetApp.getUi().alert(
-    "Stripe Deposit — one-click invoice\n\n" +
+    "Send Deposit Invoice (Stripe Deposit column)\n\n" +
       "1) Review Estimated Subtotal on the order row.\n" +
       "2) Check the box under **Stripe Deposit** on that row\n" +
       "   (or menu: Send Deposit Invoice).\n\n" +
-      "Creates a Stripe 50% deposit Checkout and emails the customer.\n" +
-      "Form → Sheets/Drive flow is unchanged.\n\n" +
+      "Creates a 50% Stripe Checkout on account " +
+      EXPECTED_STRIPE_ACCOUNT +
+      " and emails the customer.\n\n" +
       "API: " +
       DEFAULT_API_BASE +
-      "\nRequires STRIPE_SECRET_KEY on Render."
+      "\nRender must have STRIPE_SECRET_KEY (sk_live_…) for that Stripe account."
   );
 }
 
@@ -368,9 +391,11 @@ function refreshStripeDepositCheckboxesQuiet_() {
 
 function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var ui = SpreadsheetApp.getUi();
+  ensureDefaultProps_();
   var props = PropertiesService.getScriptProperties();
   var base = (props.getProperty("API_BASE_URL") || DEFAULT_API_BASE).replace(/\/$/, "");
-  var secret = props.getProperty("SHEET_ACTIONS_SECRET") || "";
+  var secret =
+    props.getProperty("SHEET_ACTIONS_SECRET") || DEFAULT_SHEET_SECRET || "";
 
   if (
     base === "https://sweettooth-cravings.onrender.com" ||
@@ -381,12 +406,11 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   }
 
   if (!base || !secret) {
-    // Fall back to ADMIN default only if secret never configured — still require setup
     if (showAlerts) {
       ui.alert(
         "API not configured.\n\nSweet Tooth → Configure API connection…\n\nUse:\n" +
           DEFAULT_API_BASE +
-          "\nand SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD from Render)."
+          "\nand ADMIN_PASSWORD from Render (default: sweettooth-admin)."
       );
     }
     return { ok: false, error: "not_configured" };
