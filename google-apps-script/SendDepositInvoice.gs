@@ -632,11 +632,16 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     return { ok: false, error: msg };
   }
 
+  // Email is required for a full success — Stripe invoice email or notify fallback
+  var emailSent = !!(data.email && data.email.sent);
+  var payUrl = data.checkoutUrl || data.paymentUrl || "";
+
   setStatusIfPossible_(
     sheet,
     row,
     headers,
-    data.sheetStatus || "Deposit invoice sent"
+    data.sheetStatus ||
+      (emailSent ? "Deposit invoice sent" : "Deposit link created (email failed)")
   );
 
   var depCol = findHeaderIndex_(headers, HEADER_MAP.depositDue);
@@ -647,19 +652,32 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     }
   }
 
+  if (!emailSent) {
+    var failMsg =
+      "Payment link was created but email did not send to " +
+      email +
+      ".\n\n" +
+      (data.email && data.email.error ? data.email.error + "\n\n" : "") +
+      "Share this link manually:\n" +
+      payUrl;
+    if (showAlerts) ui.alert("Email failed\n\n" + failMsg);
+    return {
+      ok: false,
+      error: "email_not_sent — share link manually: " + payUrl,
+      data: data,
+      emailedTo: email,
+    };
+  }
+
   if (showAlerts) {
-    var emailNote =
-      data.email && data.email.sent
-        ? "Emailed to " + email
-        : "Link created — copy if needed:\n" + (data.checkoutUrl || "");
     ui.alert(
       "Deposit invoice ready\n\n" +
         "Amount: $" +
         Number(data.depositDollars).toFixed(2) +
-        "\n" +
-        emailNote +
+        "\nEmailed to " +
+        email +
         "\n\n" +
-        (data.checkoutUrl || "")
+        payUrl
     );
   }
 

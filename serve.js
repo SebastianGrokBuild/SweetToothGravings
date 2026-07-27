@@ -448,6 +448,12 @@ async function getStripeAccountStatus() {
     const acct = await stripeGet("/v1/account");
     const id = String(acct.id || "");
     const ok = id === CONFIG.stripeAccountId;
+    // Stripe /v1/account does not always include livemode; infer from secret key prefix.
+    const key = String(CONFIG.stripeKey || "").trim();
+    const livemode =
+      typeof acct.livemode === "boolean"
+        ? acct.livemode
+        : key.startsWith("sk_live_");
     const status = {
       configured: true,
       ok,
@@ -459,7 +465,7 @@ async function getStripeAccountStatus() {
         (acct.business_profile && acct.business_profile.name) ||
         acct.settings?.dashboard?.display_name ||
         null,
-      livemode: !!acct.livemode,
+      livemode,
       error: ok
         ? null
         : `Stripe key is for ${id || "unknown"}, expected ${CONFIG.stripeAccountId}`,
