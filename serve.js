@@ -239,26 +239,92 @@ function saveImages(orderId, images) {
   return out;
 }
 
-function stripeCheckout(order, cents, baseUrl) {
+/** Public shop URL for Stripe success/cancel (never the Render API host). */
+function shopPublicUrl(req, fallbackBaseUrl) {
+  const candidates = [
+    process.env.PUBLIC_SHOP_URL,
+    process.env.SHOP_URL,
+    process.env.APP_URL,
+  ];
+  for (const raw of candidates) {
+    const u = String(raw || "")
+      .trim()
+      .replace(/\/$/, "");
+    // Skip API hosts — customers must return to the static shop after Checkout
+    if (u && !/onrender\.com/i.test(u) && !/localhost|127\.0\.0\.1/i.test(u)) {
+      return u;
+    }
+    if (u && /localhost|127\.0\.0\.1/i.test(u)) return u;
+  }
+
+  const origin = (req && req.headers && req.headers.origin) || "";
+  if (origin && LIVE_ORIGINS.has(origin)) return origin.replace(/\/$/, "");
+
+  const base = String(fallbackBaseUrl || "").replace(/\/$/, "");
+  if (base && /localhost|127\.0\.0\.1/i.test(base)) return base;
+
+  return "https://sweettoothcravings.shop";
+}
+
+function stripeConfigured() {
+  return /^sk_(live|test)_/.test(String(CONFIG.stripeKey || "").trim());
+}
+
+/**
+ * Create a Stripe Checkout Session.
+ * @param {object} opts
+ * @param {string} opts.orderId
+ * @param {string} opts.customerEmail
+ * @param {number} opts.amountCents — charge amount in cents
+ * @param {string} opts.shopUrl — success/cancel base
+ * @param {string} [opts.productName]
+ * @param {string} [opts.description]
+ * @param {object} [opts.metadata]
+ */
+function stripeCheckout(opts) {
   return new Promise((resolve, reject) => {
-    if (!CONFIG.stripeKey) {
+    if (!stripeConfigured()) {
       reject(new Error("Add STRIPE_SECRET_KEY to .env to create payment links"));
       return;
     }
+    const amountCents = Math.round(Number(opts.amountCents) || 0);
+    if (amountCents < 50) {
+      reject(new Error("Stripe amount must be at least $0.50"));
+      return;
+    }
+
+    const shopUrl = String(opts.shopUrl || "https://sweettoothcravings.shop").replace(
+      /\/$/,
+      "",
+    );
+    const productName =
+      opts.productName || "Sweet Tooth Cravings — order payment";
+    const description = (opts.description || "Order payment").slice(0, 500);
+    const orderId = opts.orderId || "";
+    const email = (opts.customerEmail || "").trim();
+
     const p = new URLSearchParams();
     p.set("mode", "payment");
-    p.set("customer_email", order.customerEmail);
-    p.set("success_url", `${baseUrl}/?payment=success`);
-    p.set("cancel_url", `${baseUrl}/?payment=cancelled`);
-    p.set("metadata[orderId]", order.id);
+    if (email) p.set("customer_email", email);
+    p.set("success_url", `${shopUrl}/?payment=success&order=${encodeURIComponent(orderId)}`);
+    p.set("cancel_url", `${shopUrl}/?payment=cancelled&order=${encodeURIComponent(orderId)}`);
+    p.set("metadata[orderId]", orderId);
+    p.set("metadata[paymentType]", opts.paymentType || "payment");
+    if (opts.depositCents != null) {
+      p.set("metadata[depositCents]", String(opts.depositCents));
+    }
+    if (opts.estimatedSubtotalCents != null) {
+      p.set("metadata[estimatedSubtotalCents]", String(opts.estimatedSubtotalCents));
+    }
     p.set("line_items[0][quantity]", "1");
     p.set("line_items[0][price_data][currency]", "usd");
-    p.set("line_items[0][price_data][unit_amount]", String(cents));
-    p.set("line_items[0][price_data][product_data][name]", "Sweet Tooth Cravings — Custom Cake");
-    p.set(
-      "line_items[0][price_data][product_data][description]",
-      `${order.cakeName} · ${order.sizeLabel}`,
-    );
+    p.set("line_items[0][price_data][unit_amount]", String(amountCents));
+    p.set("line_items[0][price_data][product_data][name]", productName.slice(0, 120));
+    p.set("line_items[0][price_data][product_data][description]", description);
+    // Show a clear receipt-style description on the Checkout page
+    p.set("payment_intent_data[description]", `${productName} · order ${orderId}`.slice(0, 1000));
+    p.set("payment_intent_data[metadata][orderId]", orderId);
+
     const body = p.toString();
     const req = https.request(
       {
@@ -266,7 +332,7 @@ function stripeCheckout(order, cents, baseUrl) {
         path: "/v1/checkout/sessions",
         method: "POST",
         headers: {
-          Authorization: `Bearer ${CONFIG.stripeKey}`,
+          Authorization: `Bearer ${CONFIG.stripeKey.trim()}`,
           "Content-Type": "application/x-www-form-urlencoded",
           "Content-Length": Buffer.byteLength(body),
         },
@@ -289,6 +355,74 @@ function stripeCheckout(order, cents, baseUrl) {
     req.write(body);
     req.end();
   });
+}
+
+/**
+ * 50% deposit Checkout for a submitted request (menu or custom).
+ * Never throws into the caller path for cart-submit — returns { ok, ... }.
+ */
+async function createDepositCheckout({
+  orderId,
+  customerEmail,
+  customerName,
+  subtotalDollars,
+  lineSummary,
+  shopUrl,
+  orderType,
+}) {
+  if (!stripeConfigured()) {
+    return { ok: false, skipped: true, reason: "stripe_not_configured" };
+  }
+  const subtotal = Number(subtotalDollars) || 0;
+  if (subtotal <= 0) {
+    return { ok: false, skipped: true, reason: "no_subtotal" };
+  }
+  const depositDollars = Math.round(subtotal * 50) / 100; // half, 2 decimals
+  const depositCents = Math.round(depositDollars * 100);
+  if (depositCents < 50) {
+    return { ok: false, skipped: true, reason: "deposit_below_minimum" };
+  }
+
+  const subtotalCents = Math.round(subtotal * 100);
+  const summary = String(lineSummary || "Order request")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 400);
+  const who = (customerName || "").trim();
+
+  try {
+    const session = await stripeCheckout({
+      orderId,
+      customerEmail,
+      amountCents: depositCents,
+      shopUrl,
+      paymentType: "deposit_50",
+      depositCents,
+      estimatedSubtotalCents: subtotalCents,
+      productName: "Sweet Tooth Cravings — 50% deposit",
+      description: [
+        who ? `For ${who}` : null,
+        `Est. total $${subtotal.toFixed(2)}`,
+        `Deposit $${depositDollars.toFixed(2)} (50%)`,
+        summary,
+        orderType ? `(${orderType})` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+        .slice(0, 500),
+    });
+    return {
+      ok: true,
+      checkoutUrl: session.url,
+      sessionId: session.id,
+      depositCents,
+      depositDollars,
+      estimatedSubtotalCents: subtotalCents,
+    };
+  } catch (e) {
+    console.error("[stripe] deposit checkout failed:", e.message);
+    return { ok: false, error: e.message };
+  }
 }
 
 // ─── CORS (live shop on GitHub Pages → API on another host) ───────────────
@@ -337,6 +471,8 @@ async function api(req, res, pathname, baseUrl) {
       googleSheets: google.isConfigured(),
       googleSheetsSetup: google.sheetsSetupStatus(),
       googleDriveOAuth: google.isDriveOAuthReady(),
+      stripe: stripeConfigured(),
+      depositCheckout: stripeConfigured(),
       orderEmail,
       photoStorage: "google_drive",
       uploadMode: "multipart",
@@ -417,7 +553,25 @@ async function api(req, res, pathname, baseUrl) {
 
     try {
       const cents = Math.round(dollars * 100);
-      const session = await stripeCheckout(order, cents, baseUrl);
+      const shopUrl = shopPublicUrl(req, baseUrl);
+      const session = await stripeCheckout({
+        orderId: order.id,
+        customerEmail: order.customerEmail,
+        amountCents: cents,
+        shopUrl,
+        paymentType: "admin_payment",
+        productName: "Sweet Tooth Cravings — order payment",
+        description: [
+          order.cakeName,
+          order.sizeLabel,
+          order.lineItemsDetail
+            ? String(order.lineItemsDetail).replace(/\s+/g, " ").slice(0, 200)
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 500) || `Order ${order.id}`,
+      });
       order.finalPriceCents = cents;
       order.stripePaymentUrl = session.url;
       order.stripeSessionId = session.id;
@@ -467,11 +621,24 @@ async function api(req, res, pathname, baseUrl) {
     );
 
     try {
+      // Create 50% deposit Checkout before Sheets save so the bakery notify email can include the link.
+      // Google Sheets + Drive path below is unchanged if Stripe is off or fails.
+      const shopUrl = shopPublicUrl(req, baseUrl);
+      const deposit = await createDepositCheckout({
+        orderId,
+        customerEmail: email,
+        customerName: name,
+        subtotalDollars: subtotal,
+        lineSummary: lineDetail.trim(),
+        shopUrl,
+        orderType: hasCustomCake ? "Custom Cake Order" : "Menu Order",
+      });
+
       const saved = await google.saveOrder({
         orderId,
         submittedAt: now,
         orderType: hasCustomCake ? "Custom Cake Order" : "Menu Order",
-        status: "Pending Review",
+        status: deposit.ok ? "Deposit link sent" : "Pending Review",
         customerName: name,
         customerEmail: email,
         customerPhone: body.customerPhone || "",
@@ -487,6 +654,9 @@ async function api(req, res, pathname, baseUrl) {
         estimatedSubtotal: subtotal,
         photoFiles: photoFiles.length ? photoFiles : undefined,
         inspirationImages: photoFiles.length ? undefined : body.inspirationImages,
+        // Email-only fields (not written as extra sheet columns)
+        depositPaymentUrl: deposit.ok ? deposit.checkoutUrl : "",
+        depositAmount: deposit.ok ? deposit.depositDollars : null,
       });
 
       const drivePhotos = (saved.photoLinks || []).filter((p) => isDrivePhotoLink(p));
@@ -495,13 +665,18 @@ async function api(req, res, pathname, baseUrl) {
         id: orderId,
         createdAt: now,
         updatedAt: now,
-        status: "pending_review",
+        status: deposit.ok ? "payment_sent" : "pending_review",
         orderType: "menu",
         customerName: name,
         customerEmail: email,
+        customerPhone: body.customerPhone || null,
+        eventDate: body.eventDate || null,
         lineItemsDetail: lineDetail,
         estimatedSubtotal: subtotal,
         inspirationImages: JSON.stringify(drivePhotos),
+        stripePaymentUrl: deposit.ok ? deposit.checkoutUrl : null,
+        stripeSessionId: deposit.ok ? deposit.sessionId : null,
+        depositCents: deposit.ok ? deposit.depositCents : null,
       };
       const list = loadOrders();
       list.push(order);
@@ -514,6 +689,17 @@ async function api(req, res, pathname, baseUrl) {
         photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
+        // Side-by-side Stripe deposit (optional — null when Stripe off / failed)
+        checkoutUrl: deposit.ok ? deposit.checkoutUrl : null,
+        paymentUrl: deposit.ok ? deposit.checkoutUrl : null,
+        depositCents: deposit.ok ? deposit.depositCents : null,
+        depositDollars: deposit.ok ? deposit.depositDollars : null,
+        estimatedSubtotal: subtotal,
+        stripe: deposit.ok
+          ? { ok: true, sessionId: deposit.sessionId }
+          : deposit.skipped
+            ? { ok: false, skipped: true, reason: deposit.reason }
+            : { ok: false, error: deposit.error || "checkout_failed" },
       });
     } catch (e) {
       console.error("[cart-submit]", e);
@@ -541,11 +727,32 @@ async function api(req, res, pathname, baseUrl) {
     const subtotal = body.sizePriceHint ? Number(body.sizePriceHint) : 0;
 
     try {
+      const shopUrl = shopPublicUrl(req, baseUrl);
+      const lineSummary = [
+        body.cakeName,
+        body.sizeLabel,
+        body.flavor,
+        body.filling,
+        notes,
+      ]
+        .filter(Boolean)
+        .join(" | ");
+
+      const deposit = await createDepositCheckout({
+        orderId,
+        customerEmail: email,
+        customerName: name,
+        subtotalDollars: subtotal,
+        lineSummary,
+        shopUrl,
+        orderType: "Custom Cake Request",
+      });
+
       const saved = await google.saveOrder({
         orderId,
         submittedAt: now,
         orderType: "Custom Cake Request",
-        status: "Pending Review",
+        status: deposit.ok ? "Deposit link sent" : "Pending Review",
         customerName: name,
         customerEmail: email,
         customerPhone: body.customerPhone || "",
@@ -560,6 +767,8 @@ async function api(req, res, pathname, baseUrl) {
         lineItemsDetail: "",
         estimatedSubtotal: subtotal,
         inspirationImages: body.inspirationImages,
+        depositPaymentUrl: deposit.ok ? deposit.checkoutUrl : "",
+        depositAmount: deposit.ok ? deposit.depositDollars : null,
       });
 
       const drivePhotos = (saved.photoLinks || []).filter((p) => isDrivePhotoLink(p));
@@ -567,7 +776,7 @@ async function api(req, res, pathname, baseUrl) {
         id: orderId,
         createdAt: now,
         updatedAt: now,
-        status: "pending_review",
+        status: deposit.ok ? "payment_sent" : "pending_review",
         orderType: "custom_cake",
         customerName: name,
         customerEmail: email,
@@ -583,6 +792,9 @@ async function api(req, res, pathname, baseUrl) {
         allergies: body.allergies || null,
         additionalNotes: body.additionalNotes || null,
         inspirationImages: JSON.stringify(drivePhotos),
+        stripePaymentUrl: deposit.ok ? deposit.checkoutUrl : null,
+        stripeSessionId: deposit.ok ? deposit.sessionId : null,
+        depositCents: deposit.ok ? deposit.depositCents : null,
       };
       const list = loadOrders();
       list.push(order);
@@ -594,6 +806,16 @@ async function api(req, res, pathname, baseUrl) {
         savedTo: "google_sheets",
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
+        checkoutUrl: deposit.ok ? deposit.checkoutUrl : null,
+        paymentUrl: deposit.ok ? deposit.checkoutUrl : null,
+        depositCents: deposit.ok ? deposit.depositCents : null,
+        depositDollars: deposit.ok ? deposit.depositDollars : null,
+        estimatedSubtotal: subtotal,
+        stripe: deposit.ok
+          ? { ok: true, sessionId: deposit.sessionId }
+          : deposit.skipped
+            ? { ok: false, skipped: true, reason: deposit.reason }
+            : { ok: false, error: deposit.error || "checkout_failed" },
       });
     } catch (e) {
       console.error("[orders]", e);
@@ -687,9 +909,14 @@ async function start() {
   console.log(`║  Health    ${(base + "/api/health").padEnd(33)}║`);
   console.log("╠══════════════════════════════════════════════════╣");
   const gs = google.isConfigured() ? "connected" : "NOT configured";
+  const st = stripeConfigured() ? "connected" : "NOT configured";
   console.log(`║  Google Sheets: ${gs.padEnd(29)}║`);
+  console.log(`║  Stripe deposit: ${st.padEnd(28)}║`);
   if (!google.isConfigured()) {
     console.log("║  See GOOGLE-SHEETS-SETUP.md                      ║");
+  }
+  if (!stripeConfigured()) {
+    console.log("║  Set STRIPE_SECRET_KEY for 50% deposit Checkout  ║");
   }
   console.log(`║  Admin password: ${CONFIG.adminPassword.padEnd(26)}║`);
   console.log("║  Press Ctrl+C to stop                            ║");

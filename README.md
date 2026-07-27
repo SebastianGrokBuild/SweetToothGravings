@@ -63,13 +63,18 @@ All **Submit Request** actions (custom cakes + menu cart) save to your Google Sh
 - Custom cakes: menu banner, nav, or Custom Cakes card → wizard with photos
 - Menu items: add to cart → **Submit Request** → contact form → saved to sheet
 
-Optional: **admin.html** for Stripe payment links after you set a final price.
+### Stripe 50% deposit (side by side with Sheets)
+
+When `STRIPE_SECRET_KEY` is set on the API server, **Submit Request** still saves to **Google Sheets + Drive** exactly as before, and **also** creates a Stripe Checkout session for **50% of the estimated cart subtotal**. The customer gets the Checkout URL in the success modal (and the bakery notify email includes the same link).
+
+- Without a Stripe key: Sheets/Drive-only flow (unchanged).
+- Admin **Create Stripe payment link** still works for custom final amounts.
 
 ## Next Steps (Recommended)
 
-- Add `STRIPE_SECRET_KEY` in `.env` for live payment links
-- Set up a Stripe webhook to `https://your-domain.com/api/webhooks/stripe` (event: `checkout.session.completed`)
-- Deploy to Railway, Render, or a VPS so the API runs 24/7 (not static hosting alone)
+- Set `STRIPE_SECRET_KEY` (live) on Render so deposit Checkout runs in production
+- Optional: `APP_URL=https://sweettoothcravings.shop` for correct success/cancel redirects
+- Deploy the API (Render) 24/7 — static GitHub Pages alone cannot create Checkout sessions
 
 Built with ❤️ for Sweet Tooth Cravings. Enjoy the sweetness!
 

@@ -15,6 +15,7 @@ Customer browser (sweettoothcravings.shop)
     → config.js sets STC_API_BASE to Render URL
     → POST https://sweettooth-cravings.onrender.com/api/cart-submit
          → Google Sheets + Drive + order email
+         → (optional) Stripe Checkout session for 50% deposit
 ```
 
 GitHub Pages only serves `index.html`, `config.js`, and assets. All order logic lives on Render.
@@ -91,9 +92,13 @@ In the service → **Environment**, add the same values as your local `.env` (do
 | `ORDER_SMTP_PORT` | Optional | `465` |
 | `ADMIN_PASSWORD` | Yes | Change from default |
 | `SESSION_SECRET` | Yes | Long random string |
-| `APP_URL` | Yes | `https://sweettooth-cravings.onrender.com` |
+| `APP_URL` | Yes | `https://sweettooth-cravings.onrender.com` (API base; not used for Stripe redirects) |
+| `PUBLIC_SHOP_URL` | Recommended | `https://sweettoothcravings.shop` — Stripe success/cancel return URL |
+| `STRIPE_SECRET_KEY` | Recommended | `sk_live_...` from the Sweet Tooth Stripe account — enables auto 50% deposit Checkout on submit |
 
 SMTP is the most reliable way to send order emails on Render. See **GOOGLE-DRIVE-GMAIL-SETUP.md** for App Password setup.
+
+**Stripe:** With `STRIPE_SECRET_KEY` set, each successful cart submit still writes Sheets + Drive as before, then creates a Checkout session for **50% of the estimated subtotal**. Without the key, submit behaves as Sheets-only (unchanged).
 
 ---
 
