@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-st-ids-send-v10";
+const DEPLOY_BUILD = "2026-07-27-stripe-live-v11";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -47,7 +47,8 @@ const CONFIG = {
 ensureDirs();
 console.log(
   `[boot] ${DEPLOY_BUILD} sheet=${EXPECTED_SHEET_ID} drive=${EXPECTED_DRIVE_ID} ` +
-    `forced=${google.getSheetId() === EXPECTED_SHEET_ID && google.getDriveFolderId() === EXPECTED_DRIVE_ID}`,
+    `forced=${google.getSheetId() === EXPECTED_SHEET_ID && google.getDriveFolderId() === EXPECTED_DRIVE_ID} ` +
+    `stripeMode=${stripeKeyMode()}`,
 );
 
 /** Cache of Stripe /v1/account probe (id must match EXPECTED_STRIPE_ACCOUNT_ID). */
@@ -389,8 +390,21 @@ function shopPublicUrl(req, fallbackBaseUrl) {
   return "https://sweettoothcravings.shop";
 }
 
+/** live | test | none — production deposit invoices require live only. */
+function stripeKeyMode() {
+  const key = String(CONFIG.stripeKey || "").trim();
+  if (key.startsWith("sk_live_")) return "live";
+  if (key.startsWith("sk_test_")) return "test";
+  return "none";
+}
+
 function stripeConfigured() {
-  return /^sk_(live|test)_/.test(String(CONFIG.stripeKey || "").trim());
+  return stripeKeyMode() !== "none";
+}
+
+/** Production: only sk_live_ creates real invoices (rejects test keys). */
+function stripeLiveConfigured() {
+  return stripeKeyMode() === "live";
 }
 
 function stripeGet(path) {
@@ -447,13 +461,22 @@ async function getStripeAccountStatus() {
   try {
     const acct = await stripeGet("/v1/account");
     const id = String(acct.id || "");
-    const ok = id === CONFIG.stripeAccountId;
-    // Stripe /v1/account does not always include livemode; infer from secret key prefix.
-    const key = String(CONFIG.stripeKey || "").trim();
-    const livemode =
-      typeof acct.livemode === "boolean"
-        ? acct.livemode
-        : key.startsWith("sk_live_");
+    const accountMatch = id === CONFIG.stripeAccountId;
+    // Stripe mode is determined by the secret key prefix (sk_live_ vs sk_test_).
+    const mode = stripeKeyMode();
+    const livemode = mode === "live";
+    let error = null;
+    if (!accountMatch) {
+      error = `Stripe key is for ${id || "unknown"}, expected ${CONFIG.stripeAccountId}`;
+    } else if (mode === "test") {
+      error =
+        "STRIPE_SECRET_KEY is a test key (sk_test_). Replace it with the live secret key (sk_live_…) for account acct_1TcrMNHTYIZb4z2l so deposit invoices charge real cards.";
+    } else if (mode !== "live") {
+      error =
+        "STRIPE_SECRET_KEY must be a live secret key (sk_live_…) for Sweet Tooth account acct_1TcrMNHTYIZb4z2l";
+    }
+    // ok only when account matches AND we are in full live mode
+    const ok = accountMatch && livemode;
     const status = {
       configured: true,
       ok,
@@ -466,9 +489,8 @@ async function getStripeAccountStatus() {
         acct.settings?.dashboard?.display_name ||
         null,
       livemode,
-      error: ok
-        ? null
-        : `Stripe key is for ${id || "unknown"}, expected ${CONFIG.stripeAccountId}`,
+      keyMode: mode,
+      error,
     };
     stripeAccountCache = { at: now, status };
     return status;
@@ -477,6 +499,8 @@ async function getStripeAccountStatus() {
       configured: true,
       ok: false,
       expectedAccountId: CONFIG.stripeAccountId,
+      livemode: stripeLiveConfigured(),
+      keyMode: stripeKeyMode(),
       error: e.message || String(e),
     };
     stripeAccountCache = { at: now, status };
@@ -759,7 +783,8 @@ async function api(req, res, pathname, baseUrl) {
     const orderEmail = await notify.checkEmailReady();
     const setup = google.sheetsSetupStatus();
     const stripeStatus = await getStripeAccountStatus();
-    const stripeOk = stripeConfigured() && stripeStatus.ok;
+    // Production: stripe + sheetDepositInvoice require full live mode (sk_live_)
+    const stripeOk = stripeLiveConfigured() && stripeStatus.ok;
     google.forceProductionTargets();
     return json(res, 200, {
       ok: true,
@@ -776,6 +801,7 @@ async function api(req, res, pathname, baseUrl) {
         google.getDriveFolderId() === EXPECTED_DRIVE_ID,
       googleDriveOAuth: google.isDriveOAuthReady(),
       stripe: stripeOk,
+      stripeLive: stripeOk,
       stripeAccount: stripeStatus,
       expectedStripeAccountId: CONFIG.stripeAccountId,
       // Auto Checkout on form submit is OFF — deposit only after sheet review
@@ -940,19 +966,26 @@ async function api(req, res, pathname, baseUrl) {
     if (!customerEmail || !customerEmail.includes("@")) {
       return json(res, 400, { error: "Customer email is required on this row" });
     }
-    if (!stripeConfigured()) {
+    if (!stripeLiveConfigured()) {
+      const mode = stripeKeyMode();
       return json(res, 503, {
         error:
-          "Stripe is not configured. On Render set STRIPE_SECRET_KEY to the Secret key for Sweet Tooth account acct_1TcrMNHTYIZb4z2l (Stripe Dashboard → Developers → API keys).",
+          mode === "test"
+            ? "Stripe is in TEST mode (sk_test_ key). On Render set STRIPE_SECRET_KEY to the LIVE secret key (sk_live_…) for account acct_1TcrMNHTYIZb4z2l, then redeploy."
+            : "Stripe is not configured for live mode. On Render set STRIPE_SECRET_KEY to the live Secret key (sk_live_…) for Sweet Tooth account acct_1TcrMNHTYIZb4z2l (Stripe Dashboard → Developers → API keys → Secret key).",
+        keyMode: mode,
+        livemode: false,
       });
     }
 
     const stripeStatus = await getStripeAccountStatus();
-    if (!stripeStatus.ok) {
+    if (!stripeStatus.ok || !stripeStatus.livemode) {
       return json(res, 503, {
         error:
           stripeStatus.error ||
-          `Stripe key must belong to account ${CONFIG.stripeAccountId}`,
+          `Stripe must be live mode for account ${CONFIG.stripeAccountId}`,
+        keyMode: stripeStatus.keyMode || stripeKeyMode(),
+        livemode: !!stripeStatus.livemode,
       });
     }
 
@@ -1111,6 +1144,8 @@ async function api(req, res, pathname, baseUrl) {
         paymentUrl: payUrl,
         sessionId,
         paymentMethod,
+        livemode: true,
+        keyMode: "live",
         depositDollars,
         depositCents,
         estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
@@ -1119,7 +1154,7 @@ async function api(req, res, pathname, baseUrl) {
           ? "Deposit invoice sent"
           : "Deposit link created (email failed)",
         message: emailResult.sent
-          ? `Deposit invoice emailed to ${customerEmail}`
+          ? `Live deposit invoice emailed to ${customerEmail}`
           : `Payment link created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${payUrl}`,
       });
     } catch (e) {

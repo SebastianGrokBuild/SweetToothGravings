@@ -11,9 +11,10 @@ EXPECTED_ACCOUNT="acct_1TcrMNHTYIZb4z2l"
 API_BASE="https://api.render.com/v1"
 KEY="${1:-${STRIPE_SECRET_KEY:-}}"
 
-if [[ -z "$KEY" || ! "$KEY" =~ ^sk_(live|test)_ ]]; then
+if [[ -z "$KEY" || ! "$KEY" =~ ^sk_live_ ]]; then
   echo "Usage: $0 sk_live_YOUR_KEY"
-  echo "Get it from Stripe (account $EXPECTED_ACCOUNT) → Developers → API keys → Secret key"
+  echo "Production requires a LIVE secret key (sk_live_…), not sk_test_."
+  echo "Get it from Stripe (account $EXPECTED_ACCOUNT) → Developers → API keys → Secret key (Live mode)"
   exit 1
 fi
 
@@ -100,6 +101,6 @@ PY
 echo ""
 echo "After deploy (~1–2 min):"
 echo "  curl -s https://sweettooth-cravings-api.onrender.com/api/health | python3 -m json.tool | head -50"
-echo "Expect stripe:true and accountId $EXPECTED_ACCOUNT"
+echo "Expect stripe:true, stripeLive:true, livemode:true, accountId $EXPECTED_ACCOUNT"
 echo ""
-echo "Sheet: check Stripe Deposit box → Send Deposit Invoice emails the customer."
+echo "Sheet: Stripe Deposit → Send Deposit Invoice emails a LIVE 50% invoice to the row Email."
