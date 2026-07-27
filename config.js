@@ -11,7 +11,7 @@
    * Node order server (serve.js) on Render — see DEPLOY.md.
    * Change only if your Render service URL is different.
    */
-  const PRODUCTION_API = "https://sweettooth-cravings.onrender.com";
+  const PRODUCTION_API = "https://sweettoothgravings.onrender.com";
 
   const isLocal =
     host === "localhost" || host === "127.0.0.1" || host === "";

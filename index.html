@@ -24,7 +24,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       if (isLive && !window.STC_API_BASE) {
-        window.STC_API_BASE = 'https://sweettooth-cravings.onrender.com';
+        window.STC_API_BASE = 'https://sweettoothgravings.onrender.com';
       }
     })();
   </script>
@@ -2306,20 +2306,42 @@
       return base ? base + path : path
     }
 
-    const STC_PRODUCTION_API = 'https://sweettooth-cravings.onrender.com'
+    const STC_PRODUCTION_API = 'https://sweettoothgravings.onrender.com'
 
-    function stcResolveApiBase() {
-      if (window.STC_API_BASE) return window.STC_API_BASE
+    function stcIsLiveShopHost() {
       const host = location.hostname
-      const isLiveShop =
+      return (
         host === 'sweettoothcravings.shop' ||
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io')
-      if (isLiveShop) {
+      )
+    }
+
+    function stcResolveApiBase() {
+      if (window.STC_API_BASE) return window.STC_API_BASE
+      if (stcIsLiveShopHost()) {
         window.STC_API_BASE = STC_PRODUCTION_API
         return STC_PRODUCTION_API
       }
       return ''
+    }
+
+    let stcApiWarmPromise = null
+
+    /** Wake Render free tier while the customer fills the submit form. */
+    function stcWarmApiIfLive() {
+      if (!stcIsLiveShopHost()) return Promise.resolve()
+      stcResolveApiBase()
+      const base = (window.STC_API_BASE || '').replace(/\/$/, '')
+      if (!base) return Promise.resolve()
+      if (!stcApiWarmPromise) {
+        stcApiWarmPromise = fetch(base + '/api/health', { method: 'GET', mode: 'cors' })
+          .catch(() => {})
+          .finally(() => {
+            window.setTimeout(() => { stcApiWarmPromise = null }, 120000)
+          })
+      }
+      return stcApiWarmPromise
     }
 
     const STC_SUBMIT_MAX_ATTEMPTS = 3
@@ -2332,9 +2354,7 @@
 
     function stcEnsureApiConfigured() {
       stcResolveApiBase()
-      const host = location.hostname
-      const isLiveShop = host === 'sweettoothcravings.shop' || host === 'www.sweettoothcravings.shop'
-      if (isLiveShop && !window.STC_API_BASE) {
+      if (stcIsLiveShopHost() && !window.STC_API_BASE) {
         const err = new Error('not_configured')
         err.code = 'not_configured'
         throw err
@@ -2693,6 +2713,7 @@
 
       hideCartSubmitError()
       setCartSubmitLoading(false)
+      stcWarmApiIfLive()
       document.getElementById('cart-submit-modal').classList.remove('hidden')
       document.getElementById('cart-submit-modal').classList.add('flex')
       document.body.style.overflow = 'hidden'

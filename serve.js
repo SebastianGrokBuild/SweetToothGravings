@@ -335,6 +335,7 @@ async function api(req, res, pathname, baseUrl) {
       ok: true,
       time: new Date().toISOString(),
       googleSheets: google.isConfigured(),
+      googleSheetsSetup: google.sheetsSetupStatus(),
       googleDriveOAuth: google.isDriveOAuthReady(),
       orderEmail,
       photoStorage: "google_drive",
