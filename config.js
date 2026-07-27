@@ -1,6 +1,6 @@
 /**
  * API base URL for order submissions.
- * deploy: 2026-07-27-force-sheet-v4
+ * deploy: 2026-07-27-insert-top-v5
  * sheet:  13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs
  * drive:  1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE
  *
@@ -31,7 +31,7 @@
   }
 
   global.STC_API_BASE = base;
-  global.STC_DEPLOY_BUILD = "2026-07-27-force-sheet-v4";
+  global.STC_DEPLOY_BUILD = "2026-07-27-insert-top-v5";
   global.STC_EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
   global.STC_EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 })(typeof window !== "undefined" ? window : globalThis);

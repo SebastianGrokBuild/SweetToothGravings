@@ -1,13 +1,14 @@
 /**
  * Sweet Tooth Cravings — Google Sheet: "Send Deposit Invoice" (Stripe Deposit column)
  *
- * After reviewing a row in Sweet Tooth - Order Log:
+ * Newest orders always appear at row 2 (top of the sheet under the header).
+ *
+ * After reviewing a row:
  *   1. Confirm Estimated Subtotal / Deposit Due
- *   2. Check the box in the **Stripe Deposit** column  ← one-click button
+ *   2. Check the box in the **Stripe Deposit** column  ← Send Deposit Invoice
  *      (or menu: Sweet Tooth → Send Deposit Invoice)
  *
- * That calls the Render API, which creates a Stripe Checkout session on
- * Sweet Tooth account acct_1TcrMNHTYIZb4z2l and emails the customer the 50% deposit link.
+ * Calls Render API → Stripe Checkout on acct_1TcrMNHTYIZb4z2l → emails 50% deposit link.
  *
  * SETUP (one time)
  * 1. Extensions → Apps Script → paste this file → Save

@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-force-sheet-v4";
+const DEPLOY_BUILD = "2026-07-27-insert-top-v5";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -1166,6 +1166,7 @@ async function api(req, res, pathname, baseUrl) {
         orderId,
         savedTo: "google_sheets",
         sheetWriteConfirmed: true,
+        insertedAtRow: saved.insertedAtRow || 2,
         deployBuild: DEPLOY_BUILD,
         photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
