@@ -88,6 +88,46 @@ function id() {
   return crypto.randomBytes(10).toString("hex");
 }
 
+/**
+ * Cart-submit idempotency: same clientRequestId must never create a second sheet row.
+ * Cached successes live in memory for 48h (Render free tier may recycle; still blocks double-clicks).
+ */
+const CART_SUBMIT_IDEMPOTENCY_TTL_MS = 48 * 60 * 60 * 1000;
+const cartSubmitResults = new Map(); // key -> { at, response }
+const cartSubmitInflight = new Map(); // key -> Promise
+
+function normalizeClientRequestId(raw) {
+  const s = String(raw || "").trim().slice(0, 128);
+  if (!s) return "";
+  if (!/^[A-Za-z0-9._:-]+$/.test(s)) return "";
+  return s;
+}
+
+function pruneCartSubmitCache() {
+  const now = Date.now();
+  for (const [k, v] of cartSubmitResults) {
+    if (!v || now - v.at > CART_SUBMIT_IDEMPOTENCY_TTL_MS) cartSubmitResults.delete(k);
+  }
+}
+
+function getCachedCartSubmit(key) {
+  if (!key) return null;
+  pruneCartSubmitCache();
+  const hit = cartSubmitResults.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > CART_SUBMIT_IDEMPOTENCY_TTL_MS) {
+    cartSubmitResults.delete(key);
+    return null;
+  }
+  return hit.response;
+}
+
+function setCachedCartSubmit(key, response) {
+  if (!key || !response) return;
+  pruneCartSubmitCache();
+  cartSubmitResults.set(key, { at: Date.now(), response });
+}
+
 function adminToken() {
   return crypto
     .createHmac("sha256", CONFIG.sessionSecret)
@@ -514,11 +554,14 @@ async function api(req, res, pathname, baseUrl) {
 
   if (method === "GET" && pathname === "/api/health") {
     const orderEmail = await notify.checkEmailReady();
+    const setup = google.sheetsSetupStatus();
     return json(res, 200, {
       ok: true,
       time: new Date().toISOString(),
       googleSheets: google.isConfigured(),
-      googleSheetsSetup: google.sheetsSetupStatus(),
+      googleSheetsSetup: setup,
+      googleSheetId: setup.sheetId || null,
+      googleDriveFolderId: setup.driveFolderId || null,
       googleDriveOAuth: google.isDriveOAuthReady(),
       stripe: stripeConfigured(),
       depositCheckout: stripeConfigured(),
@@ -527,6 +570,8 @@ async function api(req, res, pathname, baseUrl) {
       photoStorage: "google_drive",
       uploadMode: "multipart",
       maxPhotoMb: Math.round(google.MAX_PHOTO_BYTES / (1024 * 1024)),
+      cartSubmitIdempotency: true,
+      noAutoRetry: true,
     });
   }
 
@@ -817,27 +862,84 @@ async function api(req, res, pathname, baseUrl) {
       return json(res, 400, { error: "Cart is empty" });
     }
 
-    const orderId = id();
-    const now = new Date().toISOString();
-    let lineDetail = "";
-    let subtotal = 0;
-    body.items.forEach((item, i) => {
-      const line = (Number(item.price) || 0) * (Number(item.quantity) || 1);
-      subtotal += line;
-      lineDetail += `${i + 1}. ${item.quantity}× ${item.name}`;
-      const c = item.customizations || {};
-      if (c.tier) lineDetail += ` | ${c.tier}`;
-      if (c.flavor) lineDetail += ` | ${c.flavor}`;
-      if (c.fillings?.length) lineDetail += ` | ${c.fillings.join(", ")}`;
-      if (c.notes) lineDetail += ` | Notes: ${c.notes}`;
-      lineDetail += ` | $${line}\n`;
-    });
-
-    const hasCustomCake = body.items.some((item) =>
-      /custom cake/i.test(item.name || ""),
+    const clientRequestId = normalizeClientRequestId(
+      body.clientRequestId || body.idempotencyKey || body.requestId,
     );
 
-    try {
+    // Replay a successful prior submit with the same key (no second sheet row / Drive upload).
+    const cached = getCachedCartSubmit(clientRequestId);
+    if (cached) {
+      return json(res, 200, { ...cached, idempotentReplay: true });
+    }
+
+    // Concurrent double-submit with the same key: wait for the first and reuse its result.
+    if (clientRequestId && cartSubmitInflight.has(clientRequestId)) {
+      try {
+        const shared = await cartSubmitInflight.get(clientRequestId);
+        return json(res, 200, { ...shared, idempotentReplay: true });
+      } catch (e) {
+        return json(res, 500, { error: e.message || "Order submit failed" });
+      }
+    }
+
+    const runCartSubmit = async () => {
+      // Disk-level replay if memory cache was lost (e.g. after restart) but order was stored.
+      if (clientRequestId) {
+        const existing = loadOrders().find((o) => o.clientRequestId === clientRequestId);
+        if (existing) {
+          const replay = {
+            success: true,
+            orderId: existing.id,
+            savedTo: "google_sheets",
+            photoLinks: (() => {
+              try {
+                return JSON.parse(existing.inspirationImages || "[]");
+              } catch {
+                return [];
+              }
+            })(),
+            photoErrors: [],
+            emailNotification: { sent: false },
+            checkoutUrl: existing.stripePaymentUrl || null,
+            paymentUrl: existing.stripePaymentUrl || null,
+            depositCents: existing.depositCents || null,
+            depositDollars: existing.depositCents
+              ? existing.depositCents / 100
+              : null,
+            estimatedSubtotal: existing.estimatedSubtotal,
+            stripe: existing.stripeSessionId
+              ? { ok: true, sessionId: existing.stripeSessionId }
+              : { ok: false, skipped: true },
+            idempotentReplay: true,
+            googleSheetId: google.getSheetId(),
+            googleDriveFolderId: google.getDriveFolderId(),
+            clientRequestId,
+          };
+          setCachedCartSubmit(clientRequestId, replay);
+          return replay;
+        }
+      }
+
+      const orderId = id();
+      const now = new Date().toISOString();
+      let lineDetail = "";
+      let subtotal = 0;
+      body.items.forEach((item, i) => {
+        const line = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+        subtotal += line;
+        lineDetail += `${i + 1}. ${item.quantity}× ${item.name}`;
+        const c = item.customizations || {};
+        if (c.tier) lineDetail += ` | ${c.tier}`;
+        if (c.flavor) lineDetail += ` | ${c.flavor}`;
+        if (c.fillings?.length) lineDetail += ` | ${c.fillings.join(", ")}`;
+        if (c.notes) lineDetail += ` | Notes: ${c.notes}`;
+        lineDetail += ` | $${line}\n`;
+      });
+
+      const hasCustomCake = body.items.some((item) =>
+        /custom cake/i.test(item.name || ""),
+      );
+
       // Create 50% deposit Checkout before Sheets save so the bakery notify email can include the link.
       // Google Sheets + Drive path below is unchanged if Stripe is off or fails.
       const shopUrl = shopPublicUrl(req, baseUrl);
@@ -891,6 +993,7 @@ async function api(req, res, pathname, baseUrl) {
         lineItemsDetail: lineDetail,
         estimatedSubtotal: subtotal,
         inspirationImages: JSON.stringify(drivePhotos),
+        clientRequestId: clientRequestId || null,
         stripePaymentUrl: deposit.ok ? deposit.checkoutUrl : null,
         stripeSessionId: deposit.ok ? deposit.sessionId : null,
         depositCents: deposit.ok ? deposit.depositCents : null,
@@ -899,7 +1002,7 @@ async function api(req, res, pathname, baseUrl) {
       list.push(order);
       saveOrders(list);
 
-      return json(res, 200, {
+      const responseBody = {
         success: true,
         orderId,
         savedTo: "google_sheets",
@@ -917,10 +1020,25 @@ async function api(req, res, pathname, baseUrl) {
           : deposit.skipped
             ? { ok: false, skipped: true, reason: deposit.reason }
             : { ok: false, error: deposit.error || "checkout_failed" },
-      });
+        googleSheetId: google.getSheetId(),
+        googleDriveFolderId: google.getDriveFolderId(),
+        clientRequestId: clientRequestId || null,
+      };
+      setCachedCartSubmit(clientRequestId, responseBody);
+      return responseBody;
+    };
+
+    const work = runCartSubmit();
+    if (clientRequestId) cartSubmitInflight.set(clientRequestId, work);
+
+    try {
+      const responseBody = await work;
+      return json(res, 200, responseBody);
     } catch (e) {
       console.error("[cart-submit]", e);
       return json(res, 500, { error: e.message });
+    } finally {
+      if (clientRequestId) cartSubmitInflight.delete(clientRequestId);
     }
   }
 

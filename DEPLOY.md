@@ -4,7 +4,7 @@ The shop at **https://sweettoothcravings.shop** is static HTML on **GitHub Pages
 
 Orders need **`node serve.js`** running 24/7 (Google Sheet, Drive photos, email). The live site calls that API via **`config.js`** → `PRODUCTION_API`.
 
-**Production API URL (configured in repo):** `https://sweettooth-cravings.onrender.com`
+**Production API URL (configured in repo):** `https://sweettooth-cravings-api.onrender.com`
 
 ---
 
@@ -13,7 +13,7 @@ Orders need **`node serve.js`** running 24/7 (Google Sheet, Drive photos, email)
 ```text
 Customer browser (sweettoothcravings.shop)
     → config.js sets STC_API_BASE to Render URL
-    → POST https://sweettooth-cravings.onrender.com/api/cart-submit
+    → POST https://sweettooth-cravings-api.onrender.com/api/cart-submit
          → Google Sheets + Drive + order email
          → (optional) Stripe Checkout session for 50% deposit
 ```
@@ -26,7 +26,7 @@ GitHub Pages only serves `index.html`, `config.js`, and assets. All order logic 
 
 1. Deploy `serve.js` on Render (below).
 2. Add environment variables and credential **Secret Files** on Render.
-3. Confirm health: `https://sweettooth-cravings.onrender.com/api/health` → `"ok": true`.
+3. Confirm health: `https://sweettooth-cravings-api.onrender.com/api/health` → `"ok": true`.
 4. Ensure **`config.js`** has the same Render URL in `PRODUCTION_API` (already set in this repo).
 5. **Push to GitHub** so Pages updates `config.js` on the live shop.
 6. Submit a test order on https://sweettoothcravings.shop and check the Sheet + inbox.
@@ -67,7 +67,7 @@ Repo: `https://github.com/SebastianGrokBuild/SweetToothGravings`
 
 After the first successful deploy, note the URL. It should match:
 
-`https://sweettooth-cravings.onrender.com`
+`https://sweettooth-cravings-api.onrender.com`
 
 If Render gives a different URL, update **`PRODUCTION_API`** in `config.js` to match, then push again.
 
@@ -80,9 +80,9 @@ In the service → **Environment**, add the same values as your local `.env` (do
 | Variable | Required | Notes |
 |----------|----------|--------|
 | `PORT` | Yes | `10000` (Render sets this; `render.yaml` includes it) |
-| `GOOGLE_SHEET_ID` | Yes | Your orders spreadsheet ID |
+| `GOOGLE_SHEET_ID` | Yes | `13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs` (Order Log) |
 | `GOOGLE_SHEET_TAB` | Yes | Usually `Orders` |
-| `GOOGLE_DRIVE_FOLDER_ID` | Yes | Folder for inspiration photos |
+| `GOOGLE_DRIVE_FOLDER_ID` | Yes | `1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE` (order photos) |
 | `GOOGLE_SERVICE_ACCOUNT_FILE` | Yes | `./credentials/google-service-account.json` |
 | `ORDER_NOTIFY_EMAIL` | Yes | `sweettoothcravingsorder@gmail.com` |
 | `ORDER_NOTIFY_ENABLED` | Yes | `true` |
@@ -92,7 +92,7 @@ In the service → **Environment**, add the same values as your local `.env` (do
 | `ORDER_SMTP_PORT` | Optional | `465` |
 | `ADMIN_PASSWORD` | Yes | Change from default |
 | `SESSION_SECRET` | Yes | Long random string |
-| `APP_URL` | Yes | `https://sweettooth-cravings.onrender.com` (API base; not used for Stripe redirects) |
+| `APP_URL` | Yes | `https://sweettooth-cravings-api.onrender.com` (API base; not used for Stripe redirects) |
 | `PUBLIC_SHOP_URL` | Recommended | `https://sweettoothcravings.shop` — Stripe success/cancel return URL |
 | `STRIPE_SECRET_KEY` | Recommended | `sk_live_...` from the Sweet Tooth Stripe account — enables auto 50% deposit Checkout on submit |
 | `SHEET_ACTIONS_SECRET` | Recommended | Secret for Google Sheet **Send Deposit Invoice** (Apps Script). Falls back to `ADMIN_PASSWORD` if unset |
@@ -135,7 +135,7 @@ The repo **does not** include `credentials/` (gitignored). On Render:
 Open in a browser or terminal:
 
 ```text
-https://sweettooth-cravings.onrender.com/api/health
+https://sweettooth-cravings-api.onrender.com/api/health
 ```
 
 Expect JSON like:
@@ -160,14 +160,14 @@ If `googleSheets` or `googleDriveOAuth` is `false`, fix env vars and secret file
 `config.js` is already set for split hosting:
 
 ```javascript
-const PRODUCTION_API = "https://sweettooth-cravings.onrender.com";
+const PRODUCTION_API = "https://sweettooth-cravings-api.onrender.com";
 ```
 
 Push to `main` so **sweettoothcravings.shop** loads the updated `config.js`.
 
 On the live site, open DevTools → **Network** when submitting an order:
 
-- **URL:** `https://sweettooth-cravings.onrender.com/api/cart-submit`
+- **URL:** `https://sweettooth-cravings-api.onrender.com/api/cart-submit`
 - **Status:** `200`
 - **Response:** `"success": true`, `"orderId": "STC-..."`
 

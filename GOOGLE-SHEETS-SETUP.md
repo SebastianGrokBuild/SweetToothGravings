@@ -112,11 +112,13 @@ Photo columns in the sheet will contain **Drive links** like `https://drive.goog
 2. Fill in these lines (replace with your real IDs):
 
 ```env
-GOOGLE_SHEET_ID=paste_your_sheet_id_here
+GOOGLE_SHEET_ID=13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs
 GOOGLE_SHEET_TAB=Orders
-GOOGLE_DRIVE_FOLDER_ID=paste_your_folder_id_here
+GOOGLE_DRIVE_FOLDER_ID=1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE
 GOOGLE_SERVICE_ACCOUNT_FILE=./credentials/google-service-account.json
 ```
+
+These are the **live** Order Log spreadsheet and inspiration photos folder. The server also defaults to the same IDs if env vars are blank.
 
 3. Save the file.
 
@@ -221,25 +223,24 @@ Redeploy after saving env vars.
 4. Save (disk icon). Name the project e.g. `STC Deposit Invoice`.
 5. Reload the spreadsheet. You should see menu **Sweet Tooth**.
 6. **Sweet Tooth → Configure API connection…**
-   - API base URL: `https://sweettooth-cravings.onrender.com` (or your API)
+   - API base URL: **`https://sweettooth-cravings-api.onrender.com`** (must include `-api`)
    - Secret: same as `SHEET_ACTIONS_SECRET` (or `ADMIN_PASSWORD`)
 7. Authorize when Google asks (your Google account that owns the sheet).
+8. **Sweet Tooth → Install "Send Deposit Invoice" button column**  
+   Adds a checkbox column so you can send from the row without the menu.
 
 ### Everyday use
 
 1. Review the row (customer, line items, photos).
 2. If price changed, update **Estimated Subtotal** to the reviewed total.
-3. Click any cell in that row.
-4. **Sweet Tooth → Send Deposit Invoice** → confirm.
-5. Customer receives the deposit email; Status updates.
+3. Either:
+   - Check the **Send Deposit Invoice** box on that row, **or**
+   - Click any cell in the row → **Sweet Tooth → Send Deposit Invoice** → confirm.
+4. Customer receives the deposit email; **Status** becomes `Deposit invoice sent`.
 
-### Optional checkbox (true one-click)
+### Checkbox button column
 
-1. In an empty column (e.g. after **Source**), header: `Send Deposit Invoice`.
-2. Insert checkboxes for data rows (**Insert → Checkbox**).
-3. Check the box on a row → script sends the invoice and clears the box.
-
-(Uses the same `onEdit` in the Apps Script file.)
+Menu **Install "Send Deposit Invoice" button column** creates a header + checkboxes after **Source**. Checking a box runs the same Stripe invoice flow and then clears the box.
 
 ### API reference
 

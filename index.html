@@ -2344,12 +2344,19 @@
       return stcApiWarmPromise
     }
 
-    const STC_SUBMIT_MAX_ATTEMPTS = 3
-    const STC_SUBMIT_RETRY_MS = [0, 2500, 5000]
-    const STC_SUBMIT_TIMEOUT_MS = 55000
+    // Single attempt only — no automatic retries (prevents duplicate sheet rows).
+    // Manual "Try Again" reuses the same clientRequestId so the server stays idempotent.
+    const STC_SUBMIT_TIMEOUT_MS = 90000
 
-    function stcSleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms))
+    /** Stable per open of the submit modal; reused on manual Try Again only. */
+    let stcClientRequestId = ''
+    let stcSubmitInFlight = false
+
+    function stcNewClientRequestId() {
+      try {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
+      } catch (_) { /* ignore */ }
+      return 'stc-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12)
     }
 
     function stcEnsureApiConfigured() {
@@ -2359,21 +2366,6 @@
         err.code = 'not_configured'
         throw err
       }
-    }
-
-    function stcIsRetryableSubmitError(err) {
-      if (!err) return false
-      if (err.retryable === false) return false
-      const code = err.code || ''
-      if (['network', 'timeout', 'server_unavailable', 'not_configured'].includes(code)) return true
-      const msg = String(err.message || '')
-      return (
-        msg === 'Load failed' ||
-        msg === 'Failed to fetch' ||
-        msg.includes('NetworkError') ||
-        err.name === 'TypeError' ||
-        err.name === 'AbortError'
-      )
     }
 
     function stcClassifySubmitError(err, res) {
@@ -2394,7 +2386,7 @@
           title: 'Orders aren\u2019t connected yet',
           message: 'The website can\u2019t reach our order system right now.',
           steps: [
-            'Wait a moment, then tap Try Again.',
+            'Wait a moment, then tap Try Again once.',
             'If this keeps happening, message us on Instagram or email and we\u2019ll take your order manually.'
           ],
           retryable: true
@@ -2406,7 +2398,7 @@
           title: 'This is taking longer than usual',
           message: 'Our order system may be waking up \u2014 the first request after a quiet period can take up to a minute.',
           steps: [
-            'Wait about 30 seconds, then tap Try Again.',
+            'Wait about 30 seconds, then tap Try Again once (we will not create a duplicate order).',
             'Your cart and details are still saved on this page.'
           ],
           retryable: true
@@ -2423,7 +2415,7 @@
           title: 'We couldn\u2019t connect just now',
           message: 'This is usually temporary \u2014 our order server may be starting up or your connection hiccuped.',
           steps: [
-            'Tap Try Again in a few seconds (we\u2019ll retry automatically too).',
+            'Tap Try Again once in a few seconds. We never auto-retry, so you won\u2019t get a double order.',
             'Still stuck? DM us on Instagram @sweettoothcravings__ or email sweettoothcravingsorder@gmail.com with your order details.'
           ],
           retryable: true
@@ -2437,7 +2429,7 @@
             ? 'Our order server isn\u2019t responding yet. It may still be starting.'
             : 'The server is busy or restarting. This usually clears up quickly.',
           steps: [
-            'Wait 30\u201360 seconds, then tap Try Again.',
+            'Wait 30\u201360 seconds, then tap Try Again once.',
             'Need help right away? Message us on Instagram \u2014 we\u2019ll help you place your order.'
           ],
           retryable: true
@@ -2461,7 +2453,7 @@
           title: 'Something went wrong on our end',
           message: raw || 'We couldn\u2019t save your order just now, but nothing was lost.',
           steps: [
-            'Tap Try Again in a moment.',
+            'Tap Try Again once in a moment (safe — will not create a duplicate).',
             'If it keeps failing, contact us and we\u2019ll enter your order manually.'
           ],
           retryable: true
@@ -2472,7 +2464,7 @@
         title: 'Couldn\u2019t submit your request',
         message: raw || 'Please try once more.',
         steps: [
-          'Tap Try Again.',
+          'Tap Try Again once.',
           'Or message us on Instagram @sweettoothcravings__ for help.'
         ],
         retryable: true
@@ -2568,6 +2560,8 @@
         customizations: item.customizations || {}
       }))
 
+      if (!stcClientRequestId) stcClientRequestId = stcNewClientRequestId()
+
       return {
         customerName: document.getElementById('cart-submit-name').value.trim(),
         customerEmail: document.getElementById('cart-submit-email').value.trim(),
@@ -2575,7 +2569,9 @@
         eventDate: document.getElementById('cart-submit-date').value,
         allergies: document.getElementById('cart-submit-allergies').value.trim(),
         orderNotes: document.getElementById('cart-submit-notes').value.trim(),
-        items: submittedItems
+        items: submittedItems,
+        // Server uses this to block duplicate sheet rows if the customer taps Try Again
+        clientRequestId: stcClientRequestId
       }
     }
 
@@ -2754,6 +2750,10 @@
       const dateEl = document.getElementById('cart-submit-date')
       if (dateEl) dateEl.min = minDate
 
+      // Fresh idempotency key for this checkout session
+      stcClientRequestId = stcNewClientRequestId()
+      stcSubmitInFlight = false
+
       hideCartSubmitError()
       setCartSubmitLoading(false)
       stcWarmApiIfLive()
@@ -2769,14 +2769,20 @@
       hideCartSubmitError()
       setCartSubmitLoading(false)
       cartSubmitClearImages()
+      stcSubmitInFlight = false
     }
 
     async function performCartSubmit() {
+      // Hard lock: one in-flight request only (no auto retries, no double-click dups)
+      if (stcSubmitInFlight) return
+      stcSubmitInFlight = true
+
       hideCartSubmitError()
       setCartSubmitLoading(true, 'Sending your request…', 'submit')
 
       const payload = buildCartSubmitPayload()
       if (!payload.customerName || !payload.customerEmail) {
+        stcSubmitInFlight = false
         setCartSubmitLoading(false)
         showCartSubmitError({
           title: 'Name and email required',
@@ -2787,61 +2793,44 @@
         return
       }
 
-      let lastErr = null
-      let lastRes = null
-
-      for (let attempt = 1; attempt <= STC_SUBMIT_MAX_ATTEMPTS; attempt++) {
-        const delay = STC_SUBMIT_RETRY_MS[attempt - 1] || 0
-        if (delay > 0) {
-          setCartSubmitLoading(true, `Connecting… attempt ${attempt} of ${STC_SUBMIT_MAX_ATTEMPTS}`, 'submit')
-          await stcSleep(delay)
-        } else if (attempt > 1) {
-          setCartSubmitLoading(true, `Trying again (${attempt}/${STC_SUBMIT_MAX_ATTEMPTS})…`, 'submit')
+      try {
+        const result = await postCartSubmitPayload(payload)
+        const orderId = result.json.orderId
+        const photoErrors = result.json.photoErrors || []
+        const paymentInfo = {
+          checkoutUrl: result.json.checkoutUrl || result.json.paymentUrl || null,
+          depositDollars: result.json.depositDollars,
+          depositCents: result.json.depositCents,
+          stripe: result.json.stripe,
         }
 
-        try {
-          const result = await postCartSubmitPayload(payload)
-          const orderId = result.json.orderId
-          const photoErrors = result.json.photoErrors || []
-          const paymentInfo = {
-            checkoutUrl: result.json.checkoutUrl || result.json.paymentUrl || null,
-            depositDollars: result.json.depositDollars,
-            depositCents: result.json.depositCents,
-            stripe: result.json.stripe,
-          }
-
-          setCartSubmitLoading(false)
-          closeCartSubmitModal()
-          cartSubmitClearImages()
-          if (typeof toggleCart === 'function') {
-            const drawer = document.getElementById('cart-drawer')
-            if (drawer && !drawer.classList.contains('hidden')) toggleCart()
-          }
-          cart = []
-          saveCartToStorage()
-          updateCartCount()
-          updateCartSubmitButton()
-
-          showSubmitSuccessModal(result.submittedItems, orderId, photoErrors, paymentInfo)
-          if (paymentInfo.checkoutUrl) {
-            showToast('Request saved — complete your 50% deposit on Stripe.')
-          } else {
-            showToast('Request saved — we\'ll be in touch soon.')
-          }
-          return
-        } catch (err) {
-          lastErr = err
-          lastRes = err.status ? { status: err.status } : null
-          if (attempt < STC_SUBMIT_MAX_ATTEMPTS && stcIsRetryableSubmitError(err)) {
-            continue
-          }
-          break
+        // New key for any future order after this success
+        stcClientRequestId = ''
+        stcSubmitInFlight = false
+        setCartSubmitLoading(false)
+        closeCartSubmitModal()
+        cartSubmitClearImages()
+        if (typeof toggleCart === 'function') {
+          const drawer = document.getElementById('cart-drawer')
+          if (drawer && !drawer.classList.contains('hidden')) toggleCart()
         }
+        cart = []
+        saveCartToStorage()
+        updateCartCount()
+        updateCartSubmitButton()
+
+        showSubmitSuccessModal(result.submittedItems, orderId, photoErrors, paymentInfo)
+        if (paymentInfo.checkoutUrl) {
+          showToast('Request saved — complete your 50% deposit on Stripe.')
+        } else {
+          showToast('Request saved — we\'ll be in touch soon.')
+        }
+      } catch (err) {
+        stcSubmitInFlight = false
+        setCartSubmitLoading(false)
+        const info = stcClassifySubmitError(err, err.status ? { status: err.status } : null)
+        showCartSubmitError(info)
       }
-
-      setCartSubmitLoading(false)
-      const info = stcClassifySubmitError(lastErr, lastRes)
-      showCartSubmitError(info)
     }
 
     async function submitCartRequest(e) {
@@ -2850,6 +2839,7 @@
     }
 
     function retryCartSubmit() {
+      // Manual only — reuses stcClientRequestId so the API will not create a second order
       performCartSubmit()
     }
 

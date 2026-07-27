@@ -1,20 +1,26 @@
 /**
- * Sweet Tooth Cravings — Google Sheet: one-click "Send Deposit Invoice"
+ * Sweet Tooth Cravings — Google Sheet: "Send Deposit Invoice"
  *
- * After you review a row in the Order Log, select it and run:
- *   Sweet Tooth → Send Deposit Invoice
+ * After you review a row in the Order Log, send a 50% Stripe deposit:
+ *   • Menu: Sweet Tooth → Send Deposit Invoice (selected row)
+ *   • Or check the "Send Deposit Invoice" checkbox column (true one-click)
  *
- * That calls your Render API, creates a Stripe Checkout session for 50% deposit
- * (Sweet Tooth Stripe account via STRIPE_SECRET_KEY on the server), emails the
- * customer the pay link, and updates Status on the row.
+ * Calls your Render API → Stripe Checkout (Sweet Tooth account via STRIPE_SECRET_KEY)
+ * → emails the customer the pay link → updates Status on the row.
  *
- * SETUP (one time) — see GOOGLE-SHEETS-SETUP.md section "Send Deposit Invoice"
- * 1. Extensions → Apps Script → paste this file
- * 2. Run menu: Sweet Tooth → Configure API connection…
- * 3. Authorize when prompted
+ * SETUP (one time) — see GOOGLE-SHEETS-SETUP.md
+ * 1. Extensions → Apps Script → paste this entire file → Save
+ * 2. Reload the spreadsheet → Sweet Tooth menu appears
+ * 3. Sweet Tooth → Configure API connection…
+ *      API: https://sweettooth-cravings-api.onrender.com
+ *      Secret: SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD) from Render
+ * 4. Sweet Tooth → Install "Send Deposit Invoice" button column
+ * 5. Set STRIPE_SECRET_KEY on Render (required for invoices)
  *
- * Does NOT change website → Sheets/Drive submission. Read-only use of order rows.
+ * Does NOT change website → Sheets/Drive submission.
  */
+
+var DEFAULT_API_BASE = "https://sweettooth-cravings-api.onrender.com";
 
 var HEADER_MAP = {
   orderId: ["Order ID", "Order Id", "order id"],
@@ -34,12 +40,14 @@ var HEADER_MAP = {
   estimatedSubtotal: ["Estimated Subtotal", "Subtotal", "Final Total", "Final Price"],
   depositDue: ["Deposit Due (50%)", "Deposit Due", "Deposit"],
   orderType: ["Order Type"],
+  sendDeposit: ["Send Deposit Invoice", "Send Deposit", "Send Invoice"],
 };
 
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("Sweet Tooth")
     .addItem("Send Deposit Invoice (selected row)", "sendDepositInvoiceForActiveRow")
+    .addItem('Install "Send Deposit Invoice" button column', "installSendDepositInvoiceColumn")
     .addItem("Configure API connection…", "configureApiConnection")
     .addSeparator()
     .addItem("Show setup help", "showSetupHelp")
@@ -50,9 +58,7 @@ function configureApiConnection() {
   var ui = SpreadsheetApp.getUi();
   var props = PropertiesService.getScriptProperties();
 
-  var currentBase =
-    props.getProperty("API_BASE_URL") ||
-    "https://sweettooth-cravings.onrender.com";
+  var currentBase = props.getProperty("API_BASE_URL") || DEFAULT_API_BASE;
   var baseRes = ui.prompt(
     "API base URL",
     "Render order API (no trailing slash):\nCurrent: " + currentBase,
@@ -65,6 +71,14 @@ function configureApiConnection() {
   if (!base) {
     ui.alert("API base URL is required.");
     return;
+  }
+
+  // Migrate known stale hostnames from older docs
+  if (
+    base === "https://sweettooth-cravings.onrender.com" ||
+    base === "http://sweettooth-cravings.onrender.com"
+  ) {
+    base = DEFAULT_API_BASE;
   }
 
   var secretRes = ui.prompt(
@@ -88,7 +102,7 @@ function configureApiConnection() {
   ui.alert(
     "Saved.\n\nAPI: " +
       base +
-      "\n\nSelect an order row → Sweet Tooth → Send Deposit Invoice."
+      "\n\nNext:\n• Sweet Tooth → Install button column (optional)\n• Select a row → Send Deposit Invoice"
   );
 }
 
@@ -96,12 +110,77 @@ function showSetupHelp() {
   SpreadsheetApp.getUi().alert(
     "Send Deposit Invoice\n\n" +
       "1) Review the order row (edit Estimated Subtotal if the final price changed).\n" +
-      "2) Click any cell in that row.\n" +
-      "3) Menu: Sweet Tooth → Send Deposit Invoice.\n\n" +
+      "2) Click any cell in that row, then menu:\n" +
+      "   Sweet Tooth → Send Deposit Invoice\n" +
+      "   — or — check the Send Deposit Invoice checkbox on the row.\n\n" +
       "Creates a Stripe 50% deposit Checkout link and emails the customer.\n" +
       "Website → Sheets + Drive submit is unchanged.\n\n" +
-      "Full guide: GOOGLE-SHEETS-SETUP.md in the website project."
+      "API must be: " +
+      DEFAULT_API_BASE +
+      "\nStripe: set STRIPE_SECRET_KEY on Render.\n\n" +
+      "Full guide: GOOGLE-SHEETS-SETUP.md"
   );
+}
+
+/**
+ * Adds a "Send Deposit Invoice" checkbox column (after Source, or last column).
+ * Checking a box on a data row sends the invoice (see onEdit).
+ */
+function installSendDepositInvoiceColumn() {
+  var ui = SpreadsheetApp.getUi();
+  var sheet = SpreadsheetApp.getActiveSheet();
+  var headers = getHeaderRow_(sheet);
+  var existing = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
+
+  if (existing >= 0) {
+    var lastRow = Math.max(sheet.getLastRow(), 2);
+    if (lastRow >= 2) {
+      sheet.getRange(2, existing + 1, lastRow - 1, 1).insertCheckboxes();
+    }
+    ui.alert(
+      'Column "Send Deposit Invoice" already exists (column ' +
+        columnLetter_(existing + 1) +
+        ").\n\nCheckboxes refreshed on data rows.\nCheck a box on a row to send the 50% deposit invoice."
+    );
+    return;
+  }
+
+  var col = headers.length + 1;
+  // Prefer inserting after Source if present
+  var sourceIdx = findHeaderIndex_(headers, ["Source"]);
+  if (sourceIdx >= 0) col = sourceIdx + 2;
+
+  sheet.insertColumnAfter(col - 1);
+  sheet.getRange(1, col).setValue("Send Deposit Invoice");
+  sheet.getRange(1, col).setFontWeight("bold");
+  sheet.setColumnWidth(col, 160);
+
+  var lastRow = Math.max(sheet.getLastRow(), 50);
+  if (lastRow >= 2) {
+    sheet.getRange(2, col, lastRow - 1, 1).insertCheckboxes();
+  }
+
+  ui.alert(
+    'Added column "Send Deposit Invoice" (' +
+      columnLetter_(col) +
+      ").\n\n" +
+      "How to use:\n" +
+      "1. Review Estimated Subtotal on the row\n" +
+      "2. Check the box → Stripe deposit invoice is emailed\n" +
+      "3. Status becomes Deposit invoice sent\n\n" +
+      "Or use menu: Sweet Tooth → Send Deposit Invoice (selected row)."
+  );
+}
+
+function columnLetter_(col) {
+  var s = "";
+  var n = col;
+  while (n > 0) {
+    var m = (n - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
 }
 
 function sendDepositInvoiceForActiveRow() {
@@ -115,9 +194,7 @@ function sendDepositInvoiceForActiveRow() {
 }
 
 /**
- * Optional: put a checkbox in a free column (e.g. AA). When checked, sends invoice.
- * Install: Edit → Current project's triggers → onEditDepositCheckbox → On edit
- * Or rely on simple trigger name onEdit (may be limited).
+ * Checkbox one-click: when "Send Deposit Invoice" is checked, send and clear the box.
  */
 function onEdit(e) {
   try {
@@ -128,11 +205,7 @@ function onEdit(e) {
     if (row < 2) return;
 
     var headers = getHeaderRow_(sheet);
-    var sendCol = findHeaderIndex_(headers, [
-      "Send Deposit Invoice",
-      "Send Deposit",
-      "Send Invoice",
-    ]);
+    var sendCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
     if (sendCol < 0) return;
     if (col !== sendCol + 1) return;
 
@@ -144,7 +217,6 @@ function onEdit(e) {
     // Clear checkbox after attempt so it is one-click again next time
     e.range.setValue(false);
   } catch (err) {
-    // Avoid noisy failures on unrelated edits
     console.error(err);
   }
 }
@@ -152,13 +224,23 @@ function onEdit(e) {
 function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var ui = SpreadsheetApp.getUi();
   var props = PropertiesService.getScriptProperties();
-  var base = (props.getProperty("API_BASE_URL") || "").replace(/\/$/, "");
+  var base = (props.getProperty("API_BASE_URL") || DEFAULT_API_BASE).replace(/\/$/, "");
   var secret = props.getProperty("SHEET_ACTIONS_SECRET") || "";
+
+  if (
+    base === "https://sweettooth-cravings.onrender.com" ||
+    base === "http://sweettooth-cravings.onrender.com"
+  ) {
+    base = DEFAULT_API_BASE;
+    props.setProperty("API_BASE_URL", base);
+  }
 
   if (!base || !secret) {
     if (showAlerts) {
       ui.alert(
-        "API not configured.\n\nSweet Tooth → Configure API connection…\n\nUse your Render URL and SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD)."
+        "API not configured.\n\nSweet Tooth → Configure API connection…\n\nUse:\n" +
+          DEFAULT_API_BASE +
+          "\nand SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD)."
       );
     }
     return { ok: false, error: "not_configured" };
@@ -245,7 +327,9 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
       ui.alert(
         "Could not reach the API.\n\n" +
           err.message +
-          "\n\nCheck API_BASE_URL and that Render is awake."
+          "\n\nCheck API_BASE_URL is " +
+          DEFAULT_API_BASE +
+          " and that Render is awake."
       );
     }
     return { ok: false, error: String(err.message || err) };
@@ -263,14 +347,12 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   if (code < 200 || code >= 300 || !data.success) {
     var msg = (data && data.error) || text || "Request failed (" + code + ")";
     if (showAlerts) ui.alert("Send failed\n\n" + msg);
-    // Status note on failure (optional)
     setStatusIfPossible_(sheet, row, headers, "Deposit send failed");
     return { ok: false, error: msg };
   }
 
   setStatusIfPossible_(sheet, row, headers, data.sheetStatus || "Deposit invoice sent");
 
-  // Optional: write deposit amount if empty
   var depCol = findHeaderIndex_(headers, HEADER_MAP.depositDue);
   if (depCol >= 0 && data.depositDollars != null) {
     var cell = sheet.getRange(row, depCol + 1);
@@ -280,10 +362,11 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   }
 
   if (showAlerts) {
-    var emailNote = data.email && data.email.sent
-      ? "Emailed to " + record.email
-      : "Checkout created, but email may have failed — copy the link:\n" +
-        (data.checkoutUrl || "");
+    var emailNote =
+      data.email && data.email.sent
+        ? "Emailed to " + record.email
+        : "Checkout created, but email may have failed — copy the link:\n" +
+          (data.checkoutUrl || "");
     ui.alert(
       "Deposit invoice sent\n\n" +
         "Amount: $" +
