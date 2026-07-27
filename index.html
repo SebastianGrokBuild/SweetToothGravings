@@ -2272,6 +2272,8 @@
         renderCartItems()
 
         updateCartSubmitButton()
+        // Wake the order API while the customer reviews their cart
+        try { if (typeof stcWarmApiIfLive === 'function') stcWarmApiIfLive() } catch (_) { /* ignore */ }
       } else {
         drawer.classList.add('hidden')
         drawer.classList.remove('flex')
@@ -2340,20 +2342,28 @@
 
     /** Wake Render free tier early so the first submit does not hit a cold start. */
     function stcWarmApiIfLive() {
-      if (!stcIsLiveShopHost()) return Promise.resolve(null)
       const base = stcResolveApiBase().replace(/\/$/, '')
+      // Also warm when testing on localhost against production API
       if (!base) return Promise.resolve(null)
+      if (!stcIsLiveShopHost() && !base.includes('onrender.com')) return Promise.resolve(null)
       if (!stcApiWarmPromise) {
         stcApiWarmPromise = fetch(base + '/api/health', {
           method: 'GET',
           mode: 'cors',
           cache: 'no-store',
+          credentials: 'omit',
         })
           .then(async (res) => {
             if (!res.ok) return null
             try {
               const j = await res.json()
-              if (j && j.ok && j.googleSheets) stcApiReady = true
+              if (
+                j && j.ok && j.googleSheets &&
+                (!j.googleSheetId || j.googleSheetId === STC_EXPECTED_SHEET_ID) &&
+                (!j.googleDriveFolderId || j.googleDriveFolderId === STC_EXPECTED_DRIVE_ID)
+              ) {
+                stcApiReady = true
+              }
               return j
             } catch (_) {
               return null
@@ -2361,26 +2371,36 @@
           })
           .catch(() => null)
           .finally(() => {
-            window.setTimeout(() => { stcApiWarmPromise = null }, 90000)
+            window.setTimeout(() => { stcApiWarmPromise = null }, 60000)
           })
       }
       return stcApiWarmPromise
     }
 
     /**
-     * Wait until the order API is awake and Sheets is configured — once, before a single POST.
+     * Wait until the order API is awake, Sheets + Drive targets match — once, before a single POST.
      * No POST retries (avoids duplicate orders).
      */
     async function stcWaitForApiReady(onStatus) {
-      if (!stcIsLiveShopHost()) return null
       const base = stcResolveApiBase().replace(/\/$/, '')
       if (!base) {
-        const err = new Error('not_configured')
-        err.code = 'not_configured'
-        throw err
+        if (stcIsLiveShopHost()) {
+          const err = new Error('not_configured')
+          err.code = 'not_configured'
+          throw err
+        }
+        return null
       }
 
-      const deadline = Date.now() + 55000
+      // Reuse a recent warm if already ready
+      if (stcApiReady) {
+        try {
+          const quick = await stcWarmApiIfLive()
+          if (quick && quick.ok && quick.googleSheets) return quick
+        } catch (_) { /* fall through */ }
+      }
+
+      const deadline = Date.now() + 90000
       let attempt = 0
       while (Date.now() < deadline) {
         attempt += 1
@@ -2393,11 +2413,12 @@
         }
         try {
           const controller = new AbortController()
-          const timer = setTimeout(() => controller.abort(), 10000)
+          const timer = setTimeout(() => controller.abort(), 12000)
           const res = await fetch(base + '/api/health', {
             method: 'GET',
             mode: 'cors',
             cache: 'no-store',
+            credentials: 'omit',
             signal: controller.signal,
           }).finally(() => clearTimeout(timer))
           if (res.ok) {
@@ -2409,7 +2430,11 @@
                 !j.googleDriveFolderId || j.googleDriveFolderId === STC_EXPECTED_DRIVE_ID
               if (!sheetOk || !driveOk) {
                 console.warn('[stc] health IDs unexpected', j.googleSheetId, j.googleDriveFolderId)
-                // Still accept — server forceProductionTargets overrides env; IDs are canonical in code
+              }
+              // Prefer waiting until Drive OAuth is ready when photos may be attached
+              if (cartSubmitImages.length && j.googleDriveOAuth === false) {
+                await stcSleepMs(1500)
+                continue
               }
               stcApiReady = true
               return j
@@ -2418,7 +2443,7 @@
         } catch (_) {
           /* keep waiting */
         }
-        await stcSleepMs(1800)
+        await stcSleepMs(1500)
       }
 
       const err = new Error('server_unavailable')
@@ -2428,7 +2453,7 @@
 
     // Single attempt only — no automatic POST retries (prevents duplicate sheet rows).
     // Manual "Try Again" reuses the same clientRequestId so the server stays idempotent.
-    const STC_SUBMIT_TIMEOUT_MS = 100000
+    const STC_SUBMIT_TIMEOUT_MS = 120000
 
     /** Stable per open of the submit modal; reused on manual Try Again only. */
     let stcClientRequestId = ''
@@ -2450,9 +2475,12 @@
       }
     }
 
-    // Start warming the API as soon as the page loads on the live shop
+    // Warm API on page load + keep free-tier instance from sleeping during browsing
     try {
-      if (stcIsLiveShopHost()) stcWarmApiIfLive()
+      if (stcIsLiveShopHost()) {
+        stcWarmApiIfLive()
+        window.setInterval(() => { stcWarmApiIfLive() }, 4 * 60 * 1000)
+      }
     } catch (_) { /* ignore */ }
 
     function stcClassifySubmitError(err, res) {

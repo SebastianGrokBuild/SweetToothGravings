@@ -631,15 +631,20 @@ function corsHeaders(req) {
   const origin = req.headers.origin || "";
   const headers = {
     "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
   const allow =
     LIVE_ORIGINS.has(origin) ||
-    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
+    /\.github\.io$/i.test(origin.replace(/^https?:\/\//, "").split("/")[0] || "");
   if (origin && allow) {
     headers["Access-Control-Allow-Origin"] = origin;
     headers["Access-Control-Allow-Credentials"] = "true";
+  } else if (!origin) {
+    // Non-browser clients (curl, Apps Script sometimes) — allow simple responses
+    headers["Access-Control-Allow-Origin"] = "*";
   }
   return headers;
 }
