@@ -24,7 +24,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       if (isLive && !window.STC_API_BASE) {
-        window.STC_API_BASE = 'https://sweettoothgravings.onrender.com';
+        window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
     })();
   </script>
@@ -2306,7 +2306,7 @@
       return base ? base + path : path
     }
 
-    const STC_PRODUCTION_API = 'https://sweettoothgravings.onrender.com'
+    const STC_PRODUCTION_API = 'https://sweettooth-cravings-api.onrender.com'
 
     function stcIsLiveShopHost() {
       const host = location.hostname
