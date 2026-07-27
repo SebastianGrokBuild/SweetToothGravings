@@ -937,7 +937,7 @@
 
       <div class="p-7 border-t bg-[#FDF8F5]">
         <div class="text-xs text-[#6B5B5F] mb-3 px-1">
-          <strong>Reminder:</strong> Submit your request to save it to our order log. When Stripe is enabled, you&apos;ll get a secure link to pay the <strong>50% deposit</strong> right away.
+          <strong>Reminder:</strong> Submit your request to save it to our order log. We&apos;ll review it and then email a secure <strong>50% deposit</strong> link when ready.
         </div>
 
         <button type="button" id="submit-order-btn" onclick="openCartSubmitModal()"
@@ -972,7 +972,7 @@
 
       <ul class="mt-4 text-xs text-[#6B5B5F] space-y-2">
         <li class="flex items-start gap-2"><i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5"></i><span>We typically respond within <strong class="text-[#3F2A2B]">24 hours</strong></span></li>
-        <li class="flex items-start gap-2"><i class="fa-solid fa-wallet text-[#C9A9E8] mt-0.5"></i><span>When Stripe is on, pay the <strong class="text-[#3F2A2B]">50% deposit</strong> via Checkout to confirm</span></li>
+        <li class="flex items-start gap-2"><i class="fa-solid fa-wallet text-[#C9A9E8] mt-0.5"></i><span>After review, we&apos;ll email a secure <strong class="text-[#3F2A2B]">50% deposit</strong> Stripe link to confirm</span></li>
       </ul>
 
       <button onclick="closeSuccessModal()" 
@@ -2749,7 +2749,7 @@
       return items.some(item => /custom cake/i.test(item.name || ''))
     }
 
-    function showSubmitSuccessModal(submittedItems, orderId, photoErrors = [], paymentInfo = null) {
+    function showSubmitSuccessModal(submittedItems, orderId, photoErrors = []) {
       const body = document.getElementById('success-modal-body')
       const ref = document.getElementById('success-modal-ref')
       if (!body) return
@@ -2759,47 +2759,25 @@
         ? `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2">Some inspiration photos could not be uploaded to Google Drive (${photoErrors.join('; ')}). Your order details were still saved.</p>`
         : ''
 
-      const checkoutUrl = paymentInfo && (paymentInfo.checkoutUrl || paymentInfo.paymentUrl)
-      const depositDollars = paymentInfo && paymentInfo.depositDollars != null
-        ? Number(paymentInfo.depositDollars)
-        : null
-      const depositLabel = depositDollars != null && !Number.isNaN(depositDollars)
-        ? `$${depositDollars.toFixed(2)}`
-        : '50%'
-
-      const payBlock = checkoutUrl
-        ? `
-          <div class="rounded-2xl border border-[#D4C0EC] bg-[#F7F0FA] px-4 py-3 space-y-2">
-            <p class="font-semibold text-[#3F2A2B]">Pay your ${depositLabel} deposit to confirm</p>
-            <p class="text-xs text-[#5C4A4B] leading-relaxed">
-              Your request is saved. A secure <strong>Stripe Checkout</strong> link was created for the <strong>50% deposit</strong> based on your estimated total. Pay now to lock in your order — balance due after final review if needed.
-            </p>
-            <a href="${checkoutUrl.replace(/"/g, '&quot;')}" target="_blank" rel="noopener"
-               class="inline-flex w-full items-center justify-center h-12 rounded-2xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white font-semibold text-sm transition">
-              Pay ${depositLabel} deposit with Stripe
-            </a>
-            <p class="text-[10px] text-[#8B6F6F] break-all">
-              Or open: <a href="${checkoutUrl.replace(/"/g, '&quot;')}" target="_blank" rel="noopener" class="text-[#7B4DB8] underline">${checkoutUrl.replace(/</g, '&lt;')}</a>
-            </p>
-          </div>
-        `
-        : `
-          <p>We&apos;ll review your items and notes, then follow up with any pricing questions. If a deposit link wasn&apos;t opened automatically, we&apos;ll send a secure Stripe link for the <strong>50% deposit</strong> after review.</p>
-          <p class="text-xs text-[#8B6F6F]">You will receive a message via <strong>text or Instagram</strong> within <strong>24 hours</strong>.</p>
+      // No Stripe on submit — deposit link is emailed later via Order Log "Send Deposit Invoice".
+      const nextSteps = `
+          <p>We&apos;ll review your items and notes, then follow up with pricing if needed.</p>
+          <p class="text-xs text-[#8B6F6F]">After review, we&apos;ll email a secure Stripe link for the <strong>50% deposit</strong> to confirm your order.</p>
+          <p class="text-xs text-[#8B6F6F]">You will also hear from us via <strong>text or Instagram</strong> within <strong>24 hours</strong>.</p>
         `
 
       if (isCustom) {
         body.innerHTML = `
           <p><strong>Your custom cake request has been submitted.</strong></p>
           <p>We saved your details and inspiration photos to our order log.</p>
-          ${payBlock}
+          ${nextSteps}
           ${photoNote}
         `
       } else {
         body.innerHTML = `
           <p><strong>Your order request has been submitted.</strong></p>
           <p>We saved your cart and notes to our order log.</p>
-          ${payBlock}
+          ${nextSteps}
           ${photoNote}
         `
       }
@@ -2814,16 +2792,6 @@
       document.getElementById('success-modal').classList.remove('hidden')
       document.getElementById('success-modal').classList.add('flex')
       document.body.style.overflow = 'hidden'
-
-      // Open Stripe Checkout in a new tab when available (user just completed submit)
-      if (checkoutUrl) {
-        try {
-          const win = window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
-          if (!win) {
-            showToast('Deposit link ready — use the Pay button below if the tab was blocked.')
-          }
-        } catch (_) { /* ignore */ }
-      }
     }
 
     function openCartSubmitModal() {
@@ -2888,12 +2856,6 @@
         const result = await postCartSubmitPayload(payload)
         const orderId = result.json.orderId
         const photoErrors = result.json.photoErrors || []
-        const paymentInfo = {
-          checkoutUrl: result.json.checkoutUrl || result.json.paymentUrl || null,
-          depositDollars: result.json.depositDollars,
-          depositCents: result.json.depositCents,
-          stripe: result.json.stripe,
-        }
 
         // New key for any future order after this success
         stcClientRequestId = ''
@@ -2910,12 +2872,9 @@
         updateCartCount()
         updateCartSubmitButton()
 
-        showSubmitSuccessModal(result.submittedItems, orderId, photoErrors, paymentInfo)
-        if (paymentInfo.checkoutUrl) {
-          showToast('Request saved — complete your 50% deposit on Stripe.')
-        } else {
-          showToast('Request saved — we\'ll be in touch soon.')
-        }
+        // Request received only — no Stripe redirect; deposit emailed after sheet review
+        showSubmitSuccessModal(result.submittedItems, orderId, photoErrors)
+        showToast('Request saved — we\'ll be in touch soon.')
       } catch (err) {
         stcSubmitInFlight = false
         setCartSubmitLoading(false)

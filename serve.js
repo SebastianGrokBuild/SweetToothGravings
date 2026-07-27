@@ -552,8 +552,9 @@ function stripeCheckout(opts) {
 }
 
 /**
- * 50% deposit Checkout for a submitted request (menu or custom).
- * Never throws into the caller path for cart-submit — returns { ok, ... }.
+ * 50% deposit Checkout — used only AFTER bakery review
+ * (Sheet "Send Deposit Invoice" / admin payment-link).
+ * Form cart-submit does NOT call this (no auto Stripe redirect on submit).
  */
 async function createDepositCheckout({
   orderId,
@@ -673,7 +674,9 @@ async function api(req, res, pathname, baseUrl) {
       stripe: stripeOk,
       stripeAccount: stripeStatus,
       expectedStripeAccountId: CONFIG.stripeAccountId,
-      depositCheckout: stripeOk,
+      // Auto Checkout on form submit is OFF — deposit only after sheet review
+      depositCheckoutOnSubmit: false,
+      depositCheckout: false,
       sheetDepositInvoice: stripeOk && !!sheetActionsSecret(),
       orderEmail,
       photoStorage: "google_drive",
@@ -681,6 +684,8 @@ async function api(req, res, pathname, baseUrl) {
       maxPhotoMb: Math.round(google.MAX_PHOTO_BYTES / (1024 * 1024)),
       cartSubmitIdempotency: true,
       noAutoRetry: true,
+      forcedSheetId: google.getSheetId(),
+      forcedDriveFolderId: google.getDriveFolderId(),
     });
   }
 
@@ -1018,16 +1023,11 @@ async function api(req, res, pathname, baseUrl) {
             })(),
             photoErrors: [],
             emailNotification: { sent: false },
-            checkoutUrl: existing.stripePaymentUrl || null,
-            paymentUrl: existing.stripePaymentUrl || null,
-            depositCents: existing.depositCents || null,
-            depositDollars: existing.depositCents
-              ? existing.depositCents / 100
-              : null,
+            // No Stripe on form submit — deposit only via Sheet "Send Deposit Invoice"
+            checkoutUrl: null,
+            paymentUrl: null,
             estimatedSubtotal: existing.estimatedSubtotal,
-            stripe: existing.stripeSessionId
-              ? { ok: true, sessionId: existing.stripeSessionId }
-              : { ok: false, skipped: true },
+            stripe: { ok: false, skipped: true, reason: "deposit_after_review_only" },
             idempotentReplay: true,
             googleSheetId: google.getSheetId(),
             googleDriveFolderId: google.getDriveFolderId(),
@@ -1058,24 +1058,13 @@ async function api(req, res, pathname, baseUrl) {
         /custom cake/i.test(item.name || ""),
       );
 
-      // Create 50% deposit Checkout before Sheets save so the bakery notify email can include the link.
-      // Google Sheets + Drive path below is unchanged if Stripe is off or fails.
-      const shopUrl = shopPublicUrl(req, baseUrl);
-      const deposit = await createDepositCheckout({
-        orderId,
-        customerEmail: email,
-        customerName: name,
-        subtotalDollars: subtotal,
-        lineSummary: lineDetail.trim(),
-        shopUrl,
-        orderType: hasCustomCake ? "Custom Cake Order" : "Menu Order",
-      });
-
+      // Form submit = Sheets + Drive only.
+      // 50% deposit Checkout is created later via Sheet "Send Deposit Invoice" (or admin payment-link).
       const saved = await google.saveOrder({
         orderId,
         submittedAt: now,
         orderType: hasCustomCake ? "Custom Cake Order" : "Menu Order",
-        status: deposit.ok ? "Deposit link sent" : "Pending Review",
+        status: "Pending Review",
         customerName: name,
         customerEmail: email,
         customerPhone: body.customerPhone || "",
@@ -1091,9 +1080,6 @@ async function api(req, res, pathname, baseUrl) {
         estimatedSubtotal: subtotal,
         photoFiles: photoFiles.length ? photoFiles : undefined,
         inspirationImages: photoFiles.length ? undefined : body.inspirationImages,
-        // Email-only fields (not written as extra sheet columns)
-        depositPaymentUrl: deposit.ok ? deposit.checkoutUrl : "",
-        depositAmount: deposit.ok ? deposit.depositDollars : null,
       });
 
       const drivePhotos = (saved.photoLinks || []).filter((p) => isDrivePhotoLink(p));
@@ -1102,7 +1088,7 @@ async function api(req, res, pathname, baseUrl) {
         id: orderId,
         createdAt: now,
         updatedAt: now,
-        status: deposit.ok ? "payment_sent" : "pending_review",
+        status: "pending_review",
         orderType: "menu",
         customerName: name,
         customerEmail: email,
@@ -1112,9 +1098,9 @@ async function api(req, res, pathname, baseUrl) {
         estimatedSubtotal: subtotal,
         inspirationImages: JSON.stringify(drivePhotos),
         clientRequestId: clientRequestId || null,
-        stripePaymentUrl: deposit.ok ? deposit.checkoutUrl : null,
-        stripeSessionId: deposit.ok ? deposit.sessionId : null,
-        depositCents: deposit.ok ? deposit.depositCents : null,
+        stripePaymentUrl: null,
+        stripeSessionId: null,
+        depositCents: null,
       };
       const list = loadOrders();
       list.push(order);
@@ -1127,17 +1113,12 @@ async function api(req, res, pathname, baseUrl) {
         photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
-        // Side-by-side Stripe deposit (optional — null when Stripe off / failed)
-        checkoutUrl: deposit.ok ? deposit.checkoutUrl : null,
-        paymentUrl: deposit.ok ? deposit.checkoutUrl : null,
-        depositCents: deposit.ok ? deposit.depositCents : null,
-        depositDollars: deposit.ok ? deposit.depositDollars : null,
+        checkoutUrl: null,
+        paymentUrl: null,
+        depositCents: null,
+        depositDollars: null,
         estimatedSubtotal: subtotal,
-        stripe: deposit.ok
-          ? { ok: true, sessionId: deposit.sessionId }
-          : deposit.skipped
-            ? { ok: false, skipped: true, reason: deposit.reason }
-            : { ok: false, error: deposit.error || "checkout_failed" },
+        stripe: { ok: false, skipped: true, reason: "deposit_after_review_only" },
         googleSheetId: google.getSheetId(),
         googleDriveFolderId: google.getDriveFolderId(),
         clientRequestId: clientRequestId || null,
@@ -1180,32 +1161,12 @@ async function api(req, res, pathname, baseUrl) {
     const subtotal = body.sizePriceHint ? Number(body.sizePriceHint) : 0;
 
     try {
-      const shopUrl = shopPublicUrl(req, baseUrl);
-      const lineSummary = [
-        body.cakeName,
-        body.sizeLabel,
-        body.flavor,
-        body.filling,
-        notes,
-      ]
-        .filter(Boolean)
-        .join(" | ");
-
-      const deposit = await createDepositCheckout({
-        orderId,
-        customerEmail: email,
-        customerName: name,
-        subtotalDollars: subtotal,
-        lineSummary,
-        shopUrl,
-        orderType: "Custom Cake Request",
-      });
-
+      // Custom cake form path: Sheets + Drive only (no Stripe until Sheet Send Deposit Invoice).
       const saved = await google.saveOrder({
         orderId,
         submittedAt: now,
         orderType: "Custom Cake Request",
-        status: deposit.ok ? "Deposit link sent" : "Pending Review",
+        status: "Pending Review",
         customerName: name,
         customerEmail: email,
         customerPhone: body.customerPhone || "",
@@ -1217,11 +1178,17 @@ async function api(req, res, pathname, baseUrl) {
         decorationNotes: notes,
         allergies: body.allergies || "",
         additionalNotes: body.additionalNotes || "",
-        lineItemsDetail: "",
+        lineItemsDetail: [
+          body.cakeName,
+          body.sizeLabel,
+          body.flavor,
+          body.filling,
+          notes,
+        ]
+          .filter(Boolean)
+          .join(" | "),
         estimatedSubtotal: subtotal,
         inspirationImages: body.inspirationImages,
-        depositPaymentUrl: deposit.ok ? deposit.checkoutUrl : "",
-        depositAmount: deposit.ok ? deposit.depositDollars : null,
       });
 
       const drivePhotos = (saved.photoLinks || []).filter((p) => isDrivePhotoLink(p));
@@ -1229,7 +1196,7 @@ async function api(req, res, pathname, baseUrl) {
         id: orderId,
         createdAt: now,
         updatedAt: now,
-        status: deposit.ok ? "payment_sent" : "pending_review",
+        status: "pending_review",
         orderType: "custom_cake",
         customerName: name,
         customerEmail: email,
@@ -1245,9 +1212,9 @@ async function api(req, res, pathname, baseUrl) {
         allergies: body.allergies || null,
         additionalNotes: body.additionalNotes || null,
         inspirationImages: JSON.stringify(drivePhotos),
-        stripePaymentUrl: deposit.ok ? deposit.checkoutUrl : null,
-        stripeSessionId: deposit.ok ? deposit.sessionId : null,
-        depositCents: deposit.ok ? deposit.depositCents : null,
+        stripePaymentUrl: null,
+        stripeSessionId: null,
+        depositCents: null,
       };
       const list = loadOrders();
       list.push(order);
@@ -1259,16 +1226,14 @@ async function api(req, res, pathname, baseUrl) {
         savedTo: "google_sheets",
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
-        checkoutUrl: deposit.ok ? deposit.checkoutUrl : null,
-        paymentUrl: deposit.ok ? deposit.checkoutUrl : null,
-        depositCents: deposit.ok ? deposit.depositCents : null,
-        depositDollars: deposit.ok ? deposit.depositDollars : null,
+        checkoutUrl: null,
+        paymentUrl: null,
+        depositCents: null,
+        depositDollars: null,
         estimatedSubtotal: subtotal,
-        stripe: deposit.ok
-          ? { ok: true, sessionId: deposit.sessionId }
-          : deposit.skipped
-            ? { ok: false, skipped: true, reason: deposit.reason }
-            : { ok: false, error: deposit.error || "checkout_failed" },
+        stripe: { ok: false, skipped: true, reason: "deposit_after_review_only" },
+        googleSheetId: google.getSheetId(),
+        googleDriveFolderId: google.getDriveFolderId(),
       });
     } catch (e) {
       console.error("[orders]", e);

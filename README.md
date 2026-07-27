@@ -63,13 +63,13 @@ All **Submit Request** actions (custom cakes + menu cart) save to your Google Sh
 - Custom cakes: menu banner, nav, or Custom Cakes card → wizard with photos
 - Menu items: add to cart → **Submit Request** → contact form → saved to sheet
 
-### Stripe 50% deposit (side by side with Sheets)
+### Stripe 50% deposit (after review only)
 
-When `STRIPE_SECRET_KEY` is set on the API server, **Submit Request** still saves to **Google Sheets + Drive** exactly as before, and **also** creates a Stripe Checkout session for **50% of the estimated cart subtotal**. The customer gets the Checkout URL in the success modal (and the bakery notify email includes the same link).
+**Submit Request** saves to **Google Sheets + Drive only** — no Stripe redirect and no Checkout session on submit. The customer sees **Request received**.
 
-- Without a Stripe key: Sheets/Drive-only flow (unchanged).
-- Admin **Create Stripe payment link** still works for custom final amounts.
-- **After review in Google Sheets:** menu **Sweet Tooth → Send Deposit Invoice** (Apps Script in `google-apps-script/SendDepositInvoice.gs`) creates/emails the 50% deposit — setup in **GOOGLE-SHEETS-SETUP.md**.
+After you review the row in **Sweet Tooth - Order Log**, check **Stripe Deposit** (or menu **Sweet Tooth → Send Deposit Invoice**) to create/email the 50% deposit link via Stripe account `acct_1TcrMNHTYIZb4z2l`. Setup: **GOOGLE-SHEETS-SETUP.md** + `google-apps-script/SendDepositInvoice.gs`.
+
+Admin **Create Stripe payment link** still works for custom final amounts.
 
 ## Next Steps (Recommended)
 
