@@ -1140,10 +1140,20 @@
             <span id="cart-submit-status-text">Sending your request…</span>
           </p>
 
-          <button type="submit" id="cart-submit-btn" class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
-            <span id="cart-submit-btn-label">Submit Request</span>
-            <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
-          </button>
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <button type="submit" id="cart-submit-btn" class="flex-1 h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
+              <span id="cart-submit-btn-label">Submit Request</span>
+              <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
+            </button>
+            <button type="button" id="cart-bakesy-btn" onclick="sendCartToBakesy(event)"
+                    class="flex-1 h-14 bg-[#8B5FBF] hover:bg-[#7A4EAD] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2 border border-[#7A4EAD]/40">
+              <span id="cart-bakesy-btn-label">Send to Bakesy</span>
+              <i id="cart-bakesy-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
+            </button>
+          </div>
+          <p class="mt-2 text-center text-[10px] leading-snug text-[#8B6F6F] px-1">
+            <strong class="text-[#6B5B5F]">Send to Bakesy</strong> saves your request, opens a pre-filled Bakesy checkout packet (cart, contact, date, allergies &amp; photo links) so you can review and pay there.
+          </p>
         </div>
       </form>
     </div>
@@ -2506,18 +2516,209 @@
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
 
-    function setCartSubmitLoading(active, statusText) {
-      const btn = document.getElementById('cart-submit-btn')
-      const label = document.getElementById('cart-submit-btn-label')
-      const spinner = document.getElementById('cart-submit-btn-spinner')
+    function setCartSubmitLoading(active, statusText, mode) {
+      // mode: 'submit' | 'bakesy' | undefined (both disabled when active)
+      const submitBtn = document.getElementById('cart-submit-btn')
+      const submitLabel = document.getElementById('cart-submit-btn-label')
+      const submitSpinner = document.getElementById('cart-submit-btn-spinner')
+      const bakesyBtn = document.getElementById('cart-bakesy-btn')
+      const bakesyLabel = document.getElementById('cart-bakesy-btn-label')
+      const bakesySpinner = document.getElementById('cart-bakesy-btn-spinner')
       const status = document.getElementById('cart-submit-status')
       const statusTextEl = document.getElementById('cart-submit-status-text')
 
-      if (btn) btn.disabled = !!active
-      if (label) label.textContent = active ? 'Sending…' : 'Submit Request'
-      if (spinner) spinner.classList.toggle('hidden', !active)
+      if (submitBtn) submitBtn.disabled = !!active
+      if (bakesyBtn) bakesyBtn.disabled = !!active
+
+      if (submitLabel) {
+        submitLabel.textContent = active && mode === 'submit' ? 'Sending…' : 'Submit Request'
+      }
+      if (submitSpinner) {
+        submitSpinner.classList.toggle('hidden', !(active && mode === 'submit'))
+      }
+      if (bakesyLabel) {
+        bakesyLabel.textContent = active && mode === 'bakesy' ? 'Opening Bakesy…' : 'Send to Bakesy'
+      }
+      if (bakesySpinner) {
+        bakesySpinner.classList.toggle('hidden', !(active && mode === 'bakesy'))
+      }
       if (status) status.classList.toggle('hidden', !active)
       if (statusTextEl && statusText) statusTextEl.textContent = statusText
+    }
+
+    function getBakesyOrderFormUrl() {
+      const id = String(window.STC_BAKESY_BAKERY_ID || '').trim()
+      if (id) return `https://bakesy.shop/order-request/new/${encodeURIComponent(id)}`
+      return window.STC_BAKESY_SHOP_URL || 'https://bakesy.shop/b/sweettoothcravings'
+    }
+
+    function buildCartLineSummary(items) {
+      return (items || []).map((item, i) => {
+        const c = item.customizations || {}
+        const parts = [`${i + 1}. ${item.quantity || 1}× ${item.name}`]
+        if (c.tier) parts.push(`Size/Tier: ${c.tier}`)
+        if (c.flavor) parts.push(`Flavor: ${c.flavor}`)
+        if (c.fillings?.length) parts.push(`Filling: ${c.fillings.join(', ')}`)
+        if (c.notes) parts.push(`Notes: ${c.notes}`)
+        const line = (Number(item.price) || 0) * (Number(item.quantity) || 1)
+        parts.push(`$${line.toFixed(2)}`)
+        return parts.join(' | ')
+      }).join('\n')
+    }
+
+    function buildBakesyPrefillPacket(payload, orderId, photoLinks) {
+      const lines = []
+      lines.push('—— SWEET TOOTH CRAVINGS ORDER ——')
+      if (orderId) lines.push(`Website order ref: ${orderId}`)
+      lines.push('')
+      lines.push('CUSTOMER')
+      lines.push(`Name: ${payload.customerName || ''}`)
+      lines.push(`Email: ${payload.customerEmail || ''}`)
+      lines.push(`Phone: ${payload.customerPhone || ''}`)
+      lines.push(`Event / needed-by date: ${payload.eventDate || '(not specified)'}`)
+      if (payload.allergies) lines.push(`Allergies: ${payload.allergies}`)
+      if (payload.orderNotes) lines.push(`Notes: ${payload.orderNotes}`)
+      lines.push('')
+      lines.push('CART / LINE ITEMS')
+      lines.push(buildCartLineSummary(payload.items))
+      const subtotal = (payload.items || []).reduce(
+        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
+        0
+      )
+      lines.push(`Estimated subtotal: $${subtotal.toFixed(2)}`)
+      lines.push(`Deposit due (50%): $${(subtotal * 0.5).toFixed(2)}`)
+      const photos = (photoLinks || []).filter(Boolean)
+      if (photos.length) {
+        lines.push('')
+        lines.push('INSPIRATION PHOTOS (Google Drive)')
+        photos.forEach((url, i) => lines.push(`Photo ${i + 1}: ${url}`))
+      }
+      lines.push('')
+      lines.push('Please review details above and complete payment in Bakesy.')
+      lines.push('Source: sweettoothcravings.shop')
+      return lines.join('\n')
+    }
+
+    async function copyTextToClipboard(text) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text)
+          return true
+        }
+      } catch (_) { /* fall through */ }
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'fixed'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        const ok = document.execCommand('copy')
+        ta.remove()
+        return ok
+      } catch (_) {
+        return false
+      }
+    }
+
+    function showBakesyHandoffModal(orderId, packet, openedUrl, copied) {
+      const body = document.getElementById('success-modal-body')
+      const ref = document.getElementById('success-modal-ref')
+      if (!body) return
+
+      body.innerHTML = `
+        <p><strong>Your order is saved</strong> and Bakesy is ready for checkout.</p>
+        <p>We opened your Bakesy shop so you can <strong>review and pay</strong>. A full order packet (cart, contact info, date, allergies${packet.includes('Photo 1:') ? ', and photo links' : ''}) was ${copied ? '<strong>copied to your clipboard</strong>' : 'prepared'} — paste it into Bakesy order notes if any field is blank.</p>
+        <p class="text-xs text-[#6B5B5F] bg-[#F7F0FA] border border-[#E8D9F5] rounded-2xl px-3 py-2">
+          Bakesy link: <a href="${openedUrl}" target="_blank" rel="noopener" class="text-[#8B5FBF] underline break-all">${openedUrl}</a>
+        </p>
+        <details class="text-left text-xs text-[#5C4A4B] bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl px-3 py-2">
+          <summary class="cursor-pointer font-semibold text-[#3F2A2B]">View order packet</summary>
+          <pre class="mt-2 whitespace-pre-wrap break-words font-sans text-[11px] leading-relaxed">${packet.replace(/</g, '&lt;')}</pre>
+        </details>
+        <p class="text-xs text-[#8B6F6F]">Your request is also in the Sweet Tooth Order Log for the bakery team.</p>
+      `
+      if (ref && orderId) {
+        ref.textContent = `Order reference: ${orderId}`
+        ref.classList.remove('hidden')
+      } else if (ref) {
+        ref.classList.add('hidden')
+      }
+      document.getElementById('success-modal').classList.remove('hidden')
+      document.getElementById('success-modal').classList.add('flex')
+      document.body.style.overflow = 'hidden'
+    }
+
+    async function sendCartToBakesy(e) {
+      if (e) e.preventDefault()
+      hideCartSubmitError()
+
+      const payload = buildCartSubmitPayload()
+      if (!payload.customerName || !payload.customerEmail) {
+        showCartSubmitError({
+          title: 'Name and email required',
+          message: 'Please fill in your name and email before sending to Bakesy.',
+          steps: ['Complete the fields above, then tap Send to Bakesy again.'],
+          retryable: false
+        })
+        return
+      }
+      if (!payload.items?.length) {
+        showCartSubmitError({
+          title: 'Cart is empty',
+          message: 'Add at least one item before sending to Bakesy.',
+          steps: ['Close this form, add menu items, then try again.'],
+          retryable: false
+        })
+        return
+      }
+
+      setCartSubmitLoading(true, 'Saving order & preparing Bakesy checkout…', 'bakesy')
+
+      try {
+        const result = await postCartSubmitPayload(payload)
+        const orderId = result.json.orderId
+        const photoLinks = result.json.photoLinks || []
+        const photoErrors = result.json.photoErrors || []
+        const packet = buildBakesyPrefillPacket(payload, orderId, photoLinks)
+        const bakesyUrl = getBakesyOrderFormUrl()
+        const copied = await copyTextToClipboard(packet)
+
+        // Open Bakesy order form / shop for review + payment
+        const win = window.open(bakesyUrl, '_blank', 'noopener,noreferrer')
+        if (!win) {
+          // Popup blocked — still show handoff with link
+          showToast('Pop-up blocked — use the Bakesy link in the confirmation.')
+        }
+
+        setCartSubmitLoading(false)
+        closeCartSubmitModal()
+        cartSubmitClearImages()
+        if (typeof toggleCart === 'function') {
+          const drawer = document.getElementById('cart-drawer')
+          if (drawer && !drawer.classList.contains('hidden')) toggleCart()
+        }
+        cart = []
+        saveCartToStorage()
+        updateCartCount()
+        updateCartSubmitButton()
+
+        showBakesyHandoffModal(orderId, packet, bakesyUrl, copied)
+        if (photoErrors.length) {
+          showToast('Order saved — some photos failed to upload.')
+        } else {
+          showToast(copied ? 'Order packet copied — paste into Bakesy if needed.' : 'Order saved — open Bakesy to pay.')
+        }
+      } catch (err) {
+        setCartSubmitLoading(false)
+        const info = stcClassifySubmitError(err, err.status ? { status: err.status } : null)
+        showCartSubmitError({
+          ...info,
+          title: info.title || 'Could not send to Bakesy',
+          steps: (info.steps || []).concat(['You can still use Submit Request, or try Send to Bakesy again.'])
+        })
+      }
     }
 
     async function stcFetchSubmit(url, options) {
@@ -2730,7 +2931,7 @@
 
     async function performCartSubmit() {
       hideCartSubmitError()
-      setCartSubmitLoading(true, 'Sending your request…')
+      setCartSubmitLoading(true, 'Sending your request…', 'submit')
 
       const payload = buildCartSubmitPayload()
       if (!payload.customerName || !payload.customerEmail) {
@@ -2750,10 +2951,10 @@
       for (let attempt = 1; attempt <= STC_SUBMIT_MAX_ATTEMPTS; attempt++) {
         const delay = STC_SUBMIT_RETRY_MS[attempt - 1] || 0
         if (delay > 0) {
-          setCartSubmitLoading(true, `Connecting… attempt ${attempt} of ${STC_SUBMIT_MAX_ATTEMPTS}`)
+          setCartSubmitLoading(true, `Connecting… attempt ${attempt} of ${STC_SUBMIT_MAX_ATTEMPTS}`, 'submit')
           await stcSleep(delay)
         } else if (attempt > 1) {
-          setCartSubmitLoading(true, `Trying again (${attempt}/${STC_SUBMIT_MAX_ATTEMPTS})…`)
+          setCartSubmitLoading(true, `Trying again (${attempt}/${STC_SUBMIT_MAX_ATTEMPTS})…`, 'submit')
         }
 
         try {

@@ -511,6 +511,7 @@ async function api(req, res, pathname, baseUrl) {
         success: true,
         orderId,
         savedTo: "google_sheets",
+        photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
       });
