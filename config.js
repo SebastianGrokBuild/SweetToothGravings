@@ -14,11 +14,13 @@
   const PRODUCTION_API = "https://sweettooth-cravings-api.onrender.com";
 
   /**
-   * Bakesy checkout targets used by the "Send to Bakesy" button.
+   * Bakesy checkout targets used by the purple "Send to Bakesy" button.
    * Shop: https://bakesy.shop/b/sweettoothcravings
-   * Optional bakery UUID opens the order form directly:
+   *
+   * Optional bakery UUID opens the order form directly (recommended):
    *   https://bakesy.shop/order-request/new/<BAKESY_BAKERY_ID>
-   * (Copy the UUID from any Bakesy “Request Order” link in the app.)
+   * Copy the UUID from any Bakesy “Request Order” share link in the app,
+   * then paste it below so customers land on the form instead of the shop home.
    */
   const BAKESY_SHOP_URL = "https://bakesy.shop/b/sweettoothcravings";
   const BAKESY_BAKERY_ID = "";
