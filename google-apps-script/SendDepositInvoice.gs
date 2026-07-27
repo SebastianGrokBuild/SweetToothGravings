@@ -1,30 +1,31 @@
 /**
- * Sweet Tooth Cravings — Google Sheet: "Send Deposit Invoice" (Stripe Deposit column)
+ * Sweet Tooth Cravings — Send Deposit Invoice (Stripe Deposit column)
  *
- * Newest orders always appear at row 2 (top of the sheet under the header).
+ * IMPORTANT: Checkbox clicks need an *installable* onEdit trigger so UrlFetch
+ * (Stripe via your Render API) is allowed. Simple onEdit cannot call external APIs.
  *
- * After reviewing a row:
+ * After reviewing a row (newest orders are at row 2):
  *   1. Confirm Estimated Subtotal / Deposit Due
- *   2. Check the box in the **Stripe Deposit** column  ← Send Deposit Invoice
- *      (or menu: Sweet Tooth → Send Deposit Invoice)
+ *   2. Check the box in **Stripe Deposit**
+ *      → Creates Stripe 50% Checkout (acct_1TcrMNHTYIZb4z2l) and emails the customer
  *
- * Calls Render API → Stripe Checkout on acct_1TcrMNHTYIZb4z2l → emails 50% deposit link.
+ * SETUP (one time — do all steps)
+ * 1. Extensions → Apps Script → delete any old code → paste THIS entire file → Save
+ * 2. Run menu once from the editor: installStripeDepositColumn (or reload sheet)
+ * 3. Reload the spreadsheet → Sweet Tooth menu
+ * 4. Sweet Tooth → Install Stripe Deposit button + trigger
+ * 5. When Google asks, Authorize the script (required for UrlFetch + Sheets)
+ * 6. API defaults to https://sweettooth-cravings-api.onrender.com
+ *    Secret defaults to Render ADMIN_PASSWORD (sweettooth-admin)
  *
- * SETUP (one time)
- * 1. Extensions → Apps Script → paste this file → Save
- * 2. Reload the sheet → Sweet Tooth menu
- * 3. Sweet Tooth → Install Stripe Deposit button column
- * 4. Sweet Tooth → Configure API connection…
- *      API: https://sweettooth-cravings-api.onrender.com
- *      Secret: ADMIN_PASSWORD from Render (default sweettooth-admin) or SHEET_ACTIONS_SECRET
- * 5. On Render: STRIPE_SECRET_KEY = sk_live_… for account acct_1TcrMNHTYIZb4z2l
+ * Render must have STRIPE_SECRET_KEY for account acct_1TcrMNHTYIZb4z2l (already set).
  */
 
 var DEFAULT_API_BASE = "https://sweettooth-cravings-api.onrender.com";
-/** Matches Render ADMIN_PASSWORD when SHEET_ACTIONS_SECRET is not set. */
 var DEFAULT_SHEET_SECRET = "sweettooth-admin";
 var STRIPE_DEPOSIT_HEADER = "Stripe Deposit";
 var EXPECTED_STRIPE_ACCOUNT = "acct_1TcrMNHTYIZb4z2l";
+var INSTALLABLE_HANDLER = "onStripeDepositEdit";
 
 var HEADER_MAP = {
   orderId: ["Order", "Order ID", "Order Id", "order id"],
@@ -44,7 +45,6 @@ var HEADER_MAP = {
   estimatedSubtotal: ["Estimated Subtotal", "Subtotal", "Final Total", "Final Price"],
   depositDue: ["Deposit Due", "Deposit Due (50%)", "Deposit"],
   orderType: ["Order Type"],
-  // Last column — one-click checkbox button
   sendDeposit: [
     "Stripe Deposit",
     "Send Deposit Invoice",
@@ -57,22 +57,14 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("Sweet Tooth")
     .addItem("Send Deposit Invoice (selected row)", "sendDepositInvoiceForActiveRow")
-    .addItem("Install Stripe Deposit button column", "installStripeDepositColumn")
+    .addItem("Install Stripe Deposit button + trigger", "installStripeDepositColumn")
     .addItem("Configure API connection…", "configureApiConnection")
     .addSeparator()
     .addItem("Show setup help", "showSetupHelp")
     .addToUi();
 
-  // Ensure API defaults exist so the button works after install
   try {
     ensureDefaultProps_();
-  } catch (e) {
-    /* ignore */
-  }
-
-  // Soft-refresh checkboxes on open so the button column stays usable
-  try {
-    refreshStripeDepositCheckboxesQuiet_();
   } catch (e) {
     /* ignore */
   }
@@ -106,7 +98,6 @@ function configureApiConnection() {
     ui.alert("API base URL is required.");
     return;
   }
-
   if (
     base === "https://sweettooth-cravings.onrender.com" ||
     base === "http://sweettooth-cravings.onrender.com"
@@ -116,7 +107,7 @@ function configureApiConnection() {
 
   var secretRes = ui.prompt(
     "Sheet actions secret",
-    "Same value as SHEET_ACTIONS_SECRET on Render (or ADMIN_PASSWORD).\nLeave blank to keep the existing secret.",
+    "Same as ADMIN_PASSWORD or SHEET_ACTIONS_SECRET on Render.\nLeave blank to keep existing (default: sweettooth-admin).",
     ui.ButtonSet.OK_CANCEL
   );
   if (secretRes.getSelectedButton() !== ui.Button.OK) return;
@@ -124,45 +115,43 @@ function configureApiConnection() {
 
   props.setProperty("API_BASE_URL", base);
   if (secret) props.setProperty("SHEET_ACTIONS_SECRET", secret);
-
   if (!props.getProperty("SHEET_ACTIONS_SECRET")) {
-    ui.alert(
-      "Saved API URL, but no secret is stored yet.\nRun Configure again and enter SHEET_ACTIONS_SECRET or ADMIN_PASSWORD."
-    );
-    return;
+    props.setProperty("SHEET_ACTIONS_SECRET", DEFAULT_SHEET_SECRET);
   }
+
+  ensureInstallableOnEditTrigger_();
 
   ui.alert(
     "Saved.\n\nAPI: " +
       base +
-      "\n\nNext: Sweet Tooth → Install Stripe Deposit button column\nThen check a box after reviewing an order."
+      "\n\nInstallable edit trigger is active.\nCheck a Stripe Deposit box after reviewing an order."
   );
 }
 
 function showSetupHelp() {
   SpreadsheetApp.getUi().alert(
-    "Send Deposit Invoice (Stripe Deposit column)\n\n" +
-      "1) Review Estimated Subtotal on the order row.\n" +
-      "2) Check the box under **Stripe Deposit** on that row\n" +
-      "   (or menu: Send Deposit Invoice).\n\n" +
-      "Creates a 50% Stripe Checkout on account " +
+    "Send Deposit Invoice\n\n" +
+      "1) Run: Sweet Tooth → Install Stripe Deposit button + trigger\n" +
+      "2) Authorize when Google asks\n" +
+      "3) Review Estimated Subtotal on a row\n" +
+      "4) Check the Stripe Deposit box\n\n" +
+      "Creates a 50% Stripe Checkout on " +
       EXPECTED_STRIPE_ACCOUNT +
       " and emails the customer.\n\n" +
       "API: " +
-      DEFAULT_API_BASE +
-      "\nRender must have STRIPE_SECRET_KEY (sk_live_…) for that Stripe account."
+      DEFAULT_API_BASE
   );
 }
 
 /**
- * Ensures "Stripe Deposit" is the last column (after Photo 3) with checkboxes.
- * Checking a box = one-click Send Deposit Invoice.
+ * Creates/refreshes the Stripe Deposit checkbox column AND installs the
+ * installable onEdit trigger required for UrlFetch (Stripe send).
  */
 function installStripeDepositColumn() {
   var ui = SpreadsheetApp.getUi();
+  ensureDefaultProps_();
   var sheet = SpreadsheetApp.getActiveSheet();
 
-  // Preferred header order written by the website API
   var preferred = [
     "Order",
     "Submit Date",
@@ -181,9 +170,10 @@ function installStripeDepositColumn() {
     "Stripe Deposit",
   ];
 
-  // If row 1 is empty / wrong, write preferred headers for columns A–O
   var headers = getHeaderRow_(sheet);
-  var first = String(headers[0] || "").trim().toLowerCase();
+  var first = String(headers[0] || "")
+    .trim()
+    .toLowerCase();
   if (!first || first === "order id" || first.indexOf("order") !== 0) {
     sheet.getRange(1, 1, 1, preferred.length).setValues([preferred]);
     sheet
@@ -213,58 +203,63 @@ function installStripeDepositColumn() {
     .setFontWeight("bold")
     .setBackground("#7B4DB8")
     .setFontColor("#ffffff");
-  sheet.setColumnWidth(col, 130);
+  sheet.setColumnWidth(col, 140);
   sheet
     .getRange(1, col)
     .setNote(
-      "Check after reviewing Estimated Subtotal to email a 50% Stripe deposit invoice (Sweet Tooth Stripe account)."
+      "Check this box after reviewing the order to email a 50% Stripe deposit invoice."
     );
 
   var lastRow = Math.max(sheet.getLastRow(), 50);
   if (lastRow >= 2) {
-    sheet.getRange(2, col, lastRow - 1, 1).insertCheckboxes();
+    var range = sheet.getRange(2, col, lastRow - 1, 1);
+    // Only put checkboxes on empty / boolean cells — keep "✓ Sent"
+    var values = range.getValues();
+    for (var r = 0; r < values.length; r++) {
+      var cell = sheet.getRange(r + 2, col);
+      var v = values[r][0];
+      var s = String(v == null ? "" : v).trim();
+      if (s.indexOf("✓") === 0 || s.indexOf("Sent") === 0 || s === "Sending…") {
+        continue;
+      }
+      cell.insertCheckboxes();
+      cell.setValue(false);
+    }
   }
 
-  clearObsoleteHeaders_(sheet);
+  // CRITICAL: installable trigger so checkbox can call UrlFetchApp
+  ensureInstallableOnEditTrigger_();
 
   ui.alert(
-    '"' +
-      STRIPE_DEPOSIT_HEADER +
-      '" is ready in column ' +
+    "Stripe Deposit button is ready (column " +
       columnLetter_(col) +
-      ".\n\n" +
-      "After review: check the box → 50% deposit invoice is emailed.\n" +
-      "Or use menu: Sweet Tooth → Send Deposit Invoice."
+      ").\n\n" +
+      "How to use:\n" +
+      "1. Review Estimated Subtotal on the row\n" +
+      "2. Check the Stripe Deposit box\n" +
+      "3. Customer is emailed the 50% Stripe payment link\n\n" +
+      "If Google asked for authorization, allow it so the button can call your API."
   );
 }
 
-/** Clear leftover obsolete header labels past the cleaned schema. */
-function clearObsoleteHeaders_(sheet) {
-  var headers = getHeaderRow_(sheet);
-  var obsolete = {
-    "photo 4": true,
-    "photo 5": true,
-    "photo 6": true,
-    source: true,
-    "tax year": true,
-    "product / cake": true,
-    "size / tier": true,
-    flavor: true,
-    filling: true,
-    "decoration & custom notes": true,
-    "additional notes": true,
-    "order id": true,
-    "submitted at": true,
-    "line items (full detail)": true,
-    "deposit due (50%)": true,
-  };
-  for (var i = 0; i < headers.length; i++) {
-    var key = String(headers[i] || "")
-      .trim()
-      .toLowerCase();
-    if (obsolete[key]) {
-      sheet.getRange(1, i + 1).setValue("");
+/**
+ * Installable trigger — required for UrlFetchApp from an edit handler.
+ * Simple onEdit() cannot call external HTTP services.
+ */
+function ensureInstallableOnEditTrigger_() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var found = false;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === INSTALLABLE_HANDLER) {
+      found = true;
+      break;
     }
+  }
+  if (!found) {
+    ScriptApp.newTrigger(INSTALLABLE_HANDLER)
+      .forSpreadsheet(SpreadsheetApp.getActive())
+      .onEdit()
+      .create();
   }
 }
 
@@ -286,20 +281,48 @@ function sendDepositInvoiceForActiveRow() {
     SpreadsheetApp.getUi().alert("Select a data row (not the header).");
     return;
   }
-  sendDepositInvoiceForRow_(sheet, row, true);
+  var headers = getHeaderRow_(sheet);
+  var sendCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
+  var cell = sendCol >= 0 ? sheet.getRange(row, sendCol + 1) : null;
+  if (cell) cell.setValue("Sending…");
+
+  var result = sendDepositInvoiceForRow_(sheet, row, true);
+  if (cell) {
+    if (result && result.ok) {
+      cell.setValue("✓ Sent");
+      if (result.data && result.data.checkoutUrl) {
+        cell.setNote(
+          "Deposit invoice sent " +
+            new Date().toLocaleString() +
+            "\n" +
+            result.data.checkoutUrl
+        );
+      }
+    } else if (result && result.error !== "cancelled") {
+      cell.insertCheckboxes();
+      cell.setValue(false);
+      cell.setNote("Failed: " + ((result && result.error) || "unknown"));
+    } else {
+      cell.insertCheckboxes();
+      cell.setValue(false);
+    }
+  }
 }
 
 /**
- * One-click: checking Stripe Deposit on a data row = Send Deposit Invoice.
- * Simple trigger (onEdit) — works without installable trigger setup.
+ * Installable onEdit handler (created by installStripeDepositColumn).
+ * Do NOT use simple onEdit for UrlFetch — Google blocks it.
  */
-function onEdit(e) {
+function onStripeDepositEdit(e) {
   handleStripeDepositEdit_(e);
 }
 
-/** Installable onEdit (more reliable for UrlFetch). Optional: Triggers → onEditInstallable. */
-function onEditInstallable(e) {
-  handleStripeDepositEdit_(e);
+/**
+ * Kept only so accidental simple onEdit does not throw; installable handler does the work.
+ */
+function onEdit(e) {
+  // Intentionally empty for UrlFetch — simple triggers cannot call external APIs.
+  // The installable trigger onStripeDepositEdit handles checkbox clicks.
 }
 
 function handleStripeDepositEdit_(e) {
@@ -326,8 +349,8 @@ function handleStripeDepositEdit_(e) {
       val === "Send";
     if (!checked) return;
 
-    // Show brief working state
     e.range.setValue("Sending…");
+    SpreadsheetApp.flush();
 
     var result = sendDepositInvoiceForRow_(sheet, row, false);
     if (result && result.ok) {
@@ -342,7 +365,7 @@ function handleStripeDepositEdit_(e) {
       SpreadsheetApp.getActiveSpreadsheet().toast(
         "50% deposit invoice emailed.",
         "Stripe Deposit",
-        6
+        8
       );
     } else {
       e.range.insertCheckboxes();
@@ -350,9 +373,9 @@ function handleStripeDepositEdit_(e) {
       var errMsg = (result && result.error) || "Send failed";
       e.range.setNote("Failed: " + errMsg);
       SpreadsheetApp.getActiveSpreadsheet().toast(
-        String(errMsg).slice(0, 120),
+        String(errMsg).slice(0, 140),
         "Stripe Deposit failed",
-        8
+        10
       );
     }
   } catch (err) {
@@ -360,32 +383,9 @@ function handleStripeDepositEdit_(e) {
     try {
       e.range.insertCheckboxes();
       e.range.setValue(false);
+      e.range.setNote("Failed: " + (err.message || String(err)));
     } catch (e2) {
       /* ignore */
-    }
-  }
-}
-
-function refreshStripeDepositCheckboxesQuiet_() {
-  var sheet = SpreadsheetApp.getActiveSheet();
-  var headers = getHeaderRow_(sheet);
-  var sendCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
-  if (sendCol < 0) return;
-  var lastRow = Math.max(sheet.getLastRow(), 2);
-  if (lastRow < 2) return;
-  var range = sheet.getRange(2, sendCol + 1, lastRow - 1, 1);
-  var values = range.getValues();
-  for (var i = 0; i < values.length; i++) {
-    var v = values[i][0];
-    var s = String(v == null ? "" : v).trim();
-    // Keep "✓ Sent" / notes; re-apply checkbox only on empty/false
-    if (v === true || v === false || s === "" || s === "FALSE" || s === "TRUE") {
-      sheet.getRange(i + 2, sendCol + 1).insertCheckboxes();
-      if (v === true || s === "TRUE") {
-        /* leave true rare */
-      } else if (s !== "✓ Sent" && s.indexOf("Sent") !== 0) {
-        sheet.getRange(i + 2, sendCol + 1).setValue(false);
-      }
     }
   }
 }
@@ -394,7 +394,10 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var ui = SpreadsheetApp.getUi();
   ensureDefaultProps_();
   var props = PropertiesService.getScriptProperties();
-  var base = (props.getProperty("API_BASE_URL") || DEFAULT_API_BASE).replace(/\/$/, "");
+  var base = (props.getProperty("API_BASE_URL") || DEFAULT_API_BASE).replace(
+    /\/$/,
+    ""
+  );
   var secret =
     props.getProperty("SHEET_ACTIONS_SECRET") || DEFAULT_SHEET_SECRET || "";
 
@@ -409,9 +412,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   if (!base || !secret) {
     if (showAlerts) {
       ui.alert(
-        "API not configured.\n\nSweet Tooth → Configure API connection…\n\nUse:\n" +
-          DEFAULT_API_BASE +
-          "\nand ADMIN_PASSWORD from Render (default: sweettooth-admin)."
+        "API not configured.\n\nSweet Tooth → Configure API connection…"
       );
     }
     return { ok: false, error: "not_configured" };
@@ -425,7 +426,6 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     return { ok: false, error: "no_email" };
   }
 
-  // Already sent — confirm before re-sending
   var statusStr = String(record.status || "").toLowerCase();
   if (statusStr.indexOf("deposit invoice sent") >= 0 && showAlerts) {
     var again = ui.alert(
@@ -438,13 +438,15 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
 
   var subtotal = parseMoney_(record.estimatedSubtotal);
   var deposit = parseMoney_(record.depositDue);
-  if ((!deposit || deposit <= 0) && subtotal > 0) deposit = Math.round(subtotal * 50) / 100;
-  if ((!subtotal || subtotal <= 0) && deposit > 0) subtotal = Math.round(deposit * 2 * 100) / 100;
+  if ((!deposit || deposit <= 0) && subtotal > 0)
+    deposit = Math.round(subtotal * 50) / 100;
+  if ((!subtotal || subtotal <= 0) && deposit > 0)
+    subtotal = Math.round(deposit * 2 * 100) / 100;
 
   if (!deposit || deposit < 0.5) {
     if (showAlerts) {
       ui.alert(
-        "Need at least $0.50 deposit.\n\nSet Estimated Subtotal (final reviewed total) on this row, then try again.\nDeposit is 50% of that amount."
+        "Need at least $0.50 deposit.\n\nSet Estimated Subtotal on this row, then try again."
       );
     }
     return { ok: false, error: "no_amount — set Estimated Subtotal first" };
@@ -486,7 +488,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
         (subtotal ? " (50% of $" + subtotal.toFixed(2) + ")" : "") +
         "\nOrder ID: " +
         (record.orderId || "(none)") +
-        "\n\nStripe Checkout will be created and emailed to the customer.",
+        "\n\nStripe Checkout will be created and emailed.",
       ui.ButtonSet.YES_NO
     );
     if (confirm !== ui.Button.YES) return { ok: false, error: "cancelled" };
@@ -509,9 +511,8 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
       ui.alert(
         "Could not reach the API.\n\n" +
           err.message +
-          "\n\nCheck API is " +
-          DEFAULT_API_BASE +
-          " and Render is awake."
+          "\n\nCheck Render is awake: " +
+          DEFAULT_API_BASE
       );
     }
     return { ok: false, error: String(err.message || err) };
@@ -533,7 +534,12 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     return { ok: false, error: msg };
   }
 
-  setStatusIfPossible_(sheet, row, headers, data.sheetStatus || "Deposit invoice sent");
+  setStatusIfPossible_(
+    sheet,
+    row,
+    headers,
+    data.sheetStatus || "Deposit invoice sent"
+  );
 
   var depCol = findHeaderIndex_(headers, HEADER_MAP.depositDue);
   if (depCol >= 0 && data.depositDollars != null) {
@@ -543,31 +549,14 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     }
   }
 
-  // Optional: write a short note under Stripe Deposit status in a note on the cell
-  var stripeCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
-  if (stripeCol >= 0 && data.checkoutUrl) {
-    try {
-      sheet
-        .getRange(row, stripeCol + 1)
-        .setNote(
-          "Deposit invoice sent " +
-            new Date().toISOString() +
-            "\n" +
-            data.checkoutUrl
-        );
-    } catch (noteErr) {
-      /* ignore */
-    }
-  }
-
   if (showAlerts) {
     var emailNote =
       data.email && data.email.sent
         ? "Emailed to " + record.email
-        : "Checkout created, but email may have failed — copy the link:\n" +
+        : "Checkout created — if email failed, copy this link:\n" +
           (data.checkoutUrl || "");
     ui.alert(
-      "Deposit invoice sent\n\n" +
+      "Deposit invoice ready\n\n" +
         "Amount: $" +
         Number(data.depositDollars).toFixed(2) +
         "\n" +

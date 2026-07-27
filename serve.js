@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-insert-top-v5";
+const DEPLOY_BUILD = "2026-07-27-deposit-email-v6";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -952,7 +952,7 @@ async function api(req, res, pathname, baseUrl) {
 
       let emailResult = { sent: false };
       try {
-        emailResult = await notify.sendDepositInvoiceToCustomer({
+        const mail = await notify.sendDepositInvoiceToCustomer({
           customerName,
           customerEmail,
           orderId: oid,
@@ -962,10 +962,18 @@ async function api(req, res, pathname, baseUrl) {
           lineSummary,
           eventDate,
         });
-        emailResult = { sent: true, ...emailResult };
+        emailResult = {
+          sent: !!(mail && mail.ok !== false),
+          ok: !!(mail && mail.ok !== false),
+          to: mail && mail.to,
+          method: mail && mail.method,
+          from: mail && mail.from,
+          error: mail && mail.error ? String(mail.error) : null,
+        };
       } catch (e) {
-        console.error("[sheet/send-deposit-invoice] email failed:", e.message);
-        emailResult = { sent: false, error: e.message };
+        const msg = (e && e.message) || String(e) || "email_failed";
+        console.error("[sheet/send-deposit-invoice] email failed:", msg);
+        emailResult = { sent: false, ok: false, error: msg };
       }
 
       return json(res, 200, {
@@ -978,7 +986,9 @@ async function api(req, res, pathname, baseUrl) {
         depositCents,
         estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
         email: emailResult,
-        sheetStatus: "Deposit invoice sent",
+        sheetStatus: emailResult.sent
+          ? "Deposit invoice sent"
+          : "Deposit link created (email failed)",
         message: emailResult.sent
           ? `Deposit invoice emailed to ${customerEmail}`
           : `Checkout created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${session.url}`,
