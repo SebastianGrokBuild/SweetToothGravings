@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-deposit-email-v6";
+const DEPLOY_BUILD = "2026-07-27-stripe-invoice-v7";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -466,18 +466,8 @@ async function getStripeAccountStatus() {
   }
 }
 
-/**
- * Create a Stripe Checkout Session on the Sweet Tooth account.
- * @param {object} opts
- * @param {string} opts.orderId
- * @param {string} opts.customerEmail
- * @param {number} opts.amountCents — charge amount in cents
- * @param {string} opts.shopUrl — success/cancel base
- * @param {string} [opts.productName]
- * @param {string} [opts.description]
- * @param {object} [opts.metadata]
- */
-function stripeCheckout(opts) {
+/** POST application/x-www-form-urlencoded to Stripe API. */
+function stripeForm(path, fields) {
   return new Promise((resolve, reject) => {
     if (!stripeConfigured()) {
       reject(
@@ -487,52 +477,11 @@ function stripeCheckout(opts) {
       );
       return;
     }
-    const amountCents = Math.round(Number(opts.amountCents) || 0);
-    if (amountCents < 50) {
-      reject(new Error("Stripe amount must be at least $0.50"));
-      return;
-    }
-
-    const shopUrl = String(opts.shopUrl || "https://sweettoothcravings.shop").replace(
-      /\/$/,
-      "",
-    );
-    const productName =
-      opts.productName || "Sweet Tooth Cravings — order payment";
-    const description = (opts.description || "Order payment").slice(0, 500);
-    const orderId = opts.orderId || "";
-    const email = (opts.customerEmail || "").trim();
-
-    const p = new URLSearchParams();
-    p.set("mode", "payment");
-    if (email) p.set("customer_email", email);
-    p.set("success_url", `${shopUrl}/?payment=success&order=${encodeURIComponent(orderId)}`);
-    p.set("cancel_url", `${shopUrl}/?payment=cancelled&order=${encodeURIComponent(orderId)}`);
-    p.set("metadata[orderId]", orderId);
-    p.set("metadata[paymentType]", opts.paymentType || "payment");
-    p.set("metadata[stripeAccountId]", CONFIG.stripeAccountId);
-    p.set("metadata[source]", "sweet_tooth_order_log");
-    if (opts.depositCents != null) {
-      p.set("metadata[depositCents]", String(opts.depositCents));
-    }
-    if (opts.estimatedSubtotalCents != null) {
-      p.set("metadata[estimatedSubtotalCents]", String(opts.estimatedSubtotalCents));
-    }
-    p.set("line_items[0][quantity]", "1");
-    p.set("line_items[0][price_data][currency]", "usd");
-    p.set("line_items[0][price_data][unit_amount]", String(amountCents));
-    p.set("line_items[0][price_data][product_data][name]", productName.slice(0, 120));
-    p.set("line_items[0][price_data][product_data][description]", description);
-    // Show a clear receipt-style description on the Checkout page
-    p.set("payment_intent_data[description]", `${productName} · order ${orderId}`.slice(0, 1000));
-    p.set("payment_intent_data[metadata][orderId]", orderId);
-    p.set("payment_intent_data[metadata][stripeAccountId]", CONFIG.stripeAccountId);
-
-    const body = p.toString();
+    const body = new URLSearchParams(fields).toString();
     const req = https.request(
       {
         hostname: "api.stripe.com",
-        path: "/v1/checkout/sessions",
+        path: path.startsWith("/v1/") ? path : `/v1/${path.replace(/^\//, "")}`,
         method: "POST",
         headers: {
           Authorization: `Bearer ${CONFIG.stripeKey.trim()}`,
@@ -546,7 +495,7 @@ function stripeCheckout(opts) {
         r.on("end", () => {
           try {
             const j = JSON.parse(d);
-            if (j.error) reject(new Error(j.error.message));
+            if (j.error) reject(new Error(j.error.message || JSON.stringify(j.error)));
             else resolve(j);
           } catch (e) {
             reject(e);
@@ -558,6 +507,122 @@ function stripeCheckout(opts) {
     req.write(body);
     req.end();
   });
+}
+
+/**
+ * Create + email a Stripe Invoice for the 50% deposit (Stripe emails the customer).
+ * Returns { url, invoiceId, customerId, emailed: true }.
+ */
+async function stripeSendDepositInvoice(opts) {
+  const amountCents = Math.round(Number(opts.amountCents) || 0);
+  if (amountCents < 50) throw new Error("Stripe amount must be at least $0.50");
+  const email = String(opts.customerEmail || "").trim();
+  if (!email.includes("@")) throw new Error("Customer email required");
+  const orderId = opts.orderId || "";
+  const name = String(opts.customerName || "").trim();
+  const productName = (opts.productName || "Sweet Tooth Cravings — 50% deposit").slice(
+    0,
+    120,
+  );
+  const description = String(opts.description || "50% order deposit").slice(0, 500);
+
+  const customer = await stripeForm("/v1/customers", {
+    email,
+    ...(name ? { name } : {}),
+    "metadata[orderId]": orderId,
+    "metadata[source]": "sweet_tooth_order_log",
+  });
+
+  await stripeForm("/v1/invoiceitems", {
+    customer: customer.id,
+    currency: "usd",
+    amount: String(amountCents),
+    description: productName,
+    "metadata[orderId]": orderId,
+  });
+
+  const invoice = await stripeForm("/v1/invoices", {
+    customer: customer.id,
+    collection_method: "send_invoice",
+    days_until_due: "7",
+    auto_advance: "true",
+    "metadata[orderId]": orderId,
+    "metadata[paymentType]": "sheet_deposit_invoice",
+    "metadata[stripeAccountId]": CONFIG.stripeAccountId,
+    description: description.slice(0, 500),
+    ...(opts.footer ? { footer: String(opts.footer).slice(0, 500) } : {}),
+  });
+
+  const finalized = await stripeForm(`/v1/invoices/${invoice.id}/finalize`, {
+    auto_advance: "true",
+  });
+
+  // Stripe emails the hosted invoice / payment page to the customer
+  const sent = await stripeForm(`/v1/invoices/${finalized.id}/send`, {});
+
+  const url =
+    sent.hosted_invoice_url ||
+    finalized.hosted_invoice_url ||
+    sent.invoice_pdf ||
+    finalized.invoice_pdf ||
+    "";
+
+  return {
+    url,
+    invoiceId: sent.id || finalized.id,
+    customerId: customer.id,
+    emailed: true,
+    method: "stripe_invoice_email",
+    status: sent.status || finalized.status,
+  };
+}
+
+/**
+ * Create a Stripe Checkout Session on the Sweet Tooth account.
+ * @param {object} opts
+ */
+async function stripeCheckout(opts) {
+  const amountCents = Math.round(Number(opts.amountCents) || 0);
+  if (amountCents < 50) {
+    throw new Error("Stripe amount must be at least $0.50");
+  }
+
+  const shopUrl = String(opts.shopUrl || "https://sweettoothcravings.shop").replace(
+    /\/$/,
+    "",
+  );
+  const productName =
+    opts.productName || "Sweet Tooth Cravings — order payment";
+  const description = (opts.description || "Order payment").slice(0, 500);
+  const orderId = opts.orderId || "";
+  const email = (opts.customerEmail || "").trim();
+
+  const fields = {
+    mode: "payment",
+    success_url: `${shopUrl}/?payment=success&order=${encodeURIComponent(orderId)}`,
+    cancel_url: `${shopUrl}/?payment=cancelled&order=${encodeURIComponent(orderId)}`,
+    "metadata[orderId]": orderId,
+    "metadata[paymentType]": opts.paymentType || "payment",
+    "metadata[stripeAccountId]": CONFIG.stripeAccountId,
+    "metadata[source]": "sweet_tooth_order_log",
+    "line_items[0][quantity]": "1",
+    "line_items[0][price_data][currency]": "usd",
+    "line_items[0][price_data][unit_amount]": String(amountCents),
+    "line_items[0][price_data][product_data][name]": productName.slice(0, 120),
+    "line_items[0][price_data][product_data][description]": description,
+    "payment_intent_data[description]": `${productName} · order ${orderId}`.slice(0, 1000),
+    "payment_intent_data[metadata][orderId]": orderId,
+    "payment_intent_data[metadata][stripeAccountId]": CONFIG.stripeAccountId,
+  };
+  if (email) fields.customer_email = email;
+  if (opts.depositCents != null) {
+    fields["metadata[depositCents]"] = String(opts.depositCents);
+  }
+  if (opts.estimatedSubtotalCents != null) {
+    fields["metadata[estimatedSubtotalCents]"] = String(opts.estimatedSubtotalCents);
+  }
+
+  return stripeForm("/v1/checkout/sessions", fields);
 }
 
 /**
@@ -896,30 +961,101 @@ async function api(req, res, pathname, baseUrl) {
     const depositCents = Math.round(depositDollars * 100);
     const shopUrl = shopPublicUrl(req, baseUrl);
     const oid = orderId || `sheet-${Date.now().toString(36)}`;
+    const desc = [
+      customerName ? `For ${customerName}` : null,
+      Number.isFinite(subtotal) ? `Est. total $${subtotal.toFixed(2)}` : null,
+      `Deposit $${depositDollars.toFixed(2)} (50%)`,
+      lineSummary.replace(/\s+/g, " ").slice(0, 280),
+      orderType ? `(${orderType})` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 500);
 
     try {
-      const session = await stripeCheckout({
-        orderId: oid,
-        customerEmail,
-        amountCents: depositCents,
-        shopUrl,
-        paymentType: "sheet_deposit_invoice",
-        depositCents,
-        estimatedSubtotalCents: Number.isFinite(subtotal)
-          ? Math.round(subtotal * 100)
-          : depositCents * 2,
-        productName: "Sweet Tooth Cravings — 50% deposit",
-        description: [
-          customerName ? `For ${customerName}` : null,
-          Number.isFinite(subtotal) ? `Est. total $${subtotal.toFixed(2)}` : null,
-          `Deposit $${depositDollars.toFixed(2)} (50%)`,
-          lineSummary.replace(/\s+/g, " ").slice(0, 280),
-          orderType ? `(${orderType})` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")
-          .slice(0, 500),
-      });
+      // Prefer Stripe-native emailed invoice (no Gmail/SMTP required).
+      let payUrl = "";
+      let sessionId = "";
+      let emailResult = { sent: false };
+      let paymentMethod = "stripe_invoice_email";
+
+      try {
+        const inv = await stripeSendDepositInvoice({
+          orderId: oid,
+          customerEmail,
+          customerName,
+          amountCents: depositCents,
+          productName: "Sweet Tooth Cravings — 50% deposit",
+          description: desc,
+          footer: eventDate
+            ? `Event / needed-by: ${eventDate}. Order ${oid}.`
+            : `Order ${oid}.`,
+        });
+        payUrl = inv.url;
+        sessionId = inv.invoiceId;
+        emailResult = {
+          sent: true,
+          ok: true,
+          to: customerEmail,
+          method: "stripe_invoice_email",
+          from: "Stripe",
+        };
+        console.log(
+          `[sheet/send-deposit-invoice] Stripe emailed invoice ${inv.invoiceId} to ${customerEmail}`,
+        );
+      } catch (invErr) {
+        console.warn(
+          "[sheet/send-deposit-invoice] Stripe invoice email failed, falling back to Checkout + notify:",
+          invErr.message,
+        );
+        paymentMethod = "checkout_plus_notify";
+        const session = await stripeCheckout({
+          orderId: oid,
+          customerEmail,
+          amountCents: depositCents,
+          shopUrl,
+          paymentType: "sheet_deposit_invoice",
+          depositCents,
+          estimatedSubtotalCents: Number.isFinite(subtotal)
+            ? Math.round(subtotal * 100)
+            : depositCents * 2,
+          productName: "Sweet Tooth Cravings — 50% deposit",
+          description: desc,
+        });
+        payUrl = session.url;
+        sessionId = session.id;
+
+        try {
+          const mail = await notify.sendDepositInvoiceToCustomer({
+            customerName,
+            customerEmail,
+            orderId: oid,
+            depositDollars,
+            estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
+            checkoutUrl: session.url,
+            lineSummary,
+            eventDate,
+          });
+          emailResult = {
+            sent: !!(mail && mail.ok !== false),
+            ok: !!(mail && mail.ok !== false),
+            to: mail && mail.to,
+            method: mail && mail.method,
+            from: mail && mail.from,
+            error: mail && mail.error ? String(mail.error) : null,
+          };
+        } catch (e) {
+          const msg = (e && e.message) || String(e) || "email_failed";
+          console.error("[sheet/send-deposit-invoice] notify email failed:", msg);
+          emailResult = { sent: false, ok: false, error: msg };
+        }
+      }
+
+      if (!payUrl) {
+        return json(res, 500, {
+          error: "Stripe did not return a payment URL",
+        });
+      }
 
       // Persist on local orders.json when we know the order id
       if (orderId) {
@@ -939,8 +1075,8 @@ async function api(req, res, pathname, baseUrl) {
           };
           list.push(order);
         }
-        order.stripePaymentUrl = session.url;
-        order.stripeSessionId = session.id;
+        order.stripePaymentUrl = payUrl;
+        order.stripeSessionId = sessionId;
         order.depositCents = depositCents;
         order.status = "deposit_invoice_sent";
         order.updatedAt = new Date().toISOString();
@@ -950,38 +1086,13 @@ async function api(req, res, pathname, baseUrl) {
         saveOrders(list);
       }
 
-      let emailResult = { sent: false };
-      try {
-        const mail = await notify.sendDepositInvoiceToCustomer({
-          customerName,
-          customerEmail,
-          orderId: oid,
-          depositDollars,
-          estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
-          checkoutUrl: session.url,
-          lineSummary,
-          eventDate,
-        });
-        emailResult = {
-          sent: !!(mail && mail.ok !== false),
-          ok: !!(mail && mail.ok !== false),
-          to: mail && mail.to,
-          method: mail && mail.method,
-          from: mail && mail.from,
-          error: mail && mail.error ? String(mail.error) : null,
-        };
-      } catch (e) {
-        const msg = (e && e.message) || String(e) || "email_failed";
-        console.error("[sheet/send-deposit-invoice] email failed:", msg);
-        emailResult = { sent: false, ok: false, error: msg };
-      }
-
       return json(res, 200, {
         success: true,
         orderId: oid,
-        checkoutUrl: session.url,
-        paymentUrl: session.url,
-        sessionId: session.id,
+        checkoutUrl: payUrl,
+        paymentUrl: payUrl,
+        sessionId,
+        paymentMethod,
         depositDollars,
         depositCents,
         estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
@@ -991,7 +1102,7 @@ async function api(req, res, pathname, baseUrl) {
           : "Deposit link created (email failed)",
         message: emailResult.sent
           ? `Deposit invoice emailed to ${customerEmail}`
-          : `Checkout created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${session.url}`,
+          : `Payment link created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${payUrl}`,
       });
     } catch (e) {
       console.error("[sheet/send-deposit-invoice]", e);
