@@ -56,6 +56,13 @@ function onOpen() {
     .addSeparator()
     .addItem("Show setup help", "showSetupHelp")
     .addToUi();
+
+  // Soft-refresh checkboxes on open so the button column stays usable
+  try {
+    refreshStripeDepositCheckboxesQuiet_();
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function configureApiConnection() {
@@ -259,15 +266,26 @@ function sendDepositInvoiceForActiveRow() {
 }
 
 /**
- * One-click: checking Stripe Deposit on a data row sends the invoice.
+ * One-click: checking Stripe Deposit on a data row = Send Deposit Invoice.
+ * Simple trigger (onEdit) — works without installable trigger setup.
  */
 function onEdit(e) {
+  handleStripeDepositEdit_(e);
+}
+
+/** Installable onEdit (more reliable for UrlFetch). Optional: Triggers → onEditInstallable. */
+function onEditInstallable(e) {
+  handleStripeDepositEdit_(e);
+}
+
+function handleStripeDepositEdit_(e) {
   try {
     if (!e || !e.range) return;
     var sheet = e.range.getSheet();
     var row = e.range.getRow();
     var col = e.range.getColumn();
     if (row < 2) return;
+    if (e.range.getNumRows() > 1 || e.range.getNumColumns() > 1) return;
 
     var headers = getHeaderRow_(sheet);
     var sendCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
@@ -275,13 +293,76 @@ function onEdit(e) {
     if (col !== sendCol + 1) return;
 
     var val = e.range.getValue();
-    var checked = val === true || val === "TRUE" || val === "Yes" || val === "yes";
+    var checked =
+      val === true ||
+      val === "TRUE" ||
+      val === "Yes" ||
+      val === "yes" ||
+      val === "SEND" ||
+      val === "Send";
     if (!checked) return;
 
-    sendDepositInvoiceForRow_(sheet, row, false);
-    e.range.setValue(false);
+    // Show brief working state
+    e.range.setValue("Sending…");
+
+    var result = sendDepositInvoiceForRow_(sheet, row, false);
+    if (result && result.ok) {
+      e.range.setValue("✓ Sent");
+      e.range.setNote(
+        "Deposit invoice sent " +
+          new Date().toLocaleString() +
+          (result.data && result.data.checkoutUrl
+            ? "\n" + result.data.checkoutUrl
+            : "")
+      );
+      SpreadsheetApp.getActiveSpreadsheet().toast(
+        "50% deposit invoice emailed.",
+        "Stripe Deposit",
+        6
+      );
+    } else {
+      e.range.insertCheckboxes();
+      e.range.setValue(false);
+      var errMsg = (result && result.error) || "Send failed";
+      e.range.setNote("Failed: " + errMsg);
+      SpreadsheetApp.getActiveSpreadsheet().toast(
+        String(errMsg).slice(0, 120),
+        "Stripe Deposit failed",
+        8
+      );
+    }
   } catch (err) {
     console.error(err);
+    try {
+      e.range.insertCheckboxes();
+      e.range.setValue(false);
+    } catch (e2) {
+      /* ignore */
+    }
+  }
+}
+
+function refreshStripeDepositCheckboxesQuiet_() {
+  var sheet = SpreadsheetApp.getActiveSheet();
+  var headers = getHeaderRow_(sheet);
+  var sendCol = findHeaderIndex_(headers, HEADER_MAP.sendDeposit);
+  if (sendCol < 0) return;
+  var lastRow = Math.max(sheet.getLastRow(), 2);
+  if (lastRow < 2) return;
+  var range = sheet.getRange(2, sendCol + 1, lastRow - 1, 1);
+  var values = range.getValues();
+  for (var i = 0; i < values.length; i++) {
+    var v = values[i][0];
+    var s = String(v == null ? "" : v).trim();
+    // Keep "✓ Sent" / notes; re-apply checkbox only on empty/false
+    if (v === true || v === false || s === "" || s === "FALSE" || s === "TRUE") {
+      sheet.getRange(i + 2, sendCol + 1).insertCheckboxes();
+      if (v === true || s === "TRUE") {
+        /* leave true rare */
+      } else if (s !== "✓ Sent" && s.indexOf("Sent") !== 0) {
+        sheet.getRange(i + 2, sendCol + 1).setValue(false);
+      }
+    }
   }
 }
 
@@ -300,11 +381,12 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   }
 
   if (!base || !secret) {
+    // Fall back to ADMIN default only if secret never configured — still require setup
     if (showAlerts) {
       ui.alert(
         "API not configured.\n\nSweet Tooth → Configure API connection…\n\nUse:\n" +
           DEFAULT_API_BASE +
-          "\nand SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD)."
+          "\nand SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD from Render)."
       );
     }
     return { ok: false, error: "not_configured" };
@@ -318,6 +400,17 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     return { ok: false, error: "no_email" };
   }
 
+  // Already sent — confirm before re-sending
+  var statusStr = String(record.status || "").toLowerCase();
+  if (statusStr.indexOf("deposit invoice sent") >= 0 && showAlerts) {
+    var again = ui.alert(
+      "Already sent",
+      "Status is already “Deposit invoice sent”. Send another invoice?",
+      ui.ButtonSet.YES_NO
+    );
+    if (again !== ui.Button.YES) return { ok: false, error: "cancelled" };
+  }
+
   var subtotal = parseMoney_(record.estimatedSubtotal);
   var deposit = parseMoney_(record.depositDue);
   if ((!deposit || deposit <= 0) && subtotal > 0) deposit = Math.round(subtotal * 50) / 100;
@@ -329,7 +422,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
         "Need at least $0.50 deposit.\n\nSet Estimated Subtotal (final reviewed total) on this row, then try again.\nDeposit is 50% of that amount."
       );
     }
-    return { ok: false, error: "no_amount" };
+    return { ok: false, error: "no_amount — set Estimated Subtotal first" };
   }
 
   var lineBits = [];

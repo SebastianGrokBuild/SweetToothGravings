@@ -2403,15 +2403,15 @@
           if (res.ok) {
             const j = await res.json().catch(() => null)
             if (j && j.ok && j.googleSheets) {
-              stcApiReady = true
-              // Soft check: server should report the forced sheet / drive IDs
               const sheetOk =
                 !j.googleSheetId || j.googleSheetId === STC_EXPECTED_SHEET_ID
               const driveOk =
                 !j.googleDriveFolderId || j.googleDriveFolderId === STC_EXPECTED_DRIVE_ID
               if (!sheetOk || !driveOk) {
                 console.warn('[stc] health IDs unexpected', j.googleSheetId, j.googleDriveFolderId)
+                // Still accept — server forceProductionTargets overrides env; IDs are canonical in code
               }
+              stcApiReady = true
               return j
             }
           }

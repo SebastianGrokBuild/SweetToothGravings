@@ -192,10 +192,12 @@ After you review an order, send the customer a **50% Stripe deposit** email with
 
 ### What it does
 
-1. You select the order row (edit **Estimated Subtotal** if the final total changed after review).
-2. Menu: **Sweet Tooth → Send Deposit Invoice**.
-3. Your API creates a Stripe Checkout session (same Sweet Tooth Stripe account / `STRIPE_SECRET_KEY`).
-4. Customer is emailed the pay link; bakery gets a copy; **Status** becomes `Deposit invoice sent`.
+1. You review the order row (edit **Estimated Subtotal** if the final total changed).
+2. Check the box in the **Stripe Deposit** column (one-click) **or** menu **Sweet Tooth → Send Deposit Invoice**.
+3. Your API creates a Stripe Checkout session (Sweet Tooth Stripe account / `STRIPE_SECRET_KEY` on Render).
+4. Customer is emailed the pay link; bakery gets a copy; **Status** becomes `Deposit invoice sent`; cell shows **✓ Sent**.
+
+**Required on Render:** `STRIPE_SECRET_KEY=sk_live_…` — without it, health shows `"stripe": false` and the button cannot create invoices.
 
 ### One-time setup
 
