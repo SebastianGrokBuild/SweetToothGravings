@@ -115,6 +115,55 @@ function isAdmin(req) {
   }
 }
 
+/** Shared secret for Google Apps Script sheet actions (or ADMIN_PASSWORD fallback). */
+function sheetActionsSecret() {
+  return (
+    process.env.SHEET_ACTIONS_SECRET?.trim() ||
+    process.env.ADMIN_PASSWORD?.trim() ||
+    CONFIG.adminPassword ||
+    ""
+  );
+}
+
+function isSheetActionAuthorized(req) {
+  const expected = sheetActionsSecret();
+  if (!expected) return false;
+  const auth = req.headers.authorization || "";
+  let provided = "";
+  if (/^Bearer\s+/i.test(auth)) {
+    provided = auth.replace(/^Bearer\s+/i, "").trim();
+  } else if (req.headers["x-sheet-secret"]) {
+    provided = String(req.headers["x-sheet-secret"]).trim();
+  }
+  if (!provided) return false;
+  try {
+    const a = Buffer.from(provided);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+/** Parse "$45.00" / "45" / "45,00" style values from the sheet. */
+function parseMoneyValue(raw) {
+  if (raw == null || raw === "") return NaN;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  let s = String(raw).trim();
+  if (!s) return NaN;
+  s = s.replace(/[^0-9.,-]/g, "");
+  if (s.includes(",") && s.includes(".")) {
+    // 1,234.56
+    s = s.replace(/,/g, "");
+  } else if (s.includes(",") && !s.includes(".")) {
+    // 45,00 european → 45.00
+    s = s.replace(",", ".");
+  }
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 /** Up to 6 photos × 10MB raw + multipart overhead */
 const MAX_UPLOAD_BODY_BYTES = 80 * 1024 * 1024;
 
@@ -473,6 +522,7 @@ async function api(req, res, pathname, baseUrl) {
       googleDriveOAuth: google.isDriveOAuthReady(),
       stripe: stripeConfigured(),
       depositCheckout: stripeConfigured(),
+      sheetDepositInvoice: stripeConfigured() && !!sheetActionsSecret(),
       orderEmail,
       photoStorage: "google_drive",
       uploadMode: "multipart",
@@ -580,6 +630,173 @@ async function api(req, res, pathname, baseUrl) {
       saveOrders(list);
       return json(res, 200, { order, paymentUrl: session.url });
     } catch (e) {
+      return json(res, 500, { error: e.message });
+    }
+  }
+
+  /**
+   * Google Sheet one-click: create 50% deposit Checkout + email customer.
+   * Does not change cart-submit / Sheets append / Drive upload.
+   *
+   * POST /api/sheet/send-deposit-invoice
+   * Headers: Authorization: Bearer <SHEET_ACTIONS_SECRET|ADMIN_PASSWORD>
+   * Body: row fields from the Order Log (orderId, email, estimatedSubtotal, …)
+   */
+  if (method === "POST" && pathname === "/api/sheet/send-deposit-invoice") {
+    if (!isSheetActionAuthorized(req) && !isAdmin(req)) {
+      return json(res, 401, {
+        error:
+          "Unauthorized. Set SHEET_ACTIONS_SECRET (or ADMIN_PASSWORD) on the API and in Apps Script.",
+      });
+    }
+
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON body" });
+    }
+
+    const orderId = String(body.orderId || body.order_id || "").trim();
+    const customerEmail = String(
+      body.customerEmail || body.email || "",
+    ).trim();
+    const customerName = String(
+      body.customerName || body.name || "",
+    ).trim();
+    const customerPhone = String(body.customerPhone || body.phone || "").trim();
+    const eventDate = String(body.eventDate || body.event_date || "").trim();
+    const lineSummary = String(
+      body.lineItemsDetail ||
+        body.lineItems ||
+        body.product ||
+        body.lineSummary ||
+        "",
+    ).trim();
+    const orderType = String(body.orderType || body.order_type || "Order").trim();
+
+    if (!customerEmail || !customerEmail.includes("@")) {
+      return json(res, 400, { error: "Customer email is required on this row" });
+    }
+    if (!stripeConfigured()) {
+      return json(res, 503, {
+        error:
+          "Stripe is not configured. Set STRIPE_SECRET_KEY on the API server (Render).",
+      });
+    }
+
+    // After review: prefer explicit finalTotal, else deposit amount column, else 50% of subtotal
+    let subtotal = parseMoneyValue(
+      body.finalTotal != null ? body.finalTotal : body.estimatedSubtotal,
+    );
+    let depositDollars = parseMoneyValue(body.depositAmount ?? body.depositDue);
+
+    if ((!Number.isFinite(depositDollars) || depositDollars <= 0) && Number.isFinite(subtotal) && subtotal > 0) {
+      depositDollars = Math.round(subtotal * 50) / 100;
+    }
+    if ((!Number.isFinite(subtotal) || subtotal <= 0) && Number.isFinite(depositDollars) && depositDollars > 0) {
+      subtotal = Math.round(depositDollars * 2 * 100) / 100;
+    }
+
+    if (!Number.isFinite(depositDollars) || depositDollars < 0.5) {
+      return json(res, 400, {
+        error:
+          "Need a deposit of at least $0.50. Set Estimated Subtotal (or Deposit Due 50%) on the row after review.",
+      });
+    }
+
+    const depositCents = Math.round(depositDollars * 100);
+    const shopUrl = shopPublicUrl(req, baseUrl);
+    const oid = orderId || `sheet-${Date.now().toString(36)}`;
+
+    try {
+      const session = await stripeCheckout({
+        orderId: oid,
+        customerEmail,
+        amountCents: depositCents,
+        shopUrl,
+        paymentType: "sheet_deposit_invoice",
+        depositCents,
+        estimatedSubtotalCents: Number.isFinite(subtotal)
+          ? Math.round(subtotal * 100)
+          : depositCents * 2,
+        productName: "Sweet Tooth Cravings — 50% deposit",
+        description: [
+          customerName ? `For ${customerName}` : null,
+          Number.isFinite(subtotal) ? `Est. total $${subtotal.toFixed(2)}` : null,
+          `Deposit $${depositDollars.toFixed(2)} (50%)`,
+          lineSummary.replace(/\s+/g, " ").slice(0, 280),
+          orderType ? `(${orderType})` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 500),
+      });
+
+      // Persist on local orders.json when we know the order id
+      if (orderId) {
+        const list = loadOrders();
+        let order = list.find((o) => o.id === orderId);
+        if (!order) {
+          order = {
+            id: orderId,
+            createdAt: new Date().toISOString(),
+            orderType: "sheet",
+            customerName,
+            customerEmail,
+            customerPhone: customerPhone || null,
+            eventDate: eventDate || null,
+            lineItemsDetail: lineSummary,
+            estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
+          };
+          list.push(order);
+        }
+        order.stripePaymentUrl = session.url;
+        order.stripeSessionId = session.id;
+        order.depositCents = depositCents;
+        order.status = "deposit_invoice_sent";
+        order.updatedAt = new Date().toISOString();
+        if (Number.isFinite(subtotal)) {
+          order.finalPriceCents = Math.round(subtotal * 100);
+        }
+        saveOrders(list);
+      }
+
+      let emailResult = { sent: false };
+      try {
+        emailResult = await notify.sendDepositInvoiceToCustomer({
+          customerName,
+          customerEmail,
+          orderId: oid,
+          depositDollars,
+          estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
+          checkoutUrl: session.url,
+          lineSummary,
+          eventDate,
+        });
+        emailResult = { sent: true, ...emailResult };
+      } catch (e) {
+        console.error("[sheet/send-deposit-invoice] email failed:", e.message);
+        emailResult = { sent: false, error: e.message };
+      }
+
+      return json(res, 200, {
+        success: true,
+        orderId: oid,
+        checkoutUrl: session.url,
+        paymentUrl: session.url,
+        sessionId: session.id,
+        depositDollars,
+        depositCents,
+        estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
+        email: emailResult,
+        sheetStatus: "Deposit invoice sent",
+        message: emailResult.sent
+          ? `Deposit invoice emailed to ${customerEmail}`
+          : `Checkout created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${session.url}`,
+      });
+    } catch (e) {
+      console.error("[sheet/send-deposit-invoice]", e);
       return json(res, 500, { error: e.message });
     }
   }

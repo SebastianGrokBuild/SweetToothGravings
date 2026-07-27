@@ -95,10 +95,13 @@ In the service → **Environment**, add the same values as your local `.env` (do
 | `APP_URL` | Yes | `https://sweettooth-cravings.onrender.com` (API base; not used for Stripe redirects) |
 | `PUBLIC_SHOP_URL` | Recommended | `https://sweettoothcravings.shop` — Stripe success/cancel return URL |
 | `STRIPE_SECRET_KEY` | Recommended | `sk_live_...` from the Sweet Tooth Stripe account — enables auto 50% deposit Checkout on submit |
+| `SHEET_ACTIONS_SECRET` | Recommended | Secret for Google Sheet **Send Deposit Invoice** (Apps Script). Falls back to `ADMIN_PASSWORD` if unset |
 
 SMTP is the most reliable way to send order emails on Render. See **GOOGLE-DRIVE-GMAIL-SETUP.md** for App Password setup.
 
 **Stripe:** With `STRIPE_SECRET_KEY` set, each successful cart submit still writes Sheets + Drive as before, then creates a Checkout session for **50% of the estimated subtotal**. Without the key, submit behaves as Sheets-only (unchanged).
+
+**Sheet button:** After review, use **Sweet Tooth → Send Deposit Invoice** in the Order Log (see **GOOGLE-SHEETS-SETUP.md**). That calls `POST /api/sheet/send-deposit-invoice` and emails the customer — it does not change the website submit path.
 
 ---
 

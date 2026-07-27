@@ -69,6 +69,7 @@ When `STRIPE_SECRET_KEY` is set on the API server, **Submit Request** still save
 
 - Without a Stripe key: Sheets/Drive-only flow (unchanged).
 - Admin **Create Stripe payment link** still works for custom final amounts.
+- **After review in Google Sheets:** menu **Sweet Tooth → Send Deposit Invoice** (Apps Script in `google-apps-script/SendDepositInvoice.gs`) creates/emails the 50% deposit — setup in **GOOGLE-SHEETS-SETUP.md**.
 
 ## Next Steps (Recommended)
 

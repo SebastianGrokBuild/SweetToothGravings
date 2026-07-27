@@ -180,6 +180,77 @@ If submit fails, read the alert message and check Terminal where `node serve.js`
 
 No separate custom-cake wizard — one path for all orders.
 
+**Website → Sheets + Drive is unchanged** by the deposit-invoice button below. That button only runs after you review a row.
+
+---
+
+## Send Deposit Invoice (one-click from the Sheet)
+
+After you review an order, send the customer a **50% Stripe deposit** email without leaving Google Sheets.
+
+### What it does
+
+1. You select the order row (edit **Estimated Subtotal** if the final total changed after review).
+2. Menu: **Sweet Tooth → Send Deposit Invoice**.
+3. Your API creates a Stripe Checkout session (same Sweet Tooth Stripe account / `STRIPE_SECRET_KEY`).
+4. Customer is emailed the pay link; bakery gets a copy; **Status** becomes `Deposit invoice sent`.
+
+### One-time setup
+
+#### A) API (Render / `serve.js`)
+
+In Render **Environment** (or local `.env`):
+
+| Variable | Value |
+|----------|--------|
+| `STRIPE_SECRET_KEY` | `sk_live_…` (Sweet Tooth Stripe) |
+| `SHEET_ACTIONS_SECRET` | Long random secret (recommended) |
+| — or — | Use existing `ADMIN_PASSWORD` if you skip `SHEET_ACTIONS_SECRET` |
+| `PUBLIC_SHOP_URL` | `https://sweettoothcravings.shop` |
+| Email | Same SMTP / Gmail setup you already use for order notify |
+
+Redeploy after saving env vars.
+
+#### B) Google Sheet Apps Script
+
+1. Open **Sweet Tooth — Order Log**.
+2. **Extensions → Apps Script**.
+3. Delete any sample code; paste the contents of  
+   `google-apps-script/SendDepositInvoice.gs`  
+   from this project.
+4. Save (disk icon). Name the project e.g. `STC Deposit Invoice`.
+5. Reload the spreadsheet. You should see menu **Sweet Tooth**.
+6. **Sweet Tooth → Configure API connection…**
+   - API base URL: `https://sweettooth-cravings.onrender.com` (or your API)
+   - Secret: same as `SHEET_ACTIONS_SECRET` (or `ADMIN_PASSWORD`)
+7. Authorize when Google asks (your Google account that owns the sheet).
+
+### Everyday use
+
+1. Review the row (customer, line items, photos).
+2. If price changed, update **Estimated Subtotal** to the reviewed total.
+3. Click any cell in that row.
+4. **Sweet Tooth → Send Deposit Invoice** → confirm.
+5. Customer receives the deposit email; Status updates.
+
+### Optional checkbox (true one-click)
+
+1. In an empty column (e.g. after **Source**), header: `Send Deposit Invoice`.
+2. Insert checkboxes for data rows (**Insert → Checkbox**).
+3. Check the box on a row → script sends the invoice and clears the box.
+
+(Uses the same `onEdit` in the Apps Script file.)
+
+### API reference
+
+```http
+POST /api/sheet/send-deposit-invoice
+Authorization: Bearer <SHEET_ACTIONS_SECRET>
+Content-Type: application/json
+```
+
+Body includes `orderId`, `customerEmail`, `customerName`, `estimatedSubtotal` / `depositAmount`, line summary, etc. The Apps Script builds this from the selected row.
+
 ---
 
 ## Sheet columns (taxes & bookkeeping)
@@ -216,6 +287,9 @@ Filter by **Tax Year** or **Order Type** for records.
 | Photo columns say “(upload failed)” | Run `node scripts/google-drive-auth.js`; see **GOOGLE-DRIVE-GMAIL-SETUP.md** |
 | Photo over 10MB | Each photo must be 10MB or less |
 | Works on Mac but not for customers | Deploy `serve.js` on a host with same `.env` and credentials (do not expose JSON publicly) |
+| Send Deposit Invoice unauthorized | Match `SHEET_ACTIONS_SECRET` (or `ADMIN_PASSWORD`) in Apps Script Configure |
+| Send Deposit Invoice “Stripe not configured” | Set `STRIPE_SECRET_KEY` on Render and redeploy |
+| Deposit email not arriving | Check SMTP/Gmail same as order notify; Checkout link still in the success alert |
 
 ---
 
@@ -224,3 +298,4 @@ Filter by **Tax Year** or **Order Type** for records.
 - Keep `google-service-account.json` private.
 - Only share the Sheet/folder with the service account email, not “Anyone on the internet.”
 - Change `ADMIN_PASSWORD` in `.env` from the default before going live.
+- Treat `SHEET_ACTIONS_SECRET` like a password — only in Render env + Apps Script properties (never in the public website).
