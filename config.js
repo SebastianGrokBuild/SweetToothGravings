@@ -13,18 +13,6 @@
    */
   const PRODUCTION_API = "https://sweettooth-cravings-api.onrender.com";
 
-  /**
-   * Bakesy checkout targets used by the purple "Send to Bakesy" button.
-   * Shop: https://bakesy.shop/b/sweettoothcravings
-   *
-   * Optional bakery UUID opens the order form directly (recommended):
-   *   https://bakesy.shop/order-request/new/<BAKESY_BAKERY_ID>
-   * Copy the UUID from any Bakesy “Request Order” share link in the app,
-   * then paste it below so customers land on the form instead of the shop home.
-   */
-  const BAKESY_SHOP_URL = "https://bakesy.shop/b/sweettoothcravings";
-  const BAKESY_BAKERY_ID = "";
-
   const isLocal =
     host === "localhost" || host === "127.0.0.1" || host === "";
 
@@ -41,6 +29,4 @@
   }
 
   global.STC_API_BASE = base;
-  global.STC_BAKESY_SHOP_URL = BAKESY_SHOP_URL;
-  global.STC_BAKESY_BAKERY_ID = BAKESY_BAKERY_ID;
 })(typeof window !== "undefined" ? window : globalThis);

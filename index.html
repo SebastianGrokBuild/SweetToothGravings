@@ -1140,21 +1140,10 @@
             <span id="cart-submit-status-text">Sending your request…</span>
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-2.5">
-            <button type="submit" id="cart-submit-btn" class="flex-1 h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
-              <span id="cart-submit-btn-label">Submit Request</span>
-              <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
-            </button>
-            <button type="button" id="cart-bakesy-btn" onclick="sendCartToBakesy(event)"
-                    class="flex-1 h-14 bg-[#7B4DB8] hover:bg-[#6A3DA5] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2 ring-1 ring-[#5E2F96]/30">
-              <i class="fa-solid fa-bag-shopping text-sm opacity-90"></i>
-              <span id="cart-bakesy-btn-label">Send to Bakesy</span>
-              <i id="cart-bakesy-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
-            </button>
-          </div>
-          <p class="mt-2 text-center text-[10px] leading-snug text-[#8B6F6F] px-1">
-            <strong class="text-[#6B5B5F]">Send to Bakesy</strong> saves your request and opens Bakesy with cart, contact, date, allergies &amp; photo links packaged for checkout — review and pay there.
-          </p>
+          <button type="submit" id="cart-submit-btn" class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
+            <span id="cart-submit-btn-label">Submit Request</span>
+            <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
+          </button>
         </div>
       </form>
     </div>
@@ -2518,18 +2507,13 @@
     }
 
     function setCartSubmitLoading(active, statusText, mode) {
-      // mode: 'submit' | 'bakesy' | undefined (both disabled when active)
       const submitBtn = document.getElementById('cart-submit-btn')
       const submitLabel = document.getElementById('cart-submit-btn-label')
       const submitSpinner = document.getElementById('cart-submit-btn-spinner')
-      const bakesyBtn = document.getElementById('cart-bakesy-btn')
-      const bakesyLabel = document.getElementById('cart-bakesy-btn-label')
-      const bakesySpinner = document.getElementById('cart-bakesy-btn-spinner')
       const status = document.getElementById('cart-submit-status')
       const statusTextEl = document.getElementById('cart-submit-status-text')
 
       if (submitBtn) submitBtn.disabled = !!active
-      if (bakesyBtn) bakesyBtn.disabled = !!active
 
       if (submitLabel) {
         submitLabel.textContent = active && mode === 'submit' ? 'Sending…' : 'Submit Request'
@@ -2537,262 +2521,8 @@
       if (submitSpinner) {
         submitSpinner.classList.toggle('hidden', !(active && mode === 'submit'))
       }
-      if (bakesyLabel) {
-        bakesyLabel.textContent = active && mode === 'bakesy' ? 'Opening Bakesy…' : 'Send to Bakesy'
-      }
-      if (bakesySpinner) {
-        bakesySpinner.classList.toggle('hidden', !(active && mode === 'bakesy'))
-      }
       if (status) status.classList.toggle('hidden', !active)
       if (statusTextEl && statusText) statusTextEl.textContent = statusText
-    }
-
-    // Last Bakesy handoff packet (for "Copy again" in success modal)
-    let stcLastBakesyPacket = ''
-    let stcLastBakesyUrl = ''
-
-    function getBakesyOrderFormUrl(payload) {
-      const id = String(window.STC_BAKESY_BAKERY_ID || '').trim()
-      const base = id
-        ? `https://bakesy.shop/order-request/new/${encodeURIComponent(id)}`
-        : (window.STC_BAKESY_SHOP_URL || 'https://bakesy.shop/b/sweettoothcravings')
-
-      // Attach known customer fields as query params. Bakesy may ignore these today;
-      // the full packet is still copied for Additional Order Notes / Order Specifications.
-      if (!payload) return base
-      try {
-        const url = new URL(base)
-        if (payload.customerName) url.searchParams.set('name', payload.customerName)
-        if (payload.customerEmail) url.searchParams.set('email', payload.customerEmail)
-        if (payload.customerPhone) url.searchParams.set('phone', payload.customerPhone)
-        if (payload.eventDate) url.searchParams.set('completionDate', payload.eventDate)
-        return url.toString()
-      } catch (_) {
-        return base
-      }
-    }
-
-    function buildCartLineSummary(items) {
-      return (items || []).map((item, i) => {
-        const c = item.customizations || {}
-        const parts = [`${i + 1}. ${item.quantity || 1}× ${item.name}`]
-        if (c.tier) parts.push(`Size/Tier: ${c.tier}`)
-        if (c.flavor) parts.push(`Flavor: ${c.flavor}`)
-        if (c.fillings?.length) parts.push(`Filling: ${c.fillings.join(', ')}`)
-        if (c.notes) parts.push(`Notes: ${c.notes}`)
-        const line = (Number(item.price) || 0) * (Number(item.quantity) || 1)
-        parts.push(`$${line.toFixed(2)}`)
-        return parts.join(' | ')
-      }).join('\n')
-    }
-
-    function buildBakesyPrefillPacket(payload, orderId, photoLinks) {
-      const lines = []
-      const subtotal = (payload.items || []).reduce(
-        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1),
-        0
-      )
-      const photos = (photoLinks || []).filter(Boolean)
-
-      lines.push('—— SWEET TOOTH CRAVINGS → BAKESY CHECKOUT ——')
-      if (orderId) lines.push(`Website order ref: ${orderId}`)
-      lines.push('Source: sweettoothcravings.shop')
-      lines.push('')
-      lines.push('=== CUSTOMER (enter on Bakesy contact step) ===')
-      lines.push(`Full name: ${payload.customerName || ''}`)
-      lines.push(`Email: ${payload.customerEmail || ''}`)
-      lines.push(`Phone: ${payload.customerPhone || ''}`)
-      lines.push(`Completion / needed-by date: ${payload.eventDate || '(not specified)'}`)
-      lines.push('')
-      lines.push('=== ORDER SPECIFICATIONS / ADDITIONAL NOTES (paste this block) ===')
-      lines.push(buildCartLineSummary(payload.items) || '(no line items)')
-      lines.push(`Estimated subtotal: $${subtotal.toFixed(2)}`)
-      lines.push(`Suggested 50% deposit: $${(subtotal * 0.5).toFixed(2)}`)
-      if (payload.allergies) lines.push(`Allergies: ${payload.allergies}`)
-      if (payload.orderNotes) lines.push(`Customer notes: ${payload.orderNotes}`)
-      if (photos.length) {
-        lines.push('')
-        lines.push('Inspiration photos (Google Drive):')
-        photos.forEach((url, i) => lines.push(`  Photo ${i + 1}: ${url}`))
-      }
-      lines.push('')
-      lines.push('Please review the details above, then complete payment / deposit in Bakesy.')
-      return lines.join('\n')
-    }
-
-    async function copyTextToClipboard(text) {
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(text)
-          return true
-        }
-      } catch (_) { /* fall through */ }
-      try {
-        const ta = document.createElement('textarea')
-        ta.value = text
-        ta.setAttribute('readonly', '')
-        ta.style.position = 'fixed'
-        ta.style.left = '-9999px'
-        document.body.appendChild(ta)
-        ta.select()
-        const ok = document.execCommand('copy')
-        ta.remove()
-        return ok
-      } catch (_) {
-        return false
-      }
-    }
-
-    async function copyLastBakesyPacket() {
-      if (!stcLastBakesyPacket) return
-      const ok = await copyTextToClipboard(stcLastBakesyPacket)
-      showToast(ok ? 'Order details copied — paste into Bakesy notes.' : 'Could not copy — select the packet below.')
-    }
-
-    function openLastBakesyUrl() {
-      if (!stcLastBakesyUrl) return
-      window.open(stcLastBakesyUrl, '_blank', 'noopener,noreferrer')
-    }
-
-    function showBakesyHandoffModal(orderId, packet, openedUrl, copied) {
-      const body = document.getElementById('success-modal-body')
-      const ref = document.getElementById('success-modal-ref')
-      if (!body) return
-
-      stcLastBakesyPacket = packet
-      stcLastBakesyUrl = openedUrl
-
-      const hasPhotos = /Photo \d+:/.test(packet)
-      body.innerHTML = `
-        <p><strong>Your order is saved</strong> and Bakesy checkout is ready.</p>
-        <ol class="list-decimal pl-5 space-y-1.5 text-sm text-[#5C4A4B]">
-          <li>Bakesy ${openedUrl.includes('order-request') ? 'order form' : 'shop'} was opened in a new tab.</li>
-          <li>Your full order packet (cart, contact, date, allergies${hasPhotos ? ', photo links' : ''}) was ${copied ? '<strong>copied to your clipboard</strong>' : 'prepared below'}.</li>
-          <li>On Bakesy, open <strong>Request Order</strong> if needed, then paste the packet into <strong>Order Specifications</strong> or <strong>Additional Order Notes</strong>.</li>
-          <li>Enter name / email / phone / date if any field is blank, then <strong>review and pay</strong> the deposit.</li>
-        </ol>
-        <div class="flex flex-col sm:flex-row gap-2">
-          <button type="button" onclick="copyLastBakesyPacket()"
-                  class="flex-1 h-11 rounded-2xl bg-[#7B4DB8] hover:bg-[#6A3DA5] text-white text-sm font-semibold transition">
-            Copy order details
-          </button>
-          <button type="button" onclick="openLastBakesyUrl()"
-                  class="flex-1 h-11 rounded-2xl bg-white border border-[#D4C0EC] hover:border-[#7B4DB8] text-[#5C2F96] text-sm font-semibold transition">
-            Open Bakesy again
-          </button>
-        </div>
-        <p class="text-xs text-[#6B5B5F] bg-[#F7F0FA] border border-[#E8D9F5] rounded-2xl px-3 py-2 break-all">
-          Bakesy: <a href="${openedUrl}" target="_blank" rel="noopener" class="text-[#7B4DB8] underline">${openedUrl}</a>
-        </p>
-        <details class="text-left text-xs text-[#5C4A4B] bg-white border border-[#EDE4DC] rounded-2xl px-3 py-2" open>
-          <summary class="cursor-pointer font-semibold text-[#3F2A2B]">Pre-filled order packet</summary>
-          <pre class="mt-2 whitespace-pre-wrap break-words font-sans text-[11px] leading-relaxed select-all">${packet.replace(/</g, '&lt;')}</pre>
-        </details>
-        <p class="text-xs text-[#8B6F6F]">A copy is also in the Sweet Tooth Order Log for the bakery team.</p>
-      `
-      if (ref && orderId) {
-        ref.textContent = `Order reference: ${orderId}`
-        ref.classList.remove('hidden')
-      } else if (ref) {
-        ref.classList.add('hidden')
-      }
-      document.getElementById('success-modal').classList.remove('hidden')
-      document.getElementById('success-modal').classList.add('flex')
-      document.body.style.overflow = 'hidden'
-    }
-
-    async function sendCartToBakesy(e) {
-      if (e) e.preventDefault()
-      hideCartSubmitError()
-
-      const payload = buildCartSubmitPayload()
-      if (!payload.customerName || !payload.customerEmail) {
-        showCartSubmitError({
-          title: 'Name and email required',
-          message: 'Please fill in your name and email before sending to Bakesy.',
-          steps: ['Complete the fields above, then tap Send to Bakesy again.'],
-          retryable: false
-        })
-        return
-      }
-      if (!payload.items?.length) {
-        showCartSubmitError({
-          title: 'Cart is empty',
-          message: 'Add at least one item before sending to Bakesy.',
-          steps: ['Close this form, add menu items, then try again.'],
-          retryable: false
-        })
-        return
-      }
-
-      // Open the tab during the user gesture so browsers don't block the popup after await.
-      let bakesyWin = null
-      try {
-        bakesyWin = window.open('about:blank', '_blank')
-        if (bakesyWin && bakesyWin.document) {
-          bakesyWin.document.write(
-            '<!doctype html><title>Opening Bakesy…</title><body style="font-family:system-ui;padding:2rem;color:#3F2A2B;background:#FDF8F5">' +
-            '<p style="font-size:1.1rem"><strong>Preparing your Bakesy checkout…</strong></p>' +
-            '<p style="color:#6B5B5F">Saving your order details. This tab will open Bakesy next.</p></body>'
-          )
-          bakesyWin.document.close()
-        }
-      } catch (_) {
-        bakesyWin = null
-      }
-
-      setCartSubmitLoading(true, 'Saving order & preparing Bakesy checkout…', 'bakesy')
-
-      try {
-        const result = await postCartSubmitPayload(payload)
-        const orderId = result.json.orderId
-        const photoLinks = result.json.photoLinks || []
-        const photoErrors = result.json.photoErrors || []
-        const packet = buildBakesyPrefillPacket(payload, orderId, photoLinks)
-        const bakesyUrl = getBakesyOrderFormUrl(payload)
-        const copied = await copyTextToClipboard(packet)
-
-        if (bakesyWin && !bakesyWin.closed) {
-          try {
-            bakesyWin.location = bakesyUrl
-          } catch (_) {
-            try { bakesyWin.location.href = bakesyUrl } catch (__) { /* ignore */ }
-          }
-        } else {
-          const win = window.open(bakesyUrl, '_blank', 'noopener,noreferrer')
-          if (!win) showToast('Pop-up blocked — use Open Bakesy in the confirmation.')
-        }
-
-        setCartSubmitLoading(false)
-        closeCartSubmitModal()
-        cartSubmitClearImages()
-        if (typeof toggleCart === 'function') {
-          const drawer = document.getElementById('cart-drawer')
-          if (drawer && !drawer.classList.contains('hidden')) toggleCart()
-        }
-        cart = []
-        saveCartToStorage()
-        updateCartCount()
-        updateCartSubmitButton()
-
-        showBakesyHandoffModal(orderId, packet, bakesyUrl, copied)
-        if (photoErrors.length) {
-          showToast('Order saved — some photos failed to upload.')
-        } else {
-          showToast(copied ? 'Details copied — paste into Bakesy notes, then review & pay.' : 'Order saved — open Bakesy to review & pay.')
-        }
-      } catch (err) {
-        if (bakesyWin && !bakesyWin.closed) {
-          try { bakesyWin.close() } catch (_) { /* ignore */ }
-        }
-        setCartSubmitLoading(false)
-        const info = stcClassifySubmitError(err, err.status ? { status: err.status } : null)
-        showCartSubmitError({
-          ...info,
-          title: info.title || 'Could not send to Bakesy',
-          steps: (info.steps || []).concat(['You can still use Submit Request, or try Send to Bakesy again.'])
-        })
-      }
     }
 
     async function stcFetchSubmit(url, options) {
