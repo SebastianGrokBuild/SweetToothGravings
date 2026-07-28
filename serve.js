@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-admin-photos-v16";
+const DEPLOY_BUILD = "2026-07-28-admin-ux-v17";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -253,6 +253,17 @@ function isPendingReviewStatus(status) {
     .trim()
     .toLowerCase();
   if (!s) return true;
+  // Already invoiced / paid / declined — not pending
+  if (
+    s.includes("invoice sent") ||
+    s.includes("deposit invoice sent") ||
+    s.includes("deposit_invoice_sent") ||
+    s === "paid" ||
+    s.includes("declined") ||
+    s.includes("✓ sent")
+  ) {
+    return false;
+  }
   return (
     s === "pending review" ||
     s === "pending_review" ||
@@ -1294,6 +1305,18 @@ async function api(req, res, pathname, baseUrl) {
                   thumb: url,
                   label: `Photo ${i + 1}`,
                 }));
+        const lineItemsDetail = o.lineItemsDetail || "";
+        const parsed =
+          typeof google.parseLineItemsDetail === "function"
+            ? google.parseLineItemsDetail(lineItemsDetail)
+            : {
+                cartLines: [],
+                cartText: lineItemsDetail,
+                allergies: o.allergies || "",
+                notes: o.decorationNotes || o.notes || "",
+                additionalNotes: o.additionalNotes || "",
+                specialRequests: o.decorationNotes || "",
+              };
         return {
           id: o.id,
           orderNumber: o.id,
@@ -1303,7 +1326,14 @@ async function api(req, res, pathname, baseUrl) {
           customerEmail: o.customerEmail || "",
           customerPhone: o.customerPhone || "",
           eventDate: o.eventDate || "",
-          lineItemsDetail: o.lineItemsDetail || "",
+          lineItemsDetail,
+          cartLines: parsed.cartLines,
+          cartText: parsed.cartText,
+          allergies: parsed.allergies || o.allergies || "",
+          notes: parsed.notes || o.decorationNotes || o.notes || "",
+          additionalNotes: parsed.additionalNotes || o.additionalNotes || "",
+          specialRequests:
+            parsed.specialRequests || o.decorationNotes || o.notes || "",
           estimatedSubtotal: sub,
           depositAmount: deposit,
           depositDue: deposit,
@@ -1672,14 +1702,33 @@ async function api(req, res, pathname, baseUrl) {
           order.stripePaymentUrl = invoiceUrl;
           order.stripeSessionId = inv.invoiceId;
           order.depositCents = inv.amountDueCents || depositCents;
-          order.status = "deposit_invoice_sent";
+          order.status = "Invoice Sent";
           order.updatedAt = new Date().toISOString();
           saveOrders(list);
         }
       }
 
+      // Update Google Sheet Status → "Invoice Sent" (Admin + sheet stay in sync)
+      let sheetUpdate = null;
+      try {
+        if (typeof google.updateOrderStatusInSheet === "function") {
+          sheetUpdate = await google.updateOrderStatusInSheet({
+            orderNumber,
+            sheetRow: row,
+            status: "Invoice Sent",
+            stripeDepositLabel: "✓ Sent",
+          });
+        }
+      } catch (sheetErr) {
+        console.warn(
+          "[send-deposit-invoice] sheet status update failed:",
+          sheetErr.message,
+        );
+        sheetUpdate = { ok: false, error: sheetErr.message };
+      }
+
       console.log(
-        `[send-deposit-invoice] LIVE ${inv.invoiceId} $${((inv.amountDueCents || depositCents) / 100).toFixed(2)} → ${email} order=${orderNumber}`,
+        `[send-deposit-invoice] LIVE ${inv.invoiceId} $${((inv.amountDueCents || depositCents) / 100).toFixed(2)} → ${email} order=${orderNumber} sheet=${sheetUpdate && sheetUpdate.ok ? "Invoice Sent" : "status-update-failed"}`,
       );
 
       return json(res, 200, {
@@ -1693,6 +1742,8 @@ async function api(req, res, pathname, baseUrl) {
         depositDollars: (inv.amountDueCents || depositCents) / 100,
         livemode: true,
         keyMode: "live",
+        sheetStatus: "Invoice Sent",
+        sheetUpdate,
       });
     } catch (e) {
       console.error("[send-deposit-invoice]", e);
@@ -2024,7 +2075,7 @@ async function api(req, res, pathname, baseUrl) {
         order.stripePaymentUrl = payUrl;
         order.stripeSessionId = sessionId;
         order.depositCents = depositCents;
-        order.status = "deposit_invoice_sent";
+        order.status = emailResult.sent ? "Invoice Sent" : order.status;
         order.updatedAt = new Date().toISOString();
         if (Number.isFinite(subtotal)) {
           order.finalPriceCents = Math.round(subtotal * 100);
@@ -2045,6 +2096,25 @@ async function api(req, res, pathname, baseUrl) {
           error: `Refusing success: recipient ${emailResult.to} ≠ row Email ${customerEmail}`,
           to: emailResult.to,
         };
+      }
+
+      let sheetUpdate = null;
+      if (emailResult.sent) {
+        try {
+          if (typeof google.updateOrderStatusInSheet === "function") {
+            sheetUpdate = await google.updateOrderStatusInSheet({
+              orderNumber: oid,
+              status: "Invoice Sent",
+              stripeDepositLabel: "✓ Sent",
+            });
+          }
+        } catch (sheetErr) {
+          console.warn(
+            "[sheet/send-deposit-invoice] status update failed:",
+            sheetErr.message,
+          );
+          sheetUpdate = { ok: false, error: sheetErr.message };
+        }
       }
 
       return json(res, 200, {
@@ -2068,8 +2138,9 @@ async function api(req, res, pathname, baseUrl) {
         sheetRowEmail: customerEmail,
         email: emailResult,
         sheetStatus: emailResult.sent
-          ? "Deposit invoice sent"
+          ? "Invoice Sent"
           : "Deposit link created (email failed)",
+        sheetUpdate,
         message: emailResult.sent
           ? `Live $${(amountDueCents / 100).toFixed(2)} deposit invoice emailed only to ${customerEmail}`
           : `Payment link created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${payUrl}`,

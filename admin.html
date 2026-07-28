@@ -148,6 +148,107 @@
       font-size: 0.8rem;
       text-decoration: underline;
     }
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.45rem;
+      margin-top: 0.75rem;
+    }
+    .quick-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2rem;
+      min-height: 3.1rem;
+      padding: 0.45rem 0.25rem;
+      border-radius: 0.9rem;
+      border: 1px solid var(--border);
+      background: #FDF8F5;
+      color: var(--ink);
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-decoration: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .quick-btn i { font-size: 0.95rem; color: var(--lavender-dark); }
+    .quick-btn:active { background: #F5EEFC; }
+    .quick-btn:disabled,
+    .quick-btn.is-disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .detail-block {
+      margin-top: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.95rem;
+      background: #FDF8F5;
+      overflow: hidden;
+    }
+    .detail-block summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .detail-block summary::-webkit-details-marker { display: none; }
+    .detail-block summary .chev {
+      color: #8B6F6F;
+      font-size: 0.7rem;
+      transition: transform 0.15s ease;
+    }
+    .detail-block[open] summary .chev { transform: rotate(180deg); }
+    .detail-body {
+      padding: 0 0.85rem 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+    .detail-section-title {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      color: #8B6F6F;
+      margin: 0.7rem 0 0.3rem;
+    }
+    .detail-section-title:first-child { margin-top: 0.65rem; }
+    .cart-line {
+      font-size: 0.8rem;
+      line-height: 1.4;
+      color: var(--ink);
+      padding: 0.4rem 0.55rem;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 0.65rem;
+      margin-bottom: 0.35rem;
+    }
+    .note-chip {
+      font-size: 0.8rem;
+      line-height: 1.4;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.65rem;
+      background: #fff;
+      border: 1px solid var(--border);
+      margin-bottom: 0.35rem;
+    }
+    .note-chip strong {
+      display: block;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8B6F6F;
+      margin-bottom: 0.15rem;
+    }
+    .note-chip.allergy {
+      border-color: #f0c4c4;
+      background: #fff8f8;
+    }
     .toast {
       position: fixed;
       left: 1rem;
@@ -480,6 +581,101 @@
         );
       }
 
+      function phoneDigits(phone) {
+        var d = String(phone || '').replace(/\D/g, '');
+        if (d.length === 10) d = '1' + d;
+        return d;
+      }
+
+      function renderQuickActions(email, phone, name, orderNumber) {
+        var digits = phoneDigits(phone);
+        var hasPhone = digits.length >= 11;
+        var telHref = hasPhone ? ('tel:+' + digits) : '#';
+        var waText = encodeURIComponent(
+          'Hi' + (name && name !== '—' ? ' ' + name : '') +
+          '! This is Sweet Tooth Cravings regarding order ' + (orderNumber || '') + '.'
+        );
+        var waHref = hasPhone ? ('https://wa.me/' + digits + '?text=' + waText) : '#';
+        return (
+          '<div class="quick-actions">' +
+            '<button type="button" class="quick-btn copy-email-btn" data-email="' + escapeHtml(email) + '"' +
+              (email && email.indexOf('@') >= 0 ? '' : ' disabled') + '>' +
+              '<i class="fa-regular fa-copy"></i><span>Copy Email</span>' +
+            '</button>' +
+            '<a class="quick-btn' + (hasPhone ? '' : ' is-disabled') + '" href="' + telHref + '"' +
+              (hasPhone ? '' : ' aria-disabled="true" tabindex="-1"') + '>' +
+              '<i class="fa-solid fa-phone"></i><span>Call</span>' +
+            '</a>' +
+            '<a class="quick-btn' + (hasPhone ? '' : ' is-disabled') + '" href="' + waHref + '"' +
+              ' target="_blank" rel="noopener"' +
+              (hasPhone ? '' : ' aria-disabled="true" tabindex="-1"') + '>' +
+              '<i class="fa-brands fa-whatsapp"></i><span>WhatsApp</span>' +
+            '</a>' +
+          '</div>'
+        );
+      }
+
+      function renderOrderDetails(o) {
+        var cartLines = Array.isArray(o.cartLines) && o.cartLines.length
+          ? o.cartLines
+          : String(o.cartText || o.lineItemsDetail || '')
+              .split(/\n/)
+              .map(function (l) { return l.trim(); })
+              .filter(function (l) {
+                return l && !/^—/.test(l) && !/^estimated subtotal/i.test(l) && !/^deposit due/i.test(l);
+              });
+        // If still one long blob, keep as single line
+        if (!cartLines.length && o.lineItemsDetail) {
+          cartLines = [String(o.lineItemsDetail).replace(/\s+/g, ' ').trim()];
+        }
+
+        var allergies = (o.allergies || '').trim();
+        var notes = (o.notes || o.specialRequests || '').trim();
+        var additional = (o.additionalNotes || '').trim();
+        // Avoid duplicating notes if specialRequests === notes
+        if (additional && additional === notes) additional = '';
+
+        var hasBody = cartLines.length || allergies || notes || additional;
+        if (!hasBody) return '';
+
+        var cartHtml = cartLines.length
+          ? '<div class="detail-section-title">Line items</div>' +
+            cartLines.map(function (line) {
+              return '<div class="cart-line">' + escapeHtml(line) + '</div>';
+            }).join('')
+          : '';
+
+        var notesHtml = '';
+        if (allergies) {
+          notesHtml +=
+            '<div class="note-chip allergy"><strong>Allergies</strong>' +
+            escapeHtml(allergies) + '</div>';
+        }
+        if (notes) {
+          notesHtml +=
+            '<div class="note-chip"><strong>Notes / special requests</strong>' +
+            escapeHtml(notes) + '</div>';
+        }
+        if (additional) {
+          notesHtml +=
+            '<div class="note-chip"><strong>Additional</strong>' +
+            escapeHtml(additional) + '</div>';
+        }
+        if (notesHtml) {
+          notesHtml = '<div class="detail-section-title">Notes</div>' + notesHtml;
+        }
+
+        return (
+          '<details class="detail-block">' +
+            '<summary>' +
+              '<span><i class="fa-solid fa-list-ul text-[#C9A9E8] mr-1.5"></i>Order details</span>' +
+              '<i class="fa-solid fa-chevron-down chev"></i>' +
+            '</summary>' +
+            '<div class="detail-body">' + cartHtml + notesHtml + '</div>' +
+          '</details>'
+        );
+      }
+
       var lightbox = document.getElementById('lightbox');
       var lightboxImg = document.getElementById('lightbox-img');
       var lightboxLabel = document.getElementById('lightbox-label');
@@ -521,6 +717,7 @@
           var orderNumber = o.orderNumber || o.id || '—';
           var name = o.customerName || '—';
           var email = o.customerEmail || '';
+          var phone = o.customerPhone || '';
           var eventDate = o.eventDate || '—';
           var deposit = o.depositAmount != null ? o.depositAmount : o.depositDue;
           if (deposit == null && o.estimatedSubtotal != null) {
@@ -528,7 +725,6 @@
           }
           var subtotal = o.estimatedSubtotal;
           var row = o.sheetRow != null ? o.sheetRow : '';
-          var lines = (o.lineItemsDetail || '').replace(/\s+/g, ' ').trim().slice(0, 120);
           var photos = collectPhotos(o);
 
           return (
@@ -543,12 +739,16 @@
               '<div class="mt-3 grid grid-cols-1 gap-1.5 text-sm">' +
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Customer</span><span class="font-medium break-words">' + escapeHtml(name) + '</span></div>' +
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Email</span><span class="font-medium break-all">' + escapeHtml(email) + '</span></div>' +
+                (phone
+                  ? '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Phone</span><span class="font-medium">' + escapeHtml(phone) + '</span></div>'
+                  : '') +
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Event date</span><span class="font-medium">' + escapeHtml(eventDate) + '</span></div>' +
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Deposit</span><span class="font-semibold text-[#3F2A2B]">' + money(deposit) +
                   (subtotal != null ? ' <span class="text-xs font-normal text-[#8B6F6F]">(50% of ' + money(subtotal) + ')</span>' : '') +
                 '</span></div>' +
               '</div>' +
-              (lines ? '<p class="mt-2 text-xs text-[#8B6F6F] line-clamp-2 leading-relaxed">' + escapeHtml(lines) + '</p>' : '') +
+              renderQuickActions(email, phone, name, orderNumber) +
+              renderOrderDetails(o) +
               renderPhotoGallery(photos) +
               '<button type="button" class="btn-primary send-invoice-btn mt-4 w-full flex items-center justify-center gap-2"' +
                 ' data-order="' + escapeHtml(orderNumber) + '"' +
@@ -560,7 +760,7 @@
                 ' data-event="' + escapeHtml(eventDate) + '"' +
                 ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
                 '<i class="fa-solid fa-paper-plane text-sm"></i>' +
-                '<span>Send Invoice</span>' +
+                '<span>Send Invoice by Email</span>' +
               '</button>' +
               '<p class="send-status mt-2 text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
             '</article>'
@@ -579,6 +779,39 @@
               btn.getAttribute('data-url') || '',
               btn.getAttribute('data-label') || 'Photo'
             );
+          });
+        });
+        ordersList.querySelectorAll('.copy-email-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var em = btn.getAttribute('data-email') || '';
+            if (!em) return;
+            function done(ok) {
+              showToast(ok ? 'Email copied: ' + em : 'Could not copy email', ok);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(em).then(function () { done(true); }).catch(function () {
+                // fallback
+                try {
+                  var ta = document.createElement('textarea');
+                  ta.value = em;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                  done(true);
+                } catch (e) { done(false); }
+              });
+            } else {
+              try {
+                var ta2 = document.createElement('textarea');
+                ta2.value = em;
+                document.body.appendChild(ta2);
+                ta2.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta2);
+                done(true);
+              } catch (e2) { done(false); }
+            }
           });
         });
       }
@@ -611,8 +844,8 @@
 
         var original = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Sending…</span>';
-        if (statusEl) statusEl.textContent = 'Creating live Stripe invoice…';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Sending email invoice…</span>';
+        if (statusEl) statusEl.textContent = 'Emailing live Stripe invoice…';
 
         try {
           var body = {
@@ -633,19 +866,31 @@
 
           if (!data.success) throw new Error(data.error || 'Send failed');
 
-          var msg = 'Invoice sent to ' + email;
-          if (data.depositDollars != null) msg = 'Sent $' + Number(data.depositDollars).toFixed(2) + ' deposit to ' + email;
+          var msg = 'Invoice emailed to ' + email;
+          if (data.depositDollars != null) {
+            msg = 'Emailed $' + Number(data.depositDollars).toFixed(2) + ' deposit to ' + email;
+          }
+          if (data.sheetUpdate && data.sheetUpdate.ok === false) {
+            msg += ' (sheet status may need manual update)';
+          } else {
+            msg += ' · Status → Invoice Sent';
+          }
           showToast(msg, true);
           if (statusEl) {
-            statusEl.innerHTML = '<span class="text-green-700 font-medium">✓ Sent</span>' +
-              (data.invoiceUrl ? ' · <a class="underline text-[#7B4DB8]" href="' + escapeHtml(data.invoiceUrl) + '" target="_blank" rel="noopener">View invoice</a>' : '');
+            statusEl.innerHTML =
+              '<span class="text-green-700 font-medium">✓ Emailed · Invoice Sent</span>' +
+              (data.invoiceUrl
+                ? ' · <a class="underline text-[#7B4DB8]" href="' +
+                  escapeHtml(data.invoiceUrl) +
+                  '" target="_blank" rel="noopener">View invoice</a>'
+                : '');
           }
           btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Invoice sent</span>';
           btn.classList.add('opacity-80');
-          // Soft-remove card after success so list stays current
+          // Refresh list so the order leaves Pending Review after sheet status update
           setTimeout(function () {
             loadOrders();
-          }, 1600);
+          }, 1400);
         } catch (e) {
           showToast(e.message || 'Failed to send invoice', false);
           if (statusEl) statusEl.innerHTML = '<span class="text-red-600">' + escapeHtml(e.message || 'Failed') + '</span>';
