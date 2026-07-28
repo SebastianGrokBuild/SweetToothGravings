@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-admin-ux-v17";
+const DEPLOY_BUILD = "2026-07-28-admin-dashboard-v18";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -259,6 +259,8 @@ function isPendingReviewStatus(status) {
     s.includes("deposit invoice sent") ||
     s.includes("deposit_invoice_sent") ||
     s === "paid" ||
+    s === "completed" ||
+    s === "complete" ||
     s.includes("declined") ||
     s.includes("✓ sent")
   ) {
@@ -271,6 +273,52 @@ function isPendingReviewStatus(status) {
     s === "new" ||
     s.indexOf("pending") === 0
   );
+}
+
+function isInvoiceSentStatus(status) {
+  const s = String(status || "")
+    .trim()
+    .toLowerCase();
+  return (
+    s === "invoice sent" ||
+    s.includes("invoice sent") ||
+    s === "deposit_invoice_sent" ||
+    s.includes("deposit invoice sent")
+  );
+}
+
+function isPaidOrCompletedStatus(status) {
+  const s = String(status || "")
+    .trim()
+    .toLowerCase();
+  return (
+    s === "paid" ||
+    s === "completed" ||
+    s === "complete" ||
+    s === "paid / completed" ||
+    s.startsWith("paid") ||
+    s.startsWith("completed")
+  );
+}
+
+function summarizeOrderStatuses(orders) {
+  let pending = 0;
+  let invoiceSent = 0;
+  let paidCompleted = 0;
+  let other = 0;
+  for (const o of orders || []) {
+    if (isPendingReviewStatus(o.status)) pending += 1;
+    else if (isPaidOrCompletedStatus(o.status)) paidCompleted += 1;
+    else if (isInvoiceSentStatus(o.status)) invoiceSent += 1;
+    else other += 1;
+  }
+  return {
+    pendingReview: pending,
+    invoiceSent,
+    paidCompleted,
+    other,
+    total: (orders || []).length,
+  };
 }
 
 /** Parse "$45.00" / "45" / "45,00" / "USD 45" style values from the sheet. */
@@ -1373,6 +1421,7 @@ async function api(req, res, pathname, baseUrl) {
       }
 
       const all = [...byId.values()];
+      const summary = summarizeOrderStatuses(all);
       const pending = all
         .filter((o) => isPendingReviewStatus(o.status))
         .filter((o) => o.customerEmail && String(o.customerEmail).includes("@"))
@@ -1387,10 +1436,113 @@ async function api(req, res, pathname, baseUrl) {
         success: true,
         orders: pending,
         count: pending.length,
+        summary,
         sheetError,
       });
     } catch (e) {
       console.error("[admin/pending-orders]", e);
+      return json(res, 500, { error: e.message || String(e) });
+    }
+  }
+
+  /**
+   * Update order Status in Google Sheet (and local orders.json when present).
+   * POST /api/admin/update-order-status
+   * Body: { orderNumber, row?, status: "Paid" | "Completed" | "Invoice Sent" | ... }
+   */
+  if (method === "POST" && pathname === "/api/admin/update-order-status") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON body" });
+    }
+
+    const orderNumber = String(
+      body.orderNumber || body.orderId || body.order || "",
+    ).trim();
+    const sheetRow =
+      body.row != null && body.row !== ""
+        ? body.row
+        : body.sheetRow != null
+          ? body.sheetRow
+          : null;
+    let status = String(body.status || "").trim();
+    // Normalize common button labels
+    const statusKey = status.toLowerCase();
+    if (statusKey === "mark as paid" || statusKey === "paid") status = "Paid";
+    if (
+      statusKey === "mark as completed" ||
+      statusKey === "completed" ||
+      statusKey === "complete"
+    ) {
+      status = "Completed";
+    }
+    if (
+      statusKey === "invoice sent" ||
+      statusKey === "deposit invoice sent"
+    ) {
+      status = "Invoice Sent";
+    }
+
+    if (!orderNumber && (sheetRow == null || sheetRow === "")) {
+      return json(res, 400, { error: "orderNumber or row is required" });
+    }
+    if (!status) {
+      return json(res, 400, { error: "status is required" });
+    }
+
+    const allowed = new Set([
+      "Pending Review",
+      "Invoice Sent",
+      "Paid",
+      "Completed",
+      "Declined",
+    ]);
+    if (!allowed.has(status)) {
+      return json(res, 400, {
+        error: `Unsupported status "${status}". Use: ${[...allowed].join(", ")}`,
+      });
+    }
+
+    try {
+      google.forceProductionTargets();
+      const stripeDepositLabel =
+        status === "Invoice Sent"
+          ? "✓ Sent"
+          : status === "Paid" || status === "Completed"
+            ? "✓ Paid"
+            : null;
+
+      const sheetUpdate = await google.updateOrderStatusInSheet({
+        orderNumber,
+        sheetRow,
+        status,
+        stripeDepositLabel,
+      });
+
+      // Mirror onto local orders.json when we know the id
+      if (orderNumber) {
+        const list = loadOrders();
+        const order = list.find((o) => o.id === orderNumber);
+        if (order) {
+          order.status = status;
+          order.updatedAt = new Date().toISOString();
+          saveOrders(list);
+        }
+      }
+
+      return json(res, 200, {
+        success: true,
+        orderNumber,
+        status,
+        sheetUpdate,
+      });
+    } catch (e) {
+      console.error("[admin/update-order-status]", e);
       return json(res, 500, { error: e.message || String(e) });
     }
   }

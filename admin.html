@@ -249,6 +249,61 @@
       border-color: #f0c4c4;
       background: #fff8f8;
     }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 0.7rem 0.45rem;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(63, 42, 43, 0.04);
+    }
+    .stat-card .stat-num {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .stat-card .stat-label {
+      margin-top: 0.2rem;
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #8B6F6F;
+      line-height: 1.25;
+    }
+    .stat-card.pending .stat-num { color: #7B4DB8; }
+    .stat-card.invoice .stat-num { color: #1565C0; }
+    .stat-card.paid .stat-num { color: #2E7D32; }
+    .status-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+      margin-top: 0.55rem;
+    }
+    .btn-secondary {
+      min-height: 42px;
+      border-radius: 0.9rem;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .btn-secondary:active:not(:disabled) { background: #F5EEFC; }
+    .btn-secondary:disabled { opacity: 0.55; }
+    .btn-secondary.paid-btn { border-color: #c8e6c9; color: #1B5E20; }
+    .btn-secondary.done-btn { border-color: #d7cce8; color: #5E35B1; }
     .toast {
       position: fixed;
       left: 1rem;
@@ -321,7 +376,7 @@
     <div class="px-4 pt-4 pb-2">
       <div class="flex items-end justify-between gap-3">
         <div>
-          <h2 class="heading-serif text-xl">Pending Review</h2>
+          <h2 class="heading-serif text-xl">Dashboard</h2>
           <p id="pending-count" class="text-sm text-[#6B5B5F] mt-0.5">Loading…</p>
         </div>
         <button id="refresh-btn" type="button" class="h-10 px-3.5 rounded-2xl border border-[#EDE4DC] bg-white text-sm font-medium text-[#3F2A2B] flex items-center gap-1.5">
@@ -329,6 +384,23 @@
           Refresh
         </button>
       </div>
+
+      <div id="summary-stats" class="stat-grid" aria-label="Order summary">
+        <div class="stat-card pending">
+          <div class="stat-num" id="stat-pending">—</div>
+          <div class="stat-label">Pending<br>Review</div>
+        </div>
+        <div class="stat-card invoice">
+          <div class="stat-num" id="stat-invoice">—</div>
+          <div class="stat-label">Invoice<br>Sent</div>
+        </div>
+        <div class="stat-card paid">
+          <div class="stat-num" id="stat-paid">—</div>
+          <div class="stat-label">Paid /<br>Completed</div>
+        </div>
+      </div>
+
+      <h3 class="heading-serif text-lg mt-5">Pending Review</h3>
     </div>
 
     <div id="orders-list" class="flex-1 overflow-y-auto px-4 pb-8 space-y-3">
@@ -496,15 +568,26 @@
         }).join('');
       }
 
+      function renderSummary(summary) {
+        var s = summary || {};
+        document.getElementById('stat-pending').textContent =
+          s.pendingReview != null ? s.pendingReview : '—';
+        document.getElementById('stat-invoice').textContent =
+          s.invoiceSent != null ? s.invoiceSent : '—';
+        document.getElementById('stat-paid').textContent =
+          s.paidCompleted != null ? s.paidCompleted : '—';
+      }
+
       async function loadOrders() {
         skeleton();
-        pendingCount.textContent = 'Loading pending orders…';
+        pendingCount.textContent = 'Loading orders…';
         try {
           var data = await api('/api/admin/pending-orders');
           var orders = data.orders || [];
+          renderSummary(data.summary);
           pendingCount.textContent = orders.length
-            ? orders.length + ' order' + (orders.length === 1 ? '' : 's') + ' waiting'
-            : 'No pending orders';
+            ? orders.length + ' pending · email invoices when ready'
+            : 'No pending review orders';
           renderOrders(orders);
           if (data.sheetError) {
             console.warn('Sheet read warning:', data.sheetError);
@@ -516,6 +599,7 @@
             return;
           }
           pendingCount.textContent = 'Could not load orders';
+          renderSummary({});
           ordersList.innerHTML =
             '<div class="order-card text-center py-8">' +
             '<p class="text-[#6B5B5F] text-sm">' + escapeHtml(e.message || 'Load failed') + '</p>' +
@@ -762,6 +846,20 @@
                 '<i class="fa-solid fa-paper-plane text-sm"></i>' +
                 '<span>Send Invoice by Email</span>' +
               '</button>' +
+              '<div class="status-actions">' +
+                '<button type="button" class="btn-secondary paid-btn mark-status-btn"' +
+                  ' data-order="' + escapeHtml(orderNumber) + '"' +
+                  ' data-row="' + escapeHtml(String(row)) + '"' +
+                  ' data-status="Paid">' +
+                  '<i class="fa-solid fa-circle-check"></i><span>Mark as Paid</span>' +
+                '</button>' +
+                '<button type="button" class="btn-secondary done-btn mark-status-btn"' +
+                  ' data-order="' + escapeHtml(orderNumber) + '"' +
+                  ' data-row="' + escapeHtml(String(row)) + '"' +
+                  ' data-status="Completed">' +
+                  '<i class="fa-solid fa-flag-checkered"></i><span>Mark as Completed</span>' +
+                '</button>' +
+              '</div>' +
               '<p class="send-status mt-2 text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
             '</article>'
           );
@@ -770,6 +868,11 @@
         ordersList.querySelectorAll('.send-invoice-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
             sendInvoice(btn);
+          });
+        });
+        ordersList.querySelectorAll('.mark-status-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            markOrderStatus(btn);
           });
         });
         ordersList.querySelectorAll('.photo-open-btn').forEach(function (btn) {
@@ -790,7 +893,6 @@
             }
             if (navigator.clipboard && navigator.clipboard.writeText) {
               navigator.clipboard.writeText(em).then(function () { done(true); }).catch(function () {
-                // fallback
                 try {
                   var ta = document.createElement('textarea');
                   ta.value = em;
@@ -814,6 +916,56 @@
             }
           });
         });
+      }
+
+      async function markOrderStatus(btn) {
+        var orderNumber = btn.getAttribute('data-order') || '';
+        var row = btn.getAttribute('data-row') || '';
+        var status = btn.getAttribute('data-status') || '';
+        var card = btn.closest('.order-card');
+        var statusEl = card ? card.querySelector('.send-status') : null;
+        var allStatusBtns = card
+          ? card.querySelectorAll('.mark-status-btn, .send-invoice-btn')
+          : [btn];
+
+        if (!status) return;
+        if (!orderNumber && !row) {
+          showToast('Missing order id', false);
+          return;
+        }
+
+        allStatusBtns.forEach(function (b) { b.disabled = true; });
+        var original = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Saving…</span>';
+        if (statusEl) statusEl.textContent = 'Updating status to ' + status + '…';
+
+        try {
+          var body = { orderNumber: orderNumber, status: status };
+          if (row) body.row = row;
+          var data = await api('/api/admin/update-order-status', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (!data.success) throw new Error(data.error || 'Update failed');
+          showToast(orderNumber + ' → ' + status, true);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-green-700 font-medium">✓ Status: ' +
+              escapeHtml(status) +
+              '</span>';
+          }
+          setTimeout(function () {
+            loadOrders();
+          }, 900);
+        } catch (e) {
+          showToast(e.message || 'Could not update status', false);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-red-600">' + escapeHtml(e.message || 'Failed') + '</span>';
+          }
+          allStatusBtns.forEach(function (b) { b.disabled = false; });
+          btn.innerHTML = original;
+        }
       }
 
       async function sendInvoice(btn) {
