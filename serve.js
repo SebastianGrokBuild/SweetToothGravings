@@ -738,50 +738,77 @@ async function stripeSendDepositInvoice(opts) {
     "metadata[invoiceTo]": email,
   });
 
-  // Prefer priced cart lines so the hosted invoice shows full breakdown
+  // Create draft invoice first, then attach lines explicitly (Stripe no longer
+  // auto-includes pending invoice items unless pending_invoice_items_behavior=include).
+  const invoice = await stripeForm("/v1/invoices", {
+    customer: customer.id,
+    collection_method: "send_invoice",
+    days_until_due: "7",
+    auto_advance: "false",
+    pending_invoice_items_behavior: "exclude",
+    "metadata[orderId]": orderId,
+    "metadata[paymentType]": "sheet_deposit_invoice",
+    "metadata[stripeAccountId]": CONFIG.stripeAccountId,
+    "metadata[customerEmail]": email,
+    "metadata[depositCents]": String(amountCents),
+    "metadata[subtotalCents]": String(subtotalCents),
+    description: description.slice(0, 500),
+    ...(opts.footer ? { footer: String(opts.footer).slice(0, 500) } : {}),
+  });
+
+  // Prefer priced cart lines so the hosted invoice shows full breakdown.
+  // Each line shows full item price in the description; amounts are 50% share
+  // so the invoice total equals the deposit (no $0 / auto-paid invoices).
   const priced = parsedItems.filter(
     (it) => it && it.amountCents != null && it.amountCents > 0 && it.description,
   );
-  let added = 0;
+  let lineItemCount = 0;
+
   if (priced.length > 0) {
-    for (const it of priced) {
+    const fullSum = priced.reduce((s, it) => s + it.amountCents, 0);
+    let allocated = 0;
+    for (let i = 0; i < priced.length; i++) {
+      const it = priced[i];
+      const isLast = i === priced.length - 1;
+      // Proportional 50% deposit share of this line
+      let share = isLast
+        ? amountCents - allocated
+        : Math.round((it.amountCents / fullSum) * amountCents);
+      if (share < 1 && amountCents - allocated >= 1) share = 1;
+      if (share < 1) continue;
+      allocated += share;
+      const fullDollars = (it.amountCents / 100).toFixed(2);
+      const desc = `${it.description} · 50% deposit share (full line $${fullDollars})`.slice(
+        0,
+        500,
+      );
       await stripeForm("/v1/invoiceitems", {
         customer: customer.id,
+        invoice: invoice.id,
         currency: "usd",
-        amount: String(it.amountCents),
-        description: String(it.description).slice(0, 500),
+        amount: String(share),
+        description: desc,
         "metadata[orderId]": orderId,
-        "metadata[kind]": "order_line",
+        "metadata[kind]": "order_line_deposit",
+        "metadata[fullLineCents]": String(it.amountCents),
       });
-      added += it.amountCents;
+      lineItemCount += 1;
     }
-    // Net amount due on this invoice must equal the 50% deposit
-    const credit = added - amountCents;
-    if (credit > 0) {
+    // If rounding left a gap, top up on a small adjustment line
+    if (allocated < amountCents) {
       await stripeForm("/v1/invoiceitems", {
         customer: customer.id,
+        invoice: invoice.id,
         currency: "usd",
-        amount: String(-credit),
-        description: `Balance due later (50% remaining of $${(added / 100).toFixed(2)} order)`.slice(
-          0,
-          500,
-        ),
+        amount: String(amountCents - allocated),
+        description: "Deposit rounding adjustment",
         "metadata[orderId]": orderId,
-        "metadata[kind]": "remaining_balance_credit",
+        "metadata[kind]": "deposit_round",
       });
-    } else if (credit < 0) {
-      // Lines sum below deposit — top up so total = deposit
-      await stripeForm("/v1/invoiceitems", {
-        customer: customer.id,
-        currency: "usd",
-        amount: String(-credit),
-        description: "Deposit adjustment".slice(0, 500),
-        "metadata[orderId]": orderId,
-        "metadata[kind]": "deposit_topup",
-      });
+      lineItemCount += 1;
     }
   } else {
-    // No parseable prices — single deposit line, put breakdown in description
+    // No parseable prices — single deposit line with free-text breakdown
     const detail = String(opts.lineItemsText || description || "")
       .replace(/\s+/g, " ")
       .trim()
@@ -793,34 +820,19 @@ async function stripeSendDepositInvoice(opts) {
     ).slice(0, 500);
     await stripeForm("/v1/invoiceitems", {
       customer: customer.id,
+      invoice: invoice.id,
       currency: "usd",
       amount: String(amountCents),
       description: productName,
       "metadata[orderId]": orderId,
       "metadata[kind]": "deposit",
     });
+    lineItemCount = 1;
   }
 
-  // Ensure we never finalize a $0 invoice
-  // (Stripe will error if net is 0; double-check locally)
   if (amountCents < 50) {
     throw new Error("Deposit amount resolved to less than $0.50");
   }
-
-  const invoice = await stripeForm("/v1/invoices", {
-    customer: customer.id,
-    collection_method: "send_invoice",
-    days_until_due: "7",
-    auto_advance: "true",
-    "metadata[orderId]": orderId,
-    "metadata[paymentType]": "sheet_deposit_invoice",
-    "metadata[stripeAccountId]": CONFIG.stripeAccountId,
-    "metadata[customerEmail]": email,
-    "metadata[depositCents]": String(amountCents),
-    "metadata[subtotalCents]": String(subtotalCents),
-    description: description.slice(0, 500),
-    ...(opts.footer ? { footer: String(opts.footer).slice(0, 500) } : {}),
-  });
 
   const finalized = await stripeForm(`/v1/invoices/${invoice.id}/finalize`, {
     auto_advance: "true",
@@ -836,7 +848,7 @@ async function stripeSendDepositInvoice(opts) {
     );
   }
 
-  // Stripe emails the hosted invoice to the customer.email on this Customer object
+  // Stripe emails the hosted invoice to customer.email on this Customer object
   const sent = await stripeForm(`/v1/invoices/${finalized.id}/send`, {});
 
   const url =
@@ -855,7 +867,7 @@ async function stripeSendDepositInvoice(opts) {
     amountDueCents: total,
     method: "stripe_invoice_email",
     status: sent.status || finalized.status,
-    lineItemCount: priced.length || 1,
+    lineItemCount: lineItemCount || 1,
   };
 }
 
