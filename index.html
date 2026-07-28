@@ -17,8 +17,18 @@
   <meta property="og:image" content="https://sweettoothcravings.shop/assets/images/hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/images/logo.gpj.png" type="image/png">
+  <!-- Above-the-fold image preloads (hero + first featured/menu products) -->
+  <link rel="preload" as="image" href="assets/images/hero.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/logo.gpj.png" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/custom-cakes.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/tres-leches-9x13.jpg">
+  <link rel="preload" as="image" href="assets/images/chocoflan.jpg">
+  <link rel="preload" as="image" href="assets/images/breakable-heart.jpg">
+  <link rel="preload" as="image" href="assets/images/churro-cheesecake.jpg">
+  <link rel="preload" as="image" href="assets/images/cupcakes.jpg">
+  <link rel="preload" as="image" href="assets/images/2-tier-cakes.jpg">
   <!-- cache-bust: force browsers off stale order form / config after deploy -->
-  <script src="config.js?v=20260727-insert-top-v5"></script>
+  <script src="config.js?v=20260728-img-eager-v1"></script>
   <script>
     (function () {
       var host = location.hostname;
@@ -27,7 +37,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       // Live shop always uses the production order API (Order Log + Drive forced server-side).
-      window.STC_DEPLOY_BUILD = '2026-07-27-insert-top-v5';
+      window.STC_DEPLOY_BUILD = '2026-07-28-img-eager-v1';
       if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
@@ -66,6 +76,8 @@
     .product-image-container {
       position: relative;
       background: #f8f1eb;
+      /* Reserve space so cards don't collapse into empty gaps while images load */
+      overflow: hidden;
     }
 
     .product-image-fallback {
@@ -114,9 +126,26 @@
     }
 
     .dessert-bg {
+      background-color: #3F2A2B;
       background-image: linear-gradient(rgba(0,0,0,0.18), rgba(0,0,0,0.22)), url('assets/images/hero.jpg');
       background-size: cover;
-      background-position: center;
+      background-position: center center;
+      background-repeat: no-repeat;
+      /* Help browser prioritize painting the hero once the preloaded image is ready */
+      background-attachment: scroll;
+    }
+
+    @media (max-width: 640px) {
+      .dessert-bg {
+        background-position: center 30%;
+        min-height: 78vh;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .dessert-bg {
+        background-position: center center;
+      }
     }
 
     .modal {
@@ -135,11 +164,19 @@
     .product-img {
       filter: contrast(1.1) brightness(0.97) saturate(1.08);
       /* Disable iPhone Live Photo video playback on hover (prevents flickering) */
-      image-rendering: crisp-edges;
+      image-rendering: auto;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
       pointer-events: none;
       user-select: none;
       -webkit-touch-callout: none;
       -webkit-user-drag: none;
+      /* Avoid empty flash: soft fill while decode finishes */
+      background-color: #f8f1eb;
+      object-fit: cover;
+      object-position: center;
+      width: 100%;
+      height: 100%;
     }
 
     /* Apply hover scale to the container instead of the image to avoid triggering Live Photo behavior */
@@ -293,7 +330,7 @@
         <!-- Logo -->
         <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" 
            class="flex items-center gap-x-2 sm:gap-x-3 cursor-pointer hover:opacity-90 transition-opacity">
-          <img src="assets/images/logo.gpj.png" alt="Sweet Tooth Cravings" class="h-10 sm:h-12 md:h-14 lg:h-16 w-auto" onerror="this.style.display='none'">
+          <img src="assets/images/logo.gpj.png" alt="Sweet Tooth Cravings" class="h-10 sm:h-12 md:h-14 lg:h-16 w-auto" width="160" height="64" loading="eager" fetchpriority="high" decoding="async" onerror="this.style.display='none'">
           <span class="font-semibold text-[14px] sm:text-base md:text-lg lg:text-[21px] tracking-[-0.4px] leading-none whitespace-nowrap">Sweettoothcravings</span>
         </a>
 
@@ -386,15 +423,15 @@
           <div class="flex items-center gap-x-5 mt-10 text-sm">
             <div class="flex items-center -space-x-1">
               <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
-                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" fetchpriority="high" decoding="async" alt="Cupcakes" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CUPCAKES</div>
               </div>
               <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
-                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" decoding="async" alt="Flan" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">FLAN</div>
               </div>
               <div class="w-7 h-7 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative">
-                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" decoding="async" alt="Cakes" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CAKES</div>
               </div>
             </div>
@@ -717,36 +754,36 @@
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-      <!-- Instagram photos - replace with your actual images -->
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/cupcakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Cupcakes from Sweet Tooth Cravings">
+      <!-- Instagram gallery — below the fold: lazy-load to keep first paint fast -->
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/cupcakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Cupcakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/chocoflan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Chocoflan from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/chocoflan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Chocoflan from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/coquito.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Coquito from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/coquito.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Coquito from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/churro-cheesecake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Churro Cheesecake from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/churro-cheesecake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Churro Cheesecake from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/2-tier-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="2 Tier Cakes from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/2-tier-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="2 Tier Cakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/custom-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Custom Cakes from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/custom-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Custom Cakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/bento-cake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Bento Cake from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/bento-cake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Bento Cake from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/flan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Flan from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/flan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Flan from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/breakable-heart.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Breakable Heart from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/breakable-heart.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Breakable Heart from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group">
-        <img src="assets/images/mini-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Mini Cakes from Sweet Tooth Cravings">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
+        <img src="assets/images/mini-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Mini Cakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
     </div>
 
@@ -1332,15 +1369,22 @@
 
 
     // Render all products — every user-provided image now has its own card
+    // First row / above-the-fold cards: eager + high priority (no lazy gaps).
+    // Remaining cards: lazy to keep later-page performance.
     function renderProducts(filteredProducts = mainDesserts) {
       const grid = document.getElementById('products-grid')
       grid.innerHTML = ''
 
-      filteredProducts.forEach(product => {
+      filteredProducts.forEach((product, index) => {
         const card = document.createElement('div')
         card.className = `product-card group bg-white border border-[#EDE4DC] rounded-3xl overflow-hidden flex flex-col`
         
         const priceLabel = product.startingAt ? `Starting at $${product.price}` : `$${product.price}`
+        const isFirstBatch = index < 8
+        const isHighPriority = index < 4
+        const loadingAttr = isFirstBatch ? 'eager' : 'lazy'
+        const fetchPriorityAttr = isHighPriority ? 'high' : 'auto'
+        const decodingAttr = isHighPriority ? 'sync' : 'async'
         const selectBtn = `<button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
                       class="flex-1 h-11 text-sm rounded-2xl bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
                 <i class="fa-solid fa-plus text-xs"></i>
@@ -1351,9 +1395,12 @@
           <div class="relative overflow-hidden aspect-[4/3] bg-[#F9F1EB] product-image-container">
             <img src="${product.img}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
-                 alt="" 
-                 loading="eager"
-                 decoding="sync"
+                 alt="${product.name}"
+                 width="480"
+                 height="360"
+                 loading="${loadingAttr}"
+                 fetchpriority="${fetchPriorityAttr}"
+                 decoding="${decodingAttr}"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1393,13 +1440,16 @@
 
         const priceLabel = product.startingAt ? `Starting at $${product.price}` : `$${product.price}`
 
+        // Party section is further down the page — lazy-load to keep hero/menu fast
         card.innerHTML = `
           <div class="relative overflow-hidden aspect-[16/9] bg-[#F9F1EB] product-image-container">
             <img src="${product.img}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
-                 alt="" 
-                 loading="eager"
-                 decoding="sync"
+                 alt="${product.name}"
+                 width="640"
+                 height="360"
+                 loading="lazy"
+                 decoding="async"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-3 right-3 bg-white/95 px-3 py-1 rounded-2xl text-xs font-semibold shadow-sm">${priceLabel}</div>
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
@@ -1442,16 +1492,25 @@
       if (!container) return
       container.innerHTML = ''
 
-      featuredProductIds.forEach(id => {
+      // Featured treats sit above the fold — never lazy-load (avoids empty card gaps)
+      featuredProductIds.forEach((id, index) => {
         const product = products.find(p => p.id === id)
         if (!product) return
 
         const priceLabel = product.startingAt ? `From $${product.price}` : `$${product.price}`
+        const isHighPriority = index < 4
         const card = document.createElement('article')
         card.className = 'showcase-card shrink-0 w-[220px] sm:w-[240px] bg-white border border-[#EDE4DC] rounded-3xl overflow-hidden flex flex-col'
         card.innerHTML = `
-          <div class="relative aspect-[4/3] bg-[#F9F1EB] overflow-hidden">
-            <img src="${product.img}" alt="${product.name}" class="product-img absolute inset-0 w-full h-full object-cover" loading="lazy">
+          <div class="relative aspect-[4/3] bg-[#F9F1EB] overflow-hidden product-image-container">
+            <img src="${product.img}"
+                 alt="${product.name}"
+                 class="product-img absolute inset-0 w-full h-full object-cover"
+                 width="480"
+                 height="360"
+                 loading="eager"
+                 fetchpriority="${isHighPriority ? 'high' : 'auto'}"
+                 decoding="${isHighPriority ? 'sync' : 'async'}">
           </div>
           <div class="p-4 flex flex-col flex-1">
             <h3 class="font-semibold text-[#3F2A2B] leading-tight">${product.name}</h3>
