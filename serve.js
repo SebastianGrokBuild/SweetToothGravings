@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-deposit-lines-v12";
+const DEPLOY_BUILD = "2026-07-28-row-email-v13";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -714,7 +714,12 @@ function stripeForm(path, fields) {
 async function stripeSendDepositInvoice(opts) {
   const amountCents = Math.round(Number(opts.amountCents) || 0);
   if (amountCents < 50) throw new Error("Stripe amount must be at least $0.50");
-  const email = String(opts.customerEmail || "").trim();
+  // Exact recipient from sheet Email column only — never bakery / account defaults
+  const email = String(opts.customerEmail || "")
+    .trim()
+    .replace(/^mailto:/i, "")
+    .split(/[?,\s;]/)[0]
+    .trim();
   if (!email.includes("@")) throw new Error("Customer email required");
   if (isBakeryInboxEmail(email)) {
     throw new Error(
@@ -724,23 +729,37 @@ async function stripeSendDepositInvoice(opts) {
   const orderId = opts.orderId || "";
   const name = String(opts.customerName || "").trim();
   const description = String(opts.description || "50% order deposit").slice(0, 500);
+  const orderDetails = String(opts.orderDetails || opts.lineItemsText || "").trim();
   const subtotalCents = Math.round(
     Number(opts.subtotalCents) || amountCents * 2,
   );
   const parsedItems = Array.isArray(opts.lineItems) ? opts.lineItems : [];
 
-  // Always create a fresh customer for this row email so Stripe emails the right person
+  // Fresh Stripe Customer pinned to this exact row email (invoice goes only here)
   const customer = await stripeForm("/v1/customers", {
     email,
     ...(name ? { name } : {}),
     "metadata[orderId]": orderId,
     "metadata[source]": "sweet_tooth_order_log",
     "metadata[invoiceTo]": email,
+    "metadata[sheetRowEmail]": email,
   });
+  if (
+    String(customer.email || "")
+      .trim()
+      .toLowerCase() !== email.toLowerCase()
+  ) {
+    throw new Error(
+      `Stripe customer email mismatch (got ${customer.email}, expected ${email})`,
+    );
+  }
 
   // Create draft invoice first, then attach lines explicitly (Stripe no longer
   // auto-includes pending invoice items unless pending_invoice_items_behavior=include).
-  const invoice = await stripeForm("/v1/invoices", {
+  const memoParts = [];
+  if (orderDetails) memoParts.push(orderDetails.replace(/\s+/g, " ").slice(0, 450));
+  memoParts.push(`Billed to: ${email}`);
+  const invoiceFields = {
     customer: customer.id,
     collection_method: "send_invoice",
     days_until_due: "7",
@@ -750,11 +769,34 @@ async function stripeSendDepositInvoice(opts) {
     "metadata[paymentType]": "sheet_deposit_invoice",
     "metadata[stripeAccountId]": CONFIG.stripeAccountId,
     "metadata[customerEmail]": email,
+    "metadata[sheetRowEmail]": email,
     "metadata[depositCents]": String(amountCents),
     "metadata[subtotalCents]": String(subtotalCents),
     description: description.slice(0, 500),
+    memo: memoParts.join(" · ").slice(0, 500),
     ...(opts.footer ? { footer: String(opts.footer).slice(0, 500) } : {}),
-  });
+  };
+  // Custom fields visible on hosted invoice (max 4)
+  let cf = 0;
+  if (orderId) {
+    invoiceFields[`custom_fields[${cf}][name]`] = "Order";
+    invoiceFields[`custom_fields[${cf}][value]`] = String(orderId).slice(0, 30);
+    cf += 1;
+  }
+  if (opts.eventDate) {
+    invoiceFields[`custom_fields[${cf}][name]`] = "Event / needed-by";
+    invoiceFields[`custom_fields[${cf}][value]`] = String(opts.eventDate).slice(0, 30);
+    cf += 1;
+  }
+  invoiceFields[`custom_fields[${cf}][name]`] = "Invoice to";
+  invoiceFields[`custom_fields[${cf}][value]`] = email.slice(0, 30);
+  cf += 1;
+  if (name) {
+    invoiceFields[`custom_fields[${cf}][name]`] = "Customer";
+    invoiceFields[`custom_fields[${cf}][value]`] = name.slice(0, 30);
+  }
+
+  const invoice = await stripeForm("/v1/invoices", invoiceFields);
 
   // Prefer priced cart lines so the hosted invoice shows full breakdown.
   // Each line shows full item price in the description; amounts are 50% share
@@ -809,7 +851,7 @@ async function stripeSendDepositInvoice(opts) {
     }
   } else {
     // No parseable prices — single deposit line with free-text breakdown
-    const detail = String(opts.lineItemsText || description || "")
+    const detail = String(opts.lineItemsText || orderDetails || description || "")
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 400);
@@ -1198,10 +1240,13 @@ async function api(req, res, pathname, baseUrl) {
     }
 
     const orderId = String(body.orderId || body.order_id || "").trim();
-    // Customer email MUST be the sheet row Email — never bakery / notify defaults
-    const customerEmail = String(
-      body.customerEmail || body.email || "",
-    )
+    // ONLY the sheet row Email — ignore bakery, notify, admin, or any other address
+    const rawSheetEmail = String(
+      body.sheetRowEmail || body.customerEmail || body.email || "",
+    ).trim();
+    const customerEmail = rawSheetEmail
+      .replace(/^mailto:/i, "")
+      .split(/[?,\s;]/)[0]
       .trim()
       .toLowerCase();
     const customerName = String(
@@ -1216,7 +1261,14 @@ async function api(req, res, pathname, baseUrl) {
         body.lineSummary ||
         "",
     ).trim();
+    const orderDetails = String(
+      body.orderDetails || body.fullOrderDetails || lineSummary || "",
+    ).trim();
     const orderType = String(body.orderType || body.order_type || "Order").trim();
+    const allergies = String(body.allergies || "").trim();
+    const notes = String(
+      body.notes || body.decorationNotes || body.additionalNotes || "",
+    ).trim();
 
     if (!customerEmail || !customerEmail.includes("@")) {
       return json(res, 400, {
@@ -1228,6 +1280,15 @@ async function api(req, res, pathname, baseUrl) {
       return json(res, 400, {
         error:
           "The Email column is set to the bakery inbox. Put the customer’s email in the Email column for that row, then try again.",
+      });
+    }
+    // Refuse any alternate recipient fields if they disagree with the row Email
+    const altTo = String(body.to || body.recipient || body.sendTo || "")
+      .trim()
+      .toLowerCase();
+    if (altTo && altTo.includes("@") && altTo !== customerEmail) {
+      return json(res, 400, {
+        error: `Invoice recipient must be the row Email (${customerEmail}), not ${altTo}.`,
       });
     }
     if (!stripeLiveConfigured()) {
@@ -1302,6 +1363,20 @@ async function api(req, res, pathname, baseUrl) {
     const shopUrl = shopPublicUrl(req, baseUrl);
     const oid = orderId || `sheet-${Date.now().toString(36)}`;
     const parsedLineItems = parseSheetLineItems(lineSummary);
+    const fullOrderDetails = [
+      orderDetails || lineSummary || null,
+      customerName ? `Customer: ${customerName}` : null,
+      `Email: ${customerEmail}`,
+      customerPhone ? `Phone: ${customerPhone}` : null,
+      eventDate ? `Event / needed-by: ${eventDate}` : null,
+      orderType ? `Order type: ${orderType}` : null,
+      allergies ? `Allergies: ${allergies}` : null,
+      notes ? `Notes: ${notes}` : null,
+      Number.isFinite(subtotal) ? `Est. total: $${subtotal.toFixed(2)}` : null,
+      `Deposit due (50%): $${depositDollars.toFixed(2)}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
     const desc = [
       customerName ? `For ${customerName}` : null,
       Number.isFinite(subtotal) ? `Est. total $${subtotal.toFixed(2)}` : null,
@@ -1326,24 +1401,36 @@ async function api(req, res, pathname, baseUrl) {
           orderId: oid,
           customerEmail,
           customerName,
+          eventDate,
           amountCents: depositCents,
           subtotalCents: Number.isFinite(subtotal)
             ? Math.round(subtotal * 100)
             : depositCents * 2,
           lineItems: parsedLineItems,
           lineItemsText: lineSummary,
+          orderDetails: fullOrderDetails,
           productName: "Sweet Tooth Cravings — 50% deposit",
           description: desc,
           footer: [
-            eventDate ? `Event / needed-by: ${eventDate}` : null,
+            `Emailed only to row Email: ${customerEmail}`,
+            eventDate ? `Event: ${eventDate}` : null,
             `Order ${oid}`,
-            `Invoice emailed only to: ${customerEmail}`,
+            customerPhone ? `Phone: ${customerPhone}` : null,
             "Remaining 50% due before pickup/delivery.",
           ]
             .filter(Boolean)
             .join(" · ")
             .slice(0, 500),
         });
+        if (
+          String(inv.emailedTo || "")
+            .trim()
+            .toLowerCase() !== customerEmail
+        ) {
+          throw new Error(
+            `Invoice sent to wrong address (${inv.emailedTo}); expected row Email ${customerEmail}`,
+          );
+        }
         payUrl = inv.url;
         sessionId = inv.invoiceId;
         lineItemCount = inv.lineItemCount || parsedLineItems.length || 1;
@@ -1354,9 +1441,10 @@ async function api(req, res, pathname, baseUrl) {
           to: customerEmail,
           method: "stripe_invoice_email",
           from: "Stripe",
+          sheetRowEmail: customerEmail,
         };
         console.log(
-          `[sheet/send-deposit-invoice] LIVE invoice ${inv.invoiceId} $${(amountDueCents / 100).toFixed(2)} → ${customerEmail} (${lineItemCount} lines)`,
+          `[sheet/send-deposit-invoice] LIVE invoice ${inv.invoiceId} $${(amountDueCents / 100).toFixed(2)} → ONLY ${customerEmail} (${lineItemCount} lines)`,
         );
       } catch (invErr) {
         console.warn(
@@ -1388,12 +1476,20 @@ async function api(req, res, pathname, baseUrl) {
             depositDollars,
             estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
             checkoutUrl: session.url,
-            lineSummary,
+            lineSummary: fullOrderDetails || lineSummary,
             eventDate,
             bakeryCopy: false,
           });
-          const toAddr = String((mail && mail.to) || customerEmail).toLowerCase();
-          if (isBakeryInboxEmail(toAddr) && toAddr !== customerEmail) {
+          const toAddr = String((mail && mail.to) || "")
+            .trim()
+            .toLowerCase();
+          if (toAddr && toAddr !== customerEmail) {
+            emailResult = {
+              sent: false,
+              ok: false,
+              error: `Email went to ${toAddr} instead of row Email ${customerEmail}`,
+            };
+          } else if (isBakeryInboxEmail(toAddr)) {
             emailResult = {
               sent: false,
               ok: false,
@@ -1404,6 +1500,7 @@ async function api(req, res, pathname, baseUrl) {
               sent: !!(mail && mail.ok !== false),
               ok: !!(mail && mail.ok !== false),
               to: customerEmail,
+              sheetRowEmail: customerEmail,
               method: mail && mail.method,
               from: mail && mail.from,
               error: mail && mail.error ? String(mail.error) : null,
@@ -1451,6 +1548,21 @@ async function api(req, res, pathname, baseUrl) {
         saveOrders(list);
       }
 
+      // Final guard: success with email only if recipient is the row Email
+      if (
+        emailResult.sent &&
+        String(emailResult.to || "")
+          .trim()
+          .toLowerCase() !== customerEmail
+      ) {
+        emailResult = {
+          sent: false,
+          ok: false,
+          error: `Refusing success: recipient ${emailResult.to} ≠ row Email ${customerEmail}`,
+          to: emailResult.to,
+        };
+      }
+
       return json(res, 200, {
         success: true,
         orderId: oid,
@@ -1468,12 +1580,14 @@ async function api(req, res, pathname, baseUrl) {
           amountCents: it.amountCents,
         })),
         lineItemCount,
+        emailedTo: emailResult.sent ? customerEmail : null,
+        sheetRowEmail: customerEmail,
         email: emailResult,
         sheetStatus: emailResult.sent
           ? "Deposit invoice sent"
           : "Deposit link created (email failed)",
         message: emailResult.sent
-          ? `Live $${(amountDueCents / 100).toFixed(2)} deposit invoice emailed to ${customerEmail}`
+          ? `Live $${(amountDueCents / 100).toFixed(2)} deposit invoice emailed only to ${customerEmail}`
           : `Payment link created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${payUrl}`,
       });
     } catch (e) {

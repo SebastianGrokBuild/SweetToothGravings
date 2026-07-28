@@ -526,14 +526,15 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var headers = getHeaderRow_(sheet);
   var record = readRowAsObject_(sheet, row, headers);
 
-  // Email MUST come from this row’s Email column only (never bakery defaults)
-  var email = String(record.email || "")
-    .trim()
-    .toLowerCase();
+  // FORCE: exact email from THIS row’s Email column only (never bakery / defaults)
+  var emailRaw = readExactEmailFromRow_(sheet, row, headers);
+  var email = normalizeEmail_(emailRaw);
   if (!email || email.indexOf("@") < 0) {
     if (showAlerts) {
       ui.alert(
-        "No valid Email on this row.\n\nAdd the customer email in the Email column for this row, then try again."
+        "No valid Email on this row (row " +
+          row +
+          ").\n\nPut the customer’s email in the Email column of this exact row, then try again."
       );
     }
     return { ok: false, error: "no_email on this row" };
@@ -541,13 +542,17 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   if (isBakeryEmail_(email)) {
     if (showAlerts) {
       ui.alert(
-        "The Email column is the bakery inbox (" +
+        "The Email column on row " +
+          row +
+          " is the bakery inbox (" +
           email +
           ").\n\nPut the customer’s email in the Email column of this row."
       );
     }
     return { ok: false, error: "email is bakery inbox, not customer" };
   }
+  // Keep record.email in sync with forced row read
+  record.email = email;
 
   var statusStr = String(record.status || "").toLowerCase();
   if (statusStr.indexOf("deposit invoice sent") >= 0 && showAlerts) {
@@ -603,27 +608,42 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     if (record.notes) lineBits.push(record.notes);
   }
 
+  // Full order packet from this row only (invoice + email content)
+  var orderDetails = buildFullOrderDetails_(record, email, subtotal, deposit);
+
   var payload = {
     orderId: record.orderId || "",
     customerName: record.customerName || "",
+    // Force API to use only this address
+    sheetRowEmail: email,
     customerEmail: email,
     email: email,
+    forceCustomerEmailOnly: true,
     customerPhone: record.phone || "",
     eventDate: record.eventDate || "",
     orderType: record.orderType || "",
     product: record.product || "",
+    allergies: record.allergies || "",
+    notes: record.notes || "",
+    decorationNotes: record.notes || "",
+    additionalNotes: record.additionalNotes || "",
     lineItemsDetail: lineBits.join("\n"),
     lineItems: lineBits.join("\n"),
+    orderDetails: orderDetails,
+    fullOrderDetails: orderDetails,
     estimatedSubtotal: isPositiveMoney_(subtotal) ? subtotal : "",
     depositAmount: deposit,
     depositDue: deposit,
     finalTotal: isPositiveMoney_(subtotal) ? subtotal : "",
+    sheetRow: row,
   };
 
   if (showAlerts) {
     var confirm = ui.alert(
       "Send 50% deposit invoice?",
-      "To (this row’s Email only):\n" +
+      "To (Email column, row " +
+        row +
+        " ONLY):\n" +
         email +
         "\nName: " +
         (record.customerName || "(none)") +
@@ -634,7 +654,7 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
         " (50%)" +
         "\nOrder: " +
         (record.orderId || "(none)") +
-        "\n\nStripe will email a real live invoice with full line items to that customer.",
+        "\n\nStripe will email a live invoice with full order details only to that address.",
       ui.ButtonSet.YES_NO
     );
     if (confirm !== ui.Button.YES) return { ok: false, error: "cancelled" };
@@ -686,8 +706,31 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     return { ok: false, error: msg };
   }
 
-  // Email is required for a full success — Stripe invoice email or notify fallback
+  // Success only if API emailed the exact row Email
+  var emailedTo = normalizeEmail_(
+    (data.email && data.email.to) || data.emailedTo || data.sheetRowEmail || ""
+  );
   var emailSent = !!(data.email && data.email.sent);
+  if (emailSent && emailedTo && emailedTo !== email) {
+    emailSent = false;
+    if (showAlerts) {
+      ui.alert(
+        "Blocked wrong recipient\n\n" +
+          "Row Email: " +
+          email +
+          "\nAPI sent to: " +
+          emailedTo +
+          "\n\nInvoice must only go to the Email column on this row."
+      );
+    }
+    setStatusIfPossible_(sheet, row, headers, "Deposit send failed (wrong email)");
+    return {
+      ok: false,
+      error: "wrong_recipient " + emailedTo + " ≠ " + email,
+      data: data,
+    };
+  }
+
   var payUrl = data.checkoutUrl || data.paymentUrl || "";
 
   setStatusIfPossible_(
@@ -728,9 +771,11 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
       "Deposit invoice ready\n\n" +
         "Amount: $" +
         Number(data.depositDollars).toFixed(2) +
-        "\nEmailed to " +
+        "\nEmailed ONLY to:\n" +
         email +
-        "\n\n" +
+        "\n(row " +
+        row +
+        " Email column)\n\n" +
         payUrl
     );
   }
@@ -782,13 +827,9 @@ function readRowAsObject_(sheet, row, headers) {
     return formatCellValue_(raw);
   }
 
-  /** Email: prefer display, strip spaces */
+  /** Email: forced via readExactEmailFromRow_ (kept here as fallback) */
   function colEmail() {
-    var idx = findHeaderIndex_(headers, HEADER_MAP.email);
-    if (idx < 0) return "";
-    var disp = String(displays[idx] != null ? displays[idx] : "").trim();
-    if (disp.indexOf("@") >= 0) return disp;
-    return formatCellValue_(values[idx]);
+    return readExactEmailFromRow_(sheet, row, headers);
   }
 
   /** Line items: multi-line display text */
@@ -825,10 +866,102 @@ function isPositiveMoney_(n) {
   return typeof n === "number" && isFinite(n) && n > 0;
 }
 
+function normalizeEmail_(raw) {
+  var s = String(raw == null ? "" : raw).trim();
+  if (!s) return "";
+  s = s.replace(/^mailto:/i, "");
+  // Strip "Name <email@x.com>" wrappers
+  var angle = s.match(/<([^>]+@[^>]+)>/);
+  if (angle) s = angle[1];
+  s = s.split(/[?,\s;]/)[0].trim();
+  return s.toLowerCase();
+}
+
+/**
+ * FORCE read of the Email column on this exact row.
+ * Prefers header literally named "Email", then Customer Email aliases.
+ * Handles display values and mailto: hyperlinks.
+ */
+function readExactEmailFromRow_(sheet, row, headers) {
+  var emailCol = -1;
+  var i;
+  for (i = 0; i < headers.length; i++) {
+    if (String(headers[i] || "").trim().toLowerCase() === "email") {
+      emailCol = i;
+      break;
+    }
+  }
+  if (emailCol < 0) {
+    emailCol = findHeaderIndex_(headers, HEADER_MAP.email);
+  }
+  if (emailCol < 0) return "";
+
+  var cell = sheet.getRange(row, emailCol + 1);
+
+  // mailto: rich-text links
+  try {
+    var rich = cell.getRichTextValue();
+    if (rich) {
+      var link = rich.getLinkUrl();
+      if (link && String(link).toLowerCase().indexOf("mailto:") === 0) {
+        return String(link)
+          .replace(/^mailto:/i, "")
+          .split("?")[0]
+          .trim();
+      }
+      // Also scan runs
+      var runs = rich.getRuns();
+      for (var r = 0; r < runs.length; r++) {
+        var rl = runs[r].getLinkUrl();
+        if (rl && String(rl).toLowerCase().indexOf("mailto:") === 0) {
+          return String(rl)
+            .replace(/^mailto:/i, "")
+            .split("?")[0]
+            .trim();
+        }
+      }
+    }
+  } catch (e1) {
+    /* ignore */
+  }
+
+  var display = String(cell.getDisplayValue() == null ? "" : cell.getDisplayValue()).trim();
+  if (display.indexOf("@") >= 0) return display;
+
+  var val = cell.getValue();
+  if (val != null && String(val).indexOf("@") >= 0) return String(val).trim();
+
+  return display || formatCellValue_(val);
+}
+
+/** Pack every order field from this row for the invoice body. */
+function buildFullOrderDetails_(record, email, subtotal, deposit) {
+  var lines = [];
+  if (record.orderId) lines.push("Order: " + record.orderId);
+  if (record.orderType) lines.push("Order type: " + record.orderType);
+  if (record.customerName) lines.push("Customer: " + record.customerName);
+  lines.push("Email: " + email);
+  if (record.phone) lines.push("Phone: " + record.phone);
+  if (record.eventDate) lines.push("Event / needed-by: " + record.eventDate);
+  if (record.lineItems) {
+    lines.push("— Line items —");
+    lines.push(record.lineItems);
+  } else {
+    if (record.product) lines.push("Product: " + record.product);
+    if (record.size) lines.push("Size: " + record.size);
+    if (record.flavor) lines.push("Flavor: " + record.flavor);
+    if (record.filling) lines.push("Filling: " + record.filling);
+  }
+  if (record.notes) lines.push("Decoration / notes: " + record.notes);
+  if (record.allergies) lines.push("Allergies: " + record.allergies);
+  if (record.additionalNotes) lines.push("Additional: " + record.additionalNotes);
+  if (isPositiveMoney_(subtotal)) lines.push("Estimated subtotal: $" + subtotal.toFixed(2));
+  if (isPositiveMoney_(deposit)) lines.push("Deposit due (50%): $" + deposit.toFixed(2));
+  return lines.join("\n");
+}
+
 function isBakeryEmail_(email) {
-  var e = String(email || "")
-    .trim()
-    .toLowerCase();
+  var e = normalizeEmail_(email);
   if (!e) return false;
   for (var i = 0; i < BAKERY_EMAIL_BLOCKLIST.length; i++) {
     if (e === BAKERY_EMAIL_BLOCKLIST[i]) return true;
