@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-27-stripe-live-v11";
+const DEPLOY_BUILD = "2026-07-27-deposit-lines-v12";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -221,13 +221,20 @@ function isSheetActionAuthorized(req) {
   }
 }
 
-/** Parse "$45.00" / "45" / "45,00" style values from the sheet. */
+/** Parse "$45.00" / "45" / "45,00" / "USD 45" style values from the sheet. */
 function parseMoneyValue(raw) {
   if (raw == null || raw === "") return NaN;
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
   let s = String(raw).trim();
-  if (!s) return NaN;
+  if (!s || /^[-—–]$/.test(s) || /^n\/?a$/i.test(s)) return NaN;
+  // Prefer last $amount in the string (handles "Est. $10 / deposit $5")
+  const dollar = s.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/);
+  if (dollar) {
+    const n = Number(dollar[1].replace(/,/g, ""));
+    if (Number.isFinite(n)) return n;
+  }
   s = s.replace(/[^0-9.,-]/g, "");
+  if (!s || s === "-" || s === "." || s === ",") return NaN;
   if (s.includes(",") && s.includes(".")) {
     // 1,234.56
     s = s.replace(/,/g, "");
@@ -237,6 +244,154 @@ function parseMoneyValue(raw) {
   }
   const n = Number(s);
   return Number.isFinite(n) ? n : NaN;
+}
+
+/** Bakery inboxes — never use as the customer invoice recipient. */
+function isBakeryInboxEmail(email) {
+  const e = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!e.includes("@")) return false;
+  const bakery = String(
+    process.env.ORDER_NOTIFY_EMAIL || "sweettoothcravingsorder@gmail.com",
+  )
+    .trim()
+    .toLowerCase();
+  if (e === bakery) return true;
+  return (
+    e.includes("sweettoothcravingsorder@") ||
+    e === "sweettoothcravings@gmail.com" ||
+    e.endsWith("@sweettoothcravings.shop")
+  );
+}
+
+/**
+ * Parse Order Log "Line Items" cell into invoice lines.
+ * Handles cart-submit format:
+ *   1. 2× Name | Size/Tier: 8" | Flavor: X | Line total: $40.00
+ */
+function parseSheetLineItems(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+  const items = [];
+  const lines = raw.split(/\r?\n/);
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (/^—+\s*(cart|notes|totals)\s*—+/i.test(t)) continue;
+    if (/^product:/i.test(t)) continue;
+    if (/^estimated subtotal:/i.test(t)) continue;
+    if (/^deposit due/i.test(t)) continue;
+    if (/^order notes:/i.test(t) || /^allergies:/i.test(t)) continue;
+    if (/^additional:/i.test(t) || /^phone/i.test(t) || /^needed by:/i.test(t))
+      continue;
+    if (/^\(no line items\)/i.test(t)) continue;
+
+    // "1. 2× Name | Size/Tier: … | Flavor: … | Line total: $40.00"
+    let m = t.match(
+      /^(?:\d+\.\s*)?(\d+)\s*[x×]\s+(.+?)(?:\s*\|\s*|$)/i,
+    );
+    let qty = 1;
+    let name = "";
+    let rest = t;
+    if (m) {
+      qty = Math.max(1, parseInt(m[1], 10) || 1);
+      name = m[2].trim();
+      rest = t.slice(m[0].length);
+    } else {
+      // "Name | Size: … | $40"
+      const parts = t.split("|").map((p) => p.trim());
+      if (parts.length >= 1 && !/^size\/?tier:/i.test(parts[0])) {
+        name = parts[0].replace(/^\d+\.\s*/, "").trim();
+        rest = parts.slice(1).join(" | ");
+      } else {
+        continue;
+      }
+    }
+
+    if (!name || /^menu items/i.test(name) || /^custom cake \(see/i.test(name)) {
+      // still allow if it has a line total and details
+      if (!/line total:|\$\s*\d/i.test(t)) continue;
+    }
+
+    const size =
+      (t.match(/Size\/?Tier:\s*([^|]+)/i) || t.match(/Size:\s*([^|]+)/i) || [])[1] ||
+      "";
+    const flavor = (t.match(/Flavor:\s*([^|]+)/i) || [])[1] || "";
+    const filling =
+      (t.match(/Fillings?:\s*([^|]+)/i) || t.match(/Filling:\s*([^|]+)/i) || [])[1] ||
+      "";
+    const itemNotes = (t.match(/Item notes:\s*([^|]+)/i) || [])[1] || "";
+    let lineTotal = parseMoneyValue(
+      (t.match(/Line total:\s*(\$?[0-9.,]+)/i) || [])[1] || "",
+    );
+    if (!Number.isFinite(lineTotal) || lineTotal <= 0) {
+      // last $amount on the line
+      const all = [...t.matchAll(/\$\s*([0-9,.]+)/g)];
+      if (all.length) lineTotal = parseMoneyValue(all[all.length - 1][0]);
+    }
+    if (!Number.isFinite(lineTotal) || lineTotal <= 0) {
+      // description-only line (no price) — still show on invoice as $0 detail via memo; skip amount
+      // Keep as free-text detail without a price
+    }
+
+    const bits = [];
+    const cleanName = name.replace(/\s+/g, " ").trim() || "Item";
+    bits.push(`${qty}× ${cleanName}`);
+    if (size.trim()) bits.push(`Size: ${size.trim()}`);
+    if (flavor.trim()) bits.push(`Flavor: ${flavor.trim()}`);
+    if (filling.trim()) bits.push(`Filling: ${filling.trim()}`);
+    if (itemNotes.trim()) bits.push(itemNotes.trim());
+    if (Number.isFinite(lineTotal) && lineTotal > 0) {
+      bits.push(`@ $${lineTotal.toFixed(2)}`);
+    }
+
+    items.push({
+      quantity: qty,
+      name: cleanName,
+      size: size.trim(),
+      flavor: flavor.trim(),
+      filling: filling.trim(),
+      lineTotalDollars: Number.isFinite(lineTotal) && lineTotal > 0 ? lineTotal : null,
+      amountCents:
+        Number.isFinite(lineTotal) && lineTotal > 0
+          ? Math.round(lineTotal * 100)
+          : null,
+      description: bits.join(" · ").slice(0, 500),
+      raw: t,
+    });
+  }
+
+  return items;
+}
+
+/** Pull Estimated Subtotal / Deposit Due from Line Items “— Totals —” block or line sums. */
+function extractTotalsFromLineItems(text) {
+  const raw = String(text || "");
+  let subtotal = NaN;
+  let deposit = NaN;
+  const subM = raw.match(/Estimated\s+subtotal:\s*(\$?[0-9.,]+)/i);
+  if (subM) subtotal = parseMoneyValue(subM[1]);
+  const depM = raw.match(/Deposit\s+due(?:\s*\(50%\))?:\s*(\$?[0-9.,]+)/i);
+  if (depM) deposit = parseMoneyValue(depM[1]);
+
+  if (!Number.isFinite(subtotal) || subtotal <= 0) {
+    const items = parseSheetLineItems(raw);
+    const sum = items.reduce(
+      (s, it) => s + (it.amountCents != null ? it.amountCents : 0),
+      0,
+    );
+    if (sum > 0) subtotal = sum / 100;
+  }
+  if (
+    (!Number.isFinite(deposit) || deposit <= 0) &&
+    Number.isFinite(subtotal) &&
+    subtotal > 0
+  ) {
+    deposit = Math.round(subtotal * 50) / 100;
+  }
+  return { subtotal, deposit };
 }
 
 /** Up to 3 photos × 10MB raw + multipart overhead */
@@ -553,35 +708,104 @@ function stripeForm(path, fields) {
 
 /**
  * Create + email a Stripe Invoice for the 50% deposit (Stripe emails the customer).
- * Returns { url, invoiceId, customerId, emailed: true }.
+ * Line items show full order breakdown (size/flavor/qty/price); total charged = deposit.
+ * Returns { url, invoiceId, customerId, emailed: true, emailedTo }.
  */
 async function stripeSendDepositInvoice(opts) {
   const amountCents = Math.round(Number(opts.amountCents) || 0);
   if (amountCents < 50) throw new Error("Stripe amount must be at least $0.50");
   const email = String(opts.customerEmail || "").trim();
   if (!email.includes("@")) throw new Error("Customer email required");
+  if (isBakeryInboxEmail(email)) {
+    throw new Error(
+      "Invoice recipient cannot be the bakery inbox. Use the customer Email on that sheet row.",
+    );
+  }
   const orderId = opts.orderId || "";
   const name = String(opts.customerName || "").trim();
-  const productName = (opts.productName || "Sweet Tooth Cravings — 50% deposit").slice(
-    0,
-    120,
-  );
   const description = String(opts.description || "50% order deposit").slice(0, 500);
+  const subtotalCents = Math.round(
+    Number(opts.subtotalCents) || amountCents * 2,
+  );
+  const parsedItems = Array.isArray(opts.lineItems) ? opts.lineItems : [];
 
+  // Always create a fresh customer for this row email so Stripe emails the right person
   const customer = await stripeForm("/v1/customers", {
     email,
     ...(name ? { name } : {}),
     "metadata[orderId]": orderId,
     "metadata[source]": "sweet_tooth_order_log",
+    "metadata[invoiceTo]": email,
   });
 
-  await stripeForm("/v1/invoiceitems", {
-    customer: customer.id,
-    currency: "usd",
-    amount: String(amountCents),
-    description: productName,
-    "metadata[orderId]": orderId,
-  });
+  // Prefer priced cart lines so the hosted invoice shows full breakdown
+  const priced = parsedItems.filter(
+    (it) => it && it.amountCents != null && it.amountCents > 0 && it.description,
+  );
+  let added = 0;
+  if (priced.length > 0) {
+    for (const it of priced) {
+      await stripeForm("/v1/invoiceitems", {
+        customer: customer.id,
+        currency: "usd",
+        amount: String(it.amountCents),
+        description: String(it.description).slice(0, 500),
+        "metadata[orderId]": orderId,
+        "metadata[kind]": "order_line",
+      });
+      added += it.amountCents;
+    }
+    // Net amount due on this invoice must equal the 50% deposit
+    const credit = added - amountCents;
+    if (credit > 0) {
+      await stripeForm("/v1/invoiceitems", {
+        customer: customer.id,
+        currency: "usd",
+        amount: String(-credit),
+        description: `Balance due later (50% remaining of $${(added / 100).toFixed(2)} order)`.slice(
+          0,
+          500,
+        ),
+        "metadata[orderId]": orderId,
+        "metadata[kind]": "remaining_balance_credit",
+      });
+    } else if (credit < 0) {
+      // Lines sum below deposit — top up so total = deposit
+      await stripeForm("/v1/invoiceitems", {
+        customer: customer.id,
+        currency: "usd",
+        amount: String(-credit),
+        description: "Deposit adjustment".slice(0, 500),
+        "metadata[orderId]": orderId,
+        "metadata[kind]": "deposit_topup",
+      });
+    }
+  } else {
+    // No parseable prices — single deposit line, put breakdown in description
+    const detail = String(opts.lineItemsText || description || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 400);
+    const productName = (
+      detail
+        ? `50% deposit — ${detail}`
+        : "Sweet Tooth Cravings — 50% deposit"
+    ).slice(0, 500);
+    await stripeForm("/v1/invoiceitems", {
+      customer: customer.id,
+      currency: "usd",
+      amount: String(amountCents),
+      description: productName,
+      "metadata[orderId]": orderId,
+      "metadata[kind]": "deposit",
+    });
+  }
+
+  // Ensure we never finalize a $0 invoice
+  // (Stripe will error if net is 0; double-check locally)
+  if (amountCents < 50) {
+    throw new Error("Deposit amount resolved to less than $0.50");
+  }
 
   const invoice = await stripeForm("/v1/invoices", {
     customer: customer.id,
@@ -591,6 +815,9 @@ async function stripeSendDepositInvoice(opts) {
     "metadata[orderId]": orderId,
     "metadata[paymentType]": "sheet_deposit_invoice",
     "metadata[stripeAccountId]": CONFIG.stripeAccountId,
+    "metadata[customerEmail]": email,
+    "metadata[depositCents]": String(amountCents),
+    "metadata[subtotalCents]": String(subtotalCents),
     description: description.slice(0, 500),
     ...(opts.footer ? { footer: String(opts.footer).slice(0, 500) } : {}),
   });
@@ -599,7 +826,17 @@ async function stripeSendDepositInvoice(opts) {
     auto_advance: "true",
   });
 
-  // Stripe emails the hosted invoice / payment page to the customer
+  const total =
+    finalized.amount_due != null
+      ? Number(finalized.amount_due)
+      : amountCents;
+  if (!Number.isFinite(total) || total < 50) {
+    throw new Error(
+      `Stripe invoice total is $${((total || 0) / 100).toFixed(2)} — expected deposit $${(amountCents / 100).toFixed(2)}. Check Estimated Subtotal / Deposit Due on the row.`,
+    );
+  }
+
+  // Stripe emails the hosted invoice to the customer.email on this Customer object
   const sent = await stripeForm(`/v1/invoices/${finalized.id}/send`, {});
 
   const url =
@@ -614,8 +851,11 @@ async function stripeSendDepositInvoice(opts) {
     invoiceId: sent.id || finalized.id,
     customerId: customer.id,
     emailed: true,
+    emailedTo: email,
+    amountDueCents: total,
     method: "stripe_invoice_email",
     status: sent.status || finalized.status,
+    lineItemCount: priced.length || 1,
   };
 }
 
@@ -946,9 +1186,12 @@ async function api(req, res, pathname, baseUrl) {
     }
 
     const orderId = String(body.orderId || body.order_id || "").trim();
+    // Customer email MUST be the sheet row Email — never bakery / notify defaults
     const customerEmail = String(
       body.customerEmail || body.email || "",
-    ).trim();
+    )
+      .trim()
+      .toLowerCase();
     const customerName = String(
       body.customerName || body.name || "",
     ).trim();
@@ -964,7 +1207,16 @@ async function api(req, res, pathname, baseUrl) {
     const orderType = String(body.orderType || body.order_type || "Order").trim();
 
     if (!customerEmail || !customerEmail.includes("@")) {
-      return json(res, 400, { error: "Customer email is required on this row" });
+      return json(res, 400, {
+        error:
+          "Customer email is required on this row’s Email column. The invoice is only sent to that address.",
+      });
+    }
+    if (isBakeryInboxEmail(customerEmail)) {
+      return json(res, 400, {
+        error:
+          "The Email column is set to the bakery inbox. Put the customer’s email in the Email column for that row, then try again.",
+      });
     }
     if (!stripeLiveConfigured()) {
       const mode = stripeKeyMode();
@@ -989,11 +1241,29 @@ async function api(req, res, pathname, baseUrl) {
       });
     }
 
-    // After review: prefer explicit finalTotal, else deposit amount column, else 50% of subtotal
+    // Amounts: Estimated Subtotal / Deposit Due columns, then Line Items totals, then 50%
     let subtotal = parseMoneyValue(
-      body.finalTotal != null ? body.finalTotal : body.estimatedSubtotal,
+      body.finalTotal != null && body.finalTotal !== ""
+        ? body.finalTotal
+        : body.estimatedSubtotal,
     );
-    let depositDollars = parseMoneyValue(body.depositAmount ?? body.depositDue);
+    let depositDollars = parseMoneyValue(
+      body.depositAmount != null && body.depositAmount !== ""
+        ? body.depositAmount
+        : body.depositDue,
+    );
+
+    const fromLines = extractTotalsFromLineItems(lineSummary);
+    if ((!Number.isFinite(subtotal) || subtotal <= 0) && Number.isFinite(fromLines.subtotal)) {
+      subtotal = fromLines.subtotal;
+    }
+    if (
+      (!Number.isFinite(depositDollars) || depositDollars <= 0) &&
+      Number.isFinite(fromLines.deposit) &&
+      fromLines.deposit > 0
+    ) {
+      depositDollars = fromLines.deposit;
+    }
 
     if ((!Number.isFinite(depositDollars) || depositDollars <= 0) && Number.isFinite(subtotal) && subtotal > 0) {
       depositDollars = Math.round(subtotal * 50) / 100;
@@ -1005,18 +1275,25 @@ async function api(req, res, pathname, baseUrl) {
     if (!Number.isFinite(depositDollars) || depositDollars < 0.5) {
       return json(res, 400, {
         error:
-          "Need a deposit of at least $0.50. Set Estimated Subtotal (or Deposit Due 50%) on the row after review.",
+          "Need a deposit of at least $0.50. Set Estimated Subtotal (or Deposit Due) on the row — values like $0.00 are not charged.",
+        parsed: { subtotal, depositDollars, fromLineItems: fromLines },
       });
     }
 
     const depositCents = Math.round(depositDollars * 100);
+    if (depositCents < 50) {
+      return json(res, 400, {
+        error: `Deposit resolved to $${(depositCents / 100).toFixed(2)} — check Estimated Subtotal / Deposit Due on the row.`,
+      });
+    }
+
     const shopUrl = shopPublicUrl(req, baseUrl);
     const oid = orderId || `sheet-${Date.now().toString(36)}`;
+    const parsedLineItems = parseSheetLineItems(lineSummary);
     const desc = [
       customerName ? `For ${customerName}` : null,
       Number.isFinite(subtotal) ? `Est. total $${subtotal.toFixed(2)}` : null,
-      `Deposit $${depositDollars.toFixed(2)} (50%)`,
-      lineSummary.replace(/\s+/g, " ").slice(0, 280),
+      `Deposit due now $${depositDollars.toFixed(2)} (50%)`,
       orderType ? `(${orderType})` : null,
     ]
       .filter(Boolean)
@@ -1029,6 +1306,8 @@ async function api(req, res, pathname, baseUrl) {
       let sessionId = "";
       let emailResult = { sent: false };
       let paymentMethod = "stripe_invoice_email";
+      let lineItemCount = 0;
+      let amountDueCents = depositCents;
 
       try {
         const inv = await stripeSendDepositInvoice({
@@ -1036,14 +1315,27 @@ async function api(req, res, pathname, baseUrl) {
           customerEmail,
           customerName,
           amountCents: depositCents,
+          subtotalCents: Number.isFinite(subtotal)
+            ? Math.round(subtotal * 100)
+            : depositCents * 2,
+          lineItems: parsedLineItems,
+          lineItemsText: lineSummary,
           productName: "Sweet Tooth Cravings — 50% deposit",
           description: desc,
-          footer: eventDate
-            ? `Event / needed-by: ${eventDate}. Order ${oid}.`
-            : `Order ${oid}.`,
+          footer: [
+            eventDate ? `Event / needed-by: ${eventDate}` : null,
+            `Order ${oid}`,
+            `Invoice emailed only to: ${customerEmail}`,
+            "Remaining 50% due before pickup/delivery.",
+          ]
+            .filter(Boolean)
+            .join(" · ")
+            .slice(0, 500),
         });
         payUrl = inv.url;
         sessionId = inv.invoiceId;
+        lineItemCount = inv.lineItemCount || parsedLineItems.length || 1;
+        amountDueCents = inv.amountDueCents || depositCents;
         emailResult = {
           sent: true,
           ok: true,
@@ -1052,7 +1344,7 @@ async function api(req, res, pathname, baseUrl) {
           from: "Stripe",
         };
         console.log(
-          `[sheet/send-deposit-invoice] Stripe emailed invoice ${inv.invoiceId} to ${customerEmail}`,
+          `[sheet/send-deposit-invoice] LIVE invoice ${inv.invoiceId} $${(amountDueCents / 100).toFixed(2)} → ${customerEmail} (${lineItemCount} lines)`,
         );
       } catch (invErr) {
         console.warn(
@@ -1086,15 +1378,25 @@ async function api(req, res, pathname, baseUrl) {
             checkoutUrl: session.url,
             lineSummary,
             eventDate,
+            bakeryCopy: false,
           });
-          emailResult = {
-            sent: !!(mail && mail.ok !== false),
-            ok: !!(mail && mail.ok !== false),
-            to: mail && mail.to,
-            method: mail && mail.method,
-            from: mail && mail.from,
-            error: mail && mail.error ? String(mail.error) : null,
-          };
+          const toAddr = String((mail && mail.to) || customerEmail).toLowerCase();
+          if (isBakeryInboxEmail(toAddr) && toAddr !== customerEmail) {
+            emailResult = {
+              sent: false,
+              ok: false,
+              error: "Email was not delivered to the customer address",
+            };
+          } else {
+            emailResult = {
+              sent: !!(mail && mail.ok !== false),
+              ok: !!(mail && mail.ok !== false),
+              to: customerEmail,
+              method: mail && mail.method,
+              from: mail && mail.from,
+              error: mail && mail.error ? String(mail.error) : null,
+            };
+          }
         } catch (e) {
           const msg = (e && e.message) || String(e) || "email_failed";
           console.error("[sheet/send-deposit-invoice] notify email failed:", msg);
@@ -1146,15 +1448,20 @@ async function api(req, res, pathname, baseUrl) {
         paymentMethod,
         livemode: true,
         keyMode: "live",
-        depositDollars,
-        depositCents,
+        depositDollars: amountDueCents / 100,
+        depositCents: amountDueCents,
         estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
+        lineItems: parsedLineItems.map((it) => ({
+          description: it.description,
+          amountCents: it.amountCents,
+        })),
+        lineItemCount,
         email: emailResult,
         sheetStatus: emailResult.sent
           ? "Deposit invoice sent"
           : "Deposit link created (email failed)",
         message: emailResult.sent
-          ? `Live deposit invoice emailed to ${customerEmail}`
+          ? `Live $${(amountDueCents / 100).toFixed(2)} deposit invoice emailed to ${customerEmail}`
           : `Payment link created but email failed: ${emailResult.error || "unknown"}. Share this link manually: ${payUrl}`,
       });
     } catch (e) {

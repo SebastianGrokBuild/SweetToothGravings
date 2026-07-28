@@ -33,7 +33,7 @@ var HEADER_MAP = {
   orderId: ["Order", "Order ID", "Order Id", "order id"],
   status: ["Status"],
   customerName: ["Customer Name", "Name"],
-  email: ["Email", "Customer Email"],
+  email: ["Email", "Customer Email", "E-mail"],
   phone: ["Phone", "Customer Phone"],
   eventDate: ["Event Date"],
   product: ["Product / Cake", "Product"],
@@ -43,9 +43,22 @@ var HEADER_MAP = {
   notes: ["Decoration & Custom Notes", "Decoration Notes", "Notes"],
   allergies: ["Allergies"],
   additionalNotes: ["Additional Notes"],
-  lineItems: ["Line Items", "Line Items (full detail)"],
-  estimatedSubtotal: ["Estimated Subtotal", "Subtotal", "Final Total", "Final Price"],
-  depositDue: ["Deposit Due", "Deposit Due (50%)", "Deposit"],
+  lineItems: ["Line Items", "Line Items (full detail)", "Items"],
+  estimatedSubtotal: [
+    "Estimated Subtotal",
+    "Est. Subtotal",
+    "Subtotal",
+    "Final Total",
+    "Final Price",
+    "Order Total",
+  ],
+  depositDue: [
+    "Deposit Due",
+    "Deposit Due (50%)",
+    "Deposit",
+    "50% Deposit",
+    "Deposit Amount",
+  ],
   orderType: ["Order Type"],
   sendDeposit: [
     "Stripe Deposit",
@@ -55,6 +68,12 @@ var HEADER_MAP = {
     "Send Invoice",
   ],
 };
+
+/** Never use bakery inboxes as the customer invoice recipient. */
+var BAKERY_EMAIL_BLOCKLIST = [
+  "sweettoothcravingsorder@gmail.com",
+  "sweettoothcravings@gmail.com",
+];
 
 function onOpen() {
   SpreadsheetApp.getUi()
@@ -507,15 +526,27 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
   var headers = getHeaderRow_(sheet);
   var record = readRowAsObject_(sheet, row, headers);
 
-  // Email MUST come from this row’s Email column
-  var email = record.email;
+  // Email MUST come from this row’s Email column only (never bakery defaults)
+  var email = String(record.email || "")
+    .trim()
+    .toLowerCase();
   if (!email || email.indexOf("@") < 0) {
     if (showAlerts) {
       ui.alert(
-        "No valid Email on this row.\n\nAdd the customer email in the Email column, then try again."
+        "No valid Email on this row.\n\nAdd the customer email in the Email column for this row, then try again."
       );
     }
     return { ok: false, error: "no_email on this row" };
+  }
+  if (isBakeryEmail_(email)) {
+    if (showAlerts) {
+      ui.alert(
+        "The Email column is the bakery inbox (" +
+          email +
+          ").\n\nPut the customer’s email in the Email column of this row."
+      );
+    }
+    return { ok: false, error: "email is bakery inbox, not customer" };
   }
 
   var statusStr = String(record.status || "").toLowerCase();
@@ -528,27 +559,45 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     if (again !== ui.Button.YES) return { ok: false, error: "cancelled" };
   }
 
+  // Prefer numeric cell values; fall back to display text and Line Items totals
   var subtotal = parseMoney_(record.estimatedSubtotal);
   var deposit = parseMoney_(record.depositDue);
-  if ((!deposit || deposit <= 0) && subtotal > 0)
+  var lineText = String(record.lineItems || "").trim();
+  if ((!isPositiveMoney_(subtotal) || !isPositiveMoney_(deposit)) && lineText) {
+    var fromLines = extractTotalsFromLineItems_(lineText);
+    if (!isPositiveMoney_(subtotal) && isPositiveMoney_(fromLines.subtotal)) {
+      subtotal = fromLines.subtotal;
+    }
+    if (!isPositiveMoney_(deposit) && isPositiveMoney_(fromLines.deposit)) {
+      deposit = fromLines.deposit;
+    }
+  }
+  if (!isPositiveMoney_(deposit) && isPositiveMoney_(subtotal)) {
     deposit = Math.round(subtotal * 50) / 100;
-  if ((!subtotal || subtotal <= 0) && deposit > 0)
+  }
+  if (!isPositiveMoney_(subtotal) && isPositiveMoney_(deposit)) {
     subtotal = Math.round(deposit * 2 * 100) / 100;
+  }
 
-  if (!deposit || deposit < 0.5) {
+  if (!isPositiveMoney_(deposit) || deposit < 0.5) {
     if (showAlerts) {
       ui.alert(
-        "Need at least $0.50 deposit.\nSet Estimated Subtotal (or Deposit Due) on this row."
+        "Need at least $0.50 deposit.\n\n" +
+          "Set Estimated Subtotal (or Deposit Due) on this row.\n" +
+          "Read subtotal: " +
+          (isPositiveMoney_(subtotal) ? "$" + subtotal.toFixed(2) : "(empty/0)") +
+          "\nRead deposit: " +
+          (isPositiveMoney_(deposit) ? "$" + deposit.toFixed(2) : "(empty/0)")
       );
     }
     return { ok: false, error: "no_amount — set Estimated Subtotal first" };
   }
 
   var lineBits = [];
-  if (record.lineItems) lineBits.push(record.lineItems);
+  if (lineText) lineBits.push(lineText);
   else {
     if (record.product) lineBits.push(record.product);
-    if (record.size) lineBits.push(record.size);
+    if (record.size) lineBits.push("Size: " + record.size);
     if (record.flavor) lineBits.push("Flavor: " + record.flavor);
     if (record.filling) lineBits.push("Filling: " + record.filling);
     if (record.notes) lineBits.push(record.notes);
@@ -558,29 +607,34 @@ function sendDepositInvoiceForRow_(sheet, row, showAlerts) {
     orderId: record.orderId || "",
     customerName: record.customerName || "",
     customerEmail: email,
+    email: email,
     customerPhone: record.phone || "",
     eventDate: record.eventDate || "",
     orderType: record.orderType || "",
     product: record.product || "",
     lineItemsDetail: lineBits.join("\n"),
-    estimatedSubtotal: subtotal || "",
+    lineItems: lineBits.join("\n"),
+    estimatedSubtotal: isPositiveMoney_(subtotal) ? subtotal : "",
     depositAmount: deposit,
-    finalTotal: subtotal || "",
+    depositDue: deposit,
+    finalTotal: isPositiveMoney_(subtotal) ? subtotal : "",
   };
 
   if (showAlerts) {
     var confirm = ui.alert(
       "Send 50% deposit invoice?",
-      "To: " +
+      "To (this row’s Email only):\n" +
         email +
         "\nName: " +
         (record.customerName || "(none)") +
-        "\nDeposit: $" +
+        "\nOrder total: $" +
+        (isPositiveMoney_(subtotal) ? subtotal.toFixed(2) : "?") +
+        "\nDeposit now: $" +
         deposit.toFixed(2) +
-        (subtotal ? " (50% of $" + subtotal.toFixed(2) + ")" : "") +
+        " (50%)" +
         "\nOrder: " +
         (record.orderId || "(none)") +
-        "\n\nStripe will email the payment link.",
+        "\n\nStripe will email a real live invoice with full line items to that customer.",
       ui.ButtonSet.YES_NO
     );
     if (confirm !== ui.Button.YES) return { ok: false, error: "cancelled" };
@@ -707,17 +761,50 @@ function findHeaderIndex_(headers, names) {
 
 function readRowAsObject_(sheet, row, headers) {
   var lastCol = Math.max(headers.length, sheet.getLastColumn());
-  var values = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
+  var range = sheet.getRange(row, 1, 1, lastCol);
+  var values = range.getValues()[0];
+  var displays = range.getDisplayValues()[0];
+
   function col(key) {
     var idx = findHeaderIndex_(headers, HEADER_MAP[key] || []);
     if (idx < 0) return "";
     return formatCellValue_(values[idx]);
   }
+
+  /** Money: prefer raw number, else display text like "$120.00" */
+  function colMoney(key) {
+    var idx = findHeaderIndex_(headers, HEADER_MAP[key] || []);
+    if (idx < 0) return "";
+    var raw = values[idx];
+    if (typeof raw === "number" && isFinite(raw)) return raw;
+    var disp = displays[idx];
+    if (disp != null && String(disp).trim() !== "") return String(disp).trim();
+    return formatCellValue_(raw);
+  }
+
+  /** Email: prefer display, strip spaces */
+  function colEmail() {
+    var idx = findHeaderIndex_(headers, HEADER_MAP.email);
+    if (idx < 0) return "";
+    var disp = String(displays[idx] != null ? displays[idx] : "").trim();
+    if (disp.indexOf("@") >= 0) return disp;
+    return formatCellValue_(values[idx]);
+  }
+
+  /** Line items: multi-line display text */
+  function colLineItems() {
+    var idx = findHeaderIndex_(headers, HEADER_MAP.lineItems);
+    if (idx < 0) return "";
+    var disp = String(displays[idx] != null ? displays[idx] : "").trim();
+    if (disp) return disp;
+    return formatCellValue_(values[idx]);
+  }
+
   return {
     orderId: col("orderId"),
     status: col("status"),
     customerName: col("customerName"),
-    email: col("email"),
+    email: colEmail(),
     phone: col("phone"),
     eventDate: col("eventDate"),
     product: col("product"),
@@ -727,22 +814,76 @@ function readRowAsObject_(sheet, row, headers) {
     notes: col("notes"),
     allergies: col("allergies"),
     additionalNotes: col("additionalNotes"),
-    lineItems: col("lineItems"),
-    estimatedSubtotal: col("estimatedSubtotal"),
-    depositDue: col("depositDue"),
+    lineItems: colLineItems(),
+    estimatedSubtotal: colMoney("estimatedSubtotal"),
+    depositDue: colMoney("depositDue"),
     orderType: col("orderType"),
   };
+}
+
+function isPositiveMoney_(n) {
+  return typeof n === "number" && isFinite(n) && n > 0;
+}
+
+function isBakeryEmail_(email) {
+  var e = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!e) return false;
+  for (var i = 0; i < BAKERY_EMAIL_BLOCKLIST.length; i++) {
+    if (e === BAKERY_EMAIL_BLOCKLIST[i]) return true;
+  }
+  if (e.indexOf("sweettoothcravingsorder@") === 0) return true;
+  if (e.indexOf("@sweettoothcravings.shop") > 0) return true;
+  return false;
 }
 
 function parseMoney_(raw) {
   if (raw == null || raw === "") return NaN;
   if (typeof raw === "number" && isFinite(raw)) return raw;
-  var s = String(raw).replace(/[^0-9.,-]/g, "");
+  var s = String(raw).trim();
+  if (!s || s === "-" || s.toLowerCase() === "n/a") return NaN;
+  // Prefer $amount match
+  var m = s.match(/\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/);
+  if (m) {
+    var fromDollar = Number(String(m[1]).replace(/,/g, ""));
+    if (isFinite(fromDollar)) return fromDollar;
+  }
+  s = s.replace(/[^0-9.,-]/g, "");
   if (!s) return NaN;
   if (s.indexOf(",") >= 0 && s.indexOf(".") >= 0) s = s.replace(/,/g, "");
   else if (s.indexOf(",") >= 0) s = s.replace(",", ".");
   var n = Number(s);
   return isFinite(n) ? n : NaN;
+}
+
+/** Pull totals embedded in the Line Items cell when amount columns are blank/$0. */
+function extractTotalsFromLineItems_(text) {
+  var raw = String(text || "");
+  var subtotal = NaN;
+  var deposit = NaN;
+  var subM = raw.match(/Estimated\s+subtotal:\s*(\$?[0-9.,]+)/i);
+  if (subM) subtotal = parseMoney_(subM[1]);
+  var depM = raw.match(/Deposit\s+due(?:\s*\(50%\))?:\s*(\$?[0-9.,]+)/i);
+  if (depM) deposit = parseMoney_(depM[1]);
+  if (!isPositiveMoney_(subtotal)) {
+    var re = /Line total:\s*(\$?[0-9.,]+)/gi;
+    var sum = 0;
+    var hit = false;
+    var mm;
+    while ((mm = re.exec(raw)) !== null) {
+      var v = parseMoney_(mm[1]);
+      if (isPositiveMoney_(v)) {
+        sum += v;
+        hit = true;
+      }
+    }
+    if (hit && sum > 0) subtotal = Math.round(sum * 100) / 100;
+  }
+  if (!isPositiveMoney_(deposit) && isPositiveMoney_(subtotal)) {
+    deposit = Math.round(subtotal * 50) / 100;
+  }
+  return { subtotal: subtotal, deposit: deposit };
 }
 
 function setStatusIfPossible_(sheet, row, headers, statusText) {
