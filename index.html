@@ -2,13 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Sweet Tooth Cravings • Miami, FL</title>
   <meta name="description" content="Handcrafted cakes, flan, tres leches &amp; desserts made with love in Miami. Order online — pickup or delivery available.">
   <meta name="theme-color" content="#C9A9E8">
+  <meta name="msapplication-TileColor" content="#C9A9E8">
+  <meta name="msapplication-TileImage" content="assets/icons/icon-144.png">
+  <!-- PWA / installable app -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Sweet Tooth">
+  <!-- iOS home-screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sweet Tooth">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-180.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="assets/icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="assets/icons/icon-144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="assets/icons/icon-128.png">
+  <link rel="mask-icon" href="assets/icons/icon-192.png" color="#C9A9E8">
   <link rel="canonical" href="https://sweettoothcravings.shop/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Sweet Tooth Cravings • Miami, FL">
@@ -16,6 +32,7 @@
   <meta property="og:url" content="https://sweettoothcravings.shop/">
   <meta property="og:image" content="https://sweettoothcravings.shop/assets/images/hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="icon" href="assets/images/logo.gpj.png" type="image/png">
   <!-- Above-the-fold image preloads (hero + first featured/menu products) -->
   <link rel="preload" as="image" href="assets/images/hero.jpg" fetchpriority="high">
@@ -28,7 +45,7 @@
   <link rel="preload" as="image" href="assets/images/cupcakes.jpg">
   <link rel="preload" as="image" href="assets/images/2-tier-cakes.jpg">
   <!-- cache-bust: force browsers off stale order form / config after deploy -->
-  <script src="config.js?v=20260728-img-eager-v1"></script>
+  <script src="config.js?v=20260728-pwa-v1"></script>
   <script>
     (function () {
       var host = location.hostname;
@@ -37,7 +54,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       // Live shop always uses the production order API (Order Log + Drive forced server-side).
-      window.STC_DEPLOY_BUILD = '2026-07-28-img-eager-v1';
+      window.STC_DEPLOY_BUILD = '2026-07-28-pwa-v1';
       if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
@@ -3821,6 +3838,45 @@
         window.scrollTo(0, 0);
       }, 50);
     };
+  </script>
+
+  <!-- Progressive Web App: register service worker (HTTPS / localhost only) -->
+  <script>
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      var refreshing = false;
+      window.addEventListener('load', function () {
+        navigator.serviceWorker
+          .register('/sw.js', { scope: '/' })
+          .then(function (reg) {
+            // When a new SW is waiting, activate it so updates ship promptly
+            if (reg.waiting) {
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            reg.addEventListener('updatefound', function () {
+              var worker = reg.installing;
+              if (!worker) return;
+              worker.addEventListener('statechange', function () {
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                  worker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            });
+          })
+          .catch(function (err) {
+            console.warn('[pwa] service worker registration failed', err);
+          });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (refreshing) return;
+        refreshing = true;
+        // Soft reload once after SW takes control so clients use the new cache
+        // (only when an update replaced the old controller)
+        if (sessionStorage.getItem('stc_sw_reloaded') === '1') return;
+        sessionStorage.setItem('stc_sw_reloaded', '1');
+        window.location.reload();
+      });
+    })();
   </script>
 
 </body>

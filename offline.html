@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#C9A9E8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Offline · Sweet Tooth Cravings</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #FDF8F5;
+      color: #3F2A2B;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .card {
+      max-width: 22rem;
+      background: #fff;
+      border: 1px solid #EDE4DC;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(63, 42, 43, 0.06);
+    }
+    h1 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+    p { color: #6B5B5F; font-size: 0.95rem; line-height: 1.5; margin: 0 0 1.25rem; }
+    button {
+      background: #C9A9E8;
+      color: #fff;
+      border: 0;
+      border-radius: 999px;
+      padding: 0.75rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>You're offline</h1>
+    <p>Sweet Tooth Cravings needs a connection to load the latest menu. Check your signal and try again.</p>
+    <button type="button" onclick="location.href='/'">Retry</button>
+  </div>
+</body>
+</html>

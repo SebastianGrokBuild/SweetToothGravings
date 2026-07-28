@@ -59,6 +59,7 @@ const MIME = {
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -497,6 +498,12 @@ function sendFile(res, filePath) {
   const headers = { "Content-Type": MIME[ext] || "application/octet-stream" };
   if (ext === ".html") {
     headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+  }
+  // Service worker + manifest must revalidate so PWA updates install cleanly
+  const base = path.basename(filePath);
+  if (base === "sw.js" || base === "manifest.json" || ext === ".webmanifest") {
+    headers["Cache-Control"] = "no-cache, must-revalidate";
+    headers["Service-Worker-Allowed"] = "/";
   }
   res.writeHead(200, headers);
   res.end(buf);
