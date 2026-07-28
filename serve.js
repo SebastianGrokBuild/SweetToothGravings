@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-admin-sales-edit-v21";
+const DEPLOY_BUILD = "2026-07-28-new-order-notify-v22";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -2905,7 +2905,80 @@ async function api(req, res, pathname, baseUrl) {
       list.push(order);
       saveOrders(list);
 
-      // Confirmation email to the customer (in addition to bakery new-order notify)
+      // Owner new-order email (primary send is inside google.saveOrder; retry once if needed)
+      let emailNotification = saved.emailNotification || { sent: false };
+      if (!emailNotification.sent && !emailNotification.skipped) {
+        try {
+          console.warn(
+            `[cart-submit] Owner notify missing for ${orderId} — retrying…`,
+            emailNotification.error || "",
+          );
+          const retry = await notify.sendNewOrderEmail(
+            {
+              orderId,
+              submittedAt: now,
+              orderType: hasCustomCake ? "Custom Cake Order" : "Menu Order",
+              status: "Pending Review",
+              customerName: name,
+              customerEmail: email,
+              customerPhone: phone,
+              eventDate,
+              decorationNotes: orderNotes,
+              allergies,
+              lineItemsDetail: lineDetail.trim(),
+              estimatedSubtotal: subtotal,
+              depositAmount:
+                subtotal > 0 ? Math.round(subtotal * 50) / 100 : null,
+            },
+            drivePhotos,
+            saved.photoErrors || [],
+          );
+          if (retry && retry.ok) {
+            emailNotification = {
+              sent: true,
+              to: retry.to,
+              method: retry.method,
+              from: retry.from,
+              retried: true,
+            };
+          } else if (retry && retry.skipped) {
+            emailNotification = {
+              sent: false,
+              skipped: true,
+              reason: retry.reason,
+            };
+          } else {
+            emailNotification = {
+              sent: false,
+              error:
+                (retry && (retry.error || retry.reason)) ||
+                emailNotification.error ||
+                "email_failed",
+            };
+          }
+        } catch (e) {
+          console.error(
+            "[cart-submit] Owner notify retry failed:",
+            e.message,
+          );
+          emailNotification = {
+            sent: false,
+            error: e.message || String(e),
+          };
+        }
+      }
+      if (emailNotification.sent) {
+        console.log(
+          `[cart-submit] Owner notified ${emailNotification.to} for ${orderId} via ${emailNotification.method || "?"}`,
+        );
+      } else {
+        console.error(
+          `[cart-submit] Owner NOT notified for ${orderId}:`,
+          emailNotification.error || emailNotification.reason || "unknown",
+        );
+      }
+
+      // Confirmation email to the customer (separate from bakery new-order notify)
       let customerEmailNotification = { sent: false };
       try {
         const conf = await notify.sendCustomerOrderConfirmation({
@@ -2942,7 +3015,7 @@ async function api(req, res, pathname, baseUrl) {
         deployBuild: DEPLOY_BUILD,
         photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
-        emailNotification: saved.emailNotification || { sent: false },
+        emailNotification,
         customerEmailNotification,
         checkoutUrl: null,
         paymentUrl: null,
@@ -3056,12 +3129,67 @@ async function api(req, res, pathname, baseUrl) {
       list.push(order);
       saveOrders(list);
 
+      // Ensure owner gets “New Order Received” for custom cake path too
+      let emailNotification = saved.emailNotification || { sent: false };
+      if (!emailNotification.sent && !emailNotification.skipped) {
+        try {
+          const retry = await notify.sendNewOrderEmail(
+            {
+              orderId,
+              submittedAt: now,
+              orderType: "Custom Cake Request",
+              status: "Pending Review",
+              customerName: name,
+              customerEmail: email,
+              customerPhone: body.customerPhone || "",
+              eventDate: body.eventDate || "",
+              product: body.cakeName,
+              size: body.sizeLabel,
+              flavor: body.flavor || "",
+              filling: body.filling || "",
+              decorationNotes: notes,
+              allergies: body.allergies || "",
+              additionalNotes: body.additionalNotes || "",
+              lineItemsDetail: [
+                body.cakeName,
+                body.sizeLabel,
+                body.flavor,
+                body.filling,
+                notes,
+              ]
+                .filter(Boolean)
+                .join(" | "),
+              estimatedSubtotal: subtotal,
+              depositAmount:
+                subtotal > 0 ? Math.round(subtotal * 50) / 100 : null,
+            },
+            drivePhotos,
+            saved.photoErrors || [],
+          );
+          if (retry && retry.ok) {
+            emailNotification = {
+              sent: true,
+              to: retry.to,
+              method: retry.method,
+              from: retry.from,
+              retried: true,
+            };
+          }
+        } catch (e) {
+          console.error("[orders] Owner notify retry failed:", e.message);
+          emailNotification = {
+            sent: false,
+            error: e.message || String(e),
+          };
+        }
+      }
+
       return json(res, 200, {
         success: true,
         orderId,
         savedTo: "google_sheets",
         photoErrors: saved.photoErrors || [],
-        emailNotification: saved.emailNotification || { sent: false },
+        emailNotification,
         checkoutUrl: null,
         paymentUrl: null,
         depositCents: null,

@@ -26,7 +26,8 @@ if (fs.existsSync(envPath)) {
 const notify = require("../lib/notify");
 
 async function main() {
-  console.log("Notify to:", process.env.ORDER_NOTIFY_EMAIL);
+  console.log("Notify to:", notify.notifyTo ? notify.notifyTo() : process.env.ORDER_NOTIFY_EMAIL);
+  console.log("Default owner inbox: sweettoothcravingsorder@gmail.com");
   console.log("SMTP configured:", notify.smtpConfigured());
 
   const status = await notify.checkEmailReady();
@@ -37,25 +38,30 @@ async function main() {
     process.exit(1);
   }
 
+  const testId = `ST-TEST-${Date.now().toString().slice(-6)}`;
   const testOrder = {
-    orderId: `email-test-${Date.now()}`,
+    orderId: testId,
     submittedAt: new Date().toISOString(),
-    orderType: "Custom Cake Order",
+    orderType: "Menu Order",
     status: "Pending Review",
     customerName: "Email Test",
     customerEmail: "test@example.com",
     customerPhone: "555-0100",
     eventDate: "2026-06-15",
     product: "Custom Cakes",
-    lineItemsDetail: "1× Custom Cakes | Test",
+    lineItemsDetail: "1× Tres Leches 9x13 | Line total: $65.00",
     estimatedSubtotal: 65,
+    depositAmount: 32.5,
     decorationNotes: "Test notification from scripts/test-order-email.js",
   };
 
-  console.log("\nSending test email...");
+  console.log("\nSending test email (subject: New Order Received – " + testId + ")...");
   const result = await notify.sendNewOrderEmail(testOrder, [], []);
   console.log("Result:", result);
-  console.log("\nOK — check inbox:", process.env.ORDER_NOTIFY_EMAIL);
+  console.log(
+    "\nOK — check inbox:",
+    result.to || process.env.ORDER_NOTIFY_EMAIL || "sweettoothcravingsorder@gmail.com",
+  );
 }
 
 main().catch((e) => {
