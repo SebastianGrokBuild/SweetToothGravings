@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-row-email-v13";
+const DEPLOY_BUILD = "2026-07-28-send-deposit-api-v14";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -707,6 +707,57 @@ function stripeForm(path, fields) {
 }
 
 /**
+ * Find an existing Stripe Customer by email, or create one.
+ * Always uses the live secret key (sk_live_) configured on Render.
+ */
+async function stripeFindOrCreateCustomer({ email, name, orderId }) {
+  const normalized = String(email || "")
+    .trim()
+    .replace(/^mailto:/i, "")
+    .split(/[?,\s;]/)[0]
+    .trim();
+  if (!normalized.includes("@")) throw new Error("Customer email required");
+
+  try {
+    const listed = await stripeGet(
+      `/v1/customers?email=${encodeURIComponent(normalized)}&limit=5`,
+    );
+    const match = (listed.data || []).find(
+      (c) =>
+        String(c.email || "")
+          .trim()
+          .toLowerCase() === normalized.toLowerCase() && !c.deleted,
+    );
+    if (match) {
+      // Keep metadata fresh when we have order context
+      if (orderId || name) {
+        try {
+          const fields = {};
+          if (orderId) fields["metadata[orderId]"] = orderId;
+          if (name) fields.name = name;
+          fields["metadata[invoiceTo]"] = normalized;
+          return await stripeForm(`/v1/customers/${match.id}`, fields);
+        } catch {
+          return match;
+        }
+      }
+      return match;
+    }
+  } catch (e) {
+    console.warn("[stripe] customer search failed, creating new:", e.message);
+  }
+
+  return stripeForm("/v1/customers", {
+    email: normalized,
+    ...(name ? { name } : {}),
+    "metadata[orderId]": orderId || "",
+    "metadata[source]": "sweet_tooth_order_log",
+    "metadata[invoiceTo]": normalized,
+    "metadata[sheetRowEmail]": normalized,
+  });
+}
+
+/**
  * Create + email a Stripe Invoice for the 50% deposit (Stripe emails the customer).
  * Line items show full order breakdown (size/flavor/qty/price); total charged = deposit.
  * Returns { url, invoiceId, customerId, emailed: true, emailedTo }.
@@ -714,7 +765,7 @@ function stripeForm(path, fields) {
 async function stripeSendDepositInvoice(opts) {
   const amountCents = Math.round(Number(opts.amountCents) || 0);
   if (amountCents < 50) throw new Error("Stripe amount must be at least $0.50");
-  // Exact recipient from sheet Email column only — never bakery / account defaults
+  // Exact recipient — never bakery / account defaults
   const email = String(opts.customerEmail || "")
     .trim()
     .replace(/^mailto:/i, "")
@@ -726,6 +777,11 @@ async function stripeSendDepositInvoice(opts) {
       "Invoice recipient cannot be the bakery inbox. Use the customer Email on that sheet row.",
     );
   }
+  if (!stripeLiveConfigured()) {
+    throw new Error(
+      "Stripe is not in live mode. Set STRIPE_SECRET_KEY to sk_live_… on Render.",
+    );
+  }
   const orderId = opts.orderId || "";
   const name = String(opts.customerName || "").trim();
   const description = String(opts.description || "50% order deposit").slice(0, 500);
@@ -735,14 +791,11 @@ async function stripeSendDepositInvoice(opts) {
   );
   const parsedItems = Array.isArray(opts.lineItems) ? opts.lineItems : [];
 
-  // Fresh Stripe Customer pinned to this exact row email (invoice goes only here)
-  const customer = await stripeForm("/v1/customers", {
+  // Find or create Stripe Customer with this exact email (invoice goes only here)
+  const customer = await stripeFindOrCreateCustomer({
     email,
-    ...(name ? { name } : {}),
-    "metadata[orderId]": orderId,
-    "metadata[source]": "sweet_tooth_order_log",
-    "metadata[invoiceTo]": email,
-    "metadata[sheetRowEmail]": email,
+    name,
+    orderId,
   });
   if (
     String(customer.email || "")
@@ -1218,6 +1271,260 @@ async function api(req, res, pathname, baseUrl) {
       return json(res, 200, { order, paymentUrl: session.url });
     } catch (e) {
       return json(res, 500, { error: e.message });
+    }
+  }
+
+  /**
+   * Simple deposit invoice API (live Stripe only).
+   *
+   * POST /api/send-deposit-invoice
+   * Headers: Authorization: Bearer <SHEET_ACTIONS_SECRET|ADMIN_PASSWORD>
+   * Body: {
+   *   orderNumber: string,   // required (order id)
+   *   email: string,         // required — customer recipient only
+   *   row?: number|string,   // optional sheet row reference
+   *   // optional amounts (if omitted, looks up local order or requires estimatedSubtotal):
+   *   estimatedSubtotal?, depositAmount?, depositDollars?, lineItemsDetail?, customerName?
+   * }
+   * Success: { success: true, invoiceUrl: "..." }
+   * Failure: { error: "message" }
+   */
+  if (method === "POST" && pathname === "/api/send-deposit-invoice") {
+    if (!isSheetActionAuthorized(req) && !isAdmin(req)) {
+      return json(res, 401, {
+        error:
+          "Unauthorized. Send Authorization: Bearer <ADMIN_PASSWORD or SHEET_ACTIONS_SECRET>.",
+      });
+    }
+
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON body" });
+    }
+
+    const orderNumber = String(
+      body.orderNumber || body.orderId || body.order_id || body.order || "",
+    ).trim();
+    const email = String(body.email || body.customerEmail || body.sheetRowEmail || "")
+      .trim()
+      .replace(/^mailto:/i, "")
+      .split(/[?,\s;]/)[0]
+      .trim()
+      .toLowerCase();
+    const row =
+      body.row != null && body.row !== ""
+        ? String(body.row).trim()
+        : null;
+
+    if (!orderNumber) {
+      return json(res, 400, { error: "orderNumber is required" });
+    }
+    if (!email || !email.includes("@")) {
+      return json(res, 400, { error: "email is required" });
+    }
+    if (isBakeryInboxEmail(email)) {
+      return json(res, 400, {
+        error:
+          "email cannot be the bakery inbox — use the customer address for this order",
+      });
+    }
+    if (!stripeLiveConfigured()) {
+      return json(res, 503, {
+        error:
+          "Stripe is not in live mode. On Render set STRIPE_SECRET_KEY to the live secret key (sk_live_…) for account acct_1TcrMNHTYIZb4z2l.",
+        keyMode: stripeKeyMode(),
+        livemode: false,
+      });
+    }
+
+    const stripeStatus = await getStripeAccountStatus();
+    if (!stripeStatus.ok || !stripeStatus.livemode) {
+      return json(res, 503, {
+        error:
+          stripeStatus.error ||
+          `Stripe must be live mode for account ${CONFIG.stripeAccountId}`,
+        keyMode: stripeStatus.keyMode || stripeKeyMode(),
+        livemode: !!stripeStatus.livemode,
+      });
+    }
+
+    // Resolve amounts: body → local order → 50% of subtotal
+    const saved = loadOrders().find(
+      (o) =>
+        String(o.id || "") === orderNumber ||
+        String(o.orderId || "") === orderNumber,
+    );
+
+    let subtotal = parseMoneyValue(
+      body.estimatedSubtotal ??
+        body.subtotal ??
+        body.finalTotal ??
+        body.orderTotal,
+    );
+    let depositDollars = parseMoneyValue(
+      body.depositAmount ?? body.depositDollars ?? body.deposit ?? body.amount,
+    );
+
+    if (saved) {
+      if ((!Number.isFinite(subtotal) || subtotal <= 0) && saved.estimatedSubtotal != null) {
+        subtotal = parseMoneyValue(saved.estimatedSubtotal);
+      }
+      if (
+        (!Number.isFinite(subtotal) || subtotal <= 0) &&
+        saved.finalPriceCents != null
+      ) {
+        subtotal = Number(saved.finalPriceCents) / 100;
+      }
+      if (
+        (!Number.isFinite(depositDollars) || depositDollars <= 0) &&
+        saved.depositCents != null
+      ) {
+        depositDollars = Number(saved.depositCents) / 100;
+      }
+    }
+
+    const lineSummary = String(
+      body.lineItemsDetail ||
+        body.lineItems ||
+        (saved && saved.lineItemsDetail) ||
+        "",
+    ).trim();
+    const fromLines = extractTotalsFromLineItems(lineSummary);
+    if ((!Number.isFinite(subtotal) || subtotal <= 0) && Number.isFinite(fromLines.subtotal)) {
+      subtotal = fromLines.subtotal;
+    }
+    if (
+      (!Number.isFinite(depositDollars) || depositDollars <= 0) &&
+      Number.isFinite(fromLines.deposit)
+    ) {
+      depositDollars = fromLines.deposit;
+    }
+    if (
+      (!Number.isFinite(depositDollars) || depositDollars <= 0) &&
+      Number.isFinite(subtotal) &&
+      subtotal > 0
+    ) {
+      depositDollars = Math.round(subtotal * 50) / 100;
+    }
+    if (
+      (!Number.isFinite(subtotal) || subtotal <= 0) &&
+      Number.isFinite(depositDollars) &&
+      depositDollars > 0
+    ) {
+      subtotal = Math.round(depositDollars * 2 * 100) / 100;
+    }
+
+    if (!Number.isFinite(depositDollars) || depositDollars < 0.5) {
+      return json(res, 400, {
+        error:
+          "Need a deposit of at least $0.50. Pass estimatedSubtotal (or depositAmount), or ensure the order has a price.",
+      });
+    }
+
+    const depositCents = Math.round(depositDollars * 100);
+    const customerName = String(
+      body.customerName || body.name || (saved && saved.customerName) || "",
+    ).trim();
+    const eventDate = String(
+      body.eventDate || (saved && saved.eventDate) || "",
+    ).trim();
+    const parsedLineItems = parseSheetLineItems(lineSummary);
+    const desc = [
+      customerName ? `For ${customerName}` : null,
+      Number.isFinite(subtotal) ? `Est. total $${subtotal.toFixed(2)}` : null,
+      `Deposit due now $${depositDollars.toFixed(2)} (50%)`,
+      `Order ${orderNumber}`,
+      row ? `Sheet row ${row}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 500);
+
+    try {
+      const inv = await stripeSendDepositInvoice({
+        orderId: orderNumber,
+        customerEmail: email,
+        customerName,
+        eventDate,
+        amountCents: depositCents,
+        subtotalCents: Number.isFinite(subtotal)
+          ? Math.round(subtotal * 100)
+          : depositCents * 2,
+        lineItems: parsedLineItems,
+        lineItemsText: lineSummary,
+        orderDetails: [
+          `Order: ${orderNumber}`,
+          customerName ? `Customer: ${customerName}` : null,
+          `Email: ${email}`,
+          row ? `Sheet row: ${row}` : null,
+          eventDate ? `Event: ${eventDate}` : null,
+          lineSummary || null,
+          Number.isFinite(subtotal) ? `Est. total: $${subtotal.toFixed(2)}` : null,
+          `Deposit (50%): $${depositDollars.toFixed(2)}`,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        description: desc,
+        footer: [
+          `Billed only to: ${email}`,
+          `Order ${orderNumber}`,
+          row ? `Row ${row}` : null,
+          "Remaining 50% due before pickup/delivery.",
+        ]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 500),
+      });
+
+      const invoiceUrl = inv.url || "";
+      if (!invoiceUrl) {
+        return json(res, 500, { error: "Stripe did not return an invoice URL" });
+      }
+      if (
+        String(inv.emailedTo || "")
+          .trim()
+          .toLowerCase() !== email
+      ) {
+        return json(res, 500, {
+          error: `Invoice recipient mismatch (got ${inv.emailedTo}, expected ${email})`,
+        });
+      }
+
+      // Persist on local order if present
+      if (saved) {
+        const list = loadOrders();
+        const order = list.find((o) => o.id === saved.id);
+        if (order) {
+          order.stripePaymentUrl = invoiceUrl;
+          order.stripeSessionId = inv.invoiceId;
+          order.depositCents = inv.amountDueCents || depositCents;
+          order.status = "deposit_invoice_sent";
+          order.updatedAt = new Date().toISOString();
+          saveOrders(list);
+        }
+      }
+
+      console.log(
+        `[send-deposit-invoice] LIVE ${inv.invoiceId} $${((inv.amountDueCents || depositCents) / 100).toFixed(2)} → ${email} order=${orderNumber}`,
+      );
+
+      return json(res, 200, {
+        success: true,
+        invoiceUrl,
+        // Extra fields (non-breaking) for clients that want them
+        orderNumber,
+        email,
+        row,
+        invoiceId: inv.invoiceId,
+        depositDollars: (inv.amountDueCents || depositCents) / 100,
+        livemode: true,
+        keyMode: "live",
+      });
+    } catch (e) {
+      console.error("[send-deposit-invoice]", e);
+      return json(res, 500, { error: e.message || String(e) });
     }
   }
 
