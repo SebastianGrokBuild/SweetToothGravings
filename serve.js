@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-checkout-balance-v20";
+const DEPLOY_BUILD = "2026-07-28-admin-sales-edit-v21";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -1586,6 +1586,147 @@ async function api(req, res, pathname, baseUrl) {
       });
     } catch (e) {
       console.error("[admin/update-order-status]", e);
+      return json(res, 500, { error: e.message || String(e) });
+    }
+  }
+
+  /**
+   * Edit customer / order fields from Admin (writes Google Sheet).
+   * POST /api/admin/update-order-fields
+   * Body: { orderNumber, row?, customerName?, customerEmail?, customerPhone?,
+   *         eventDate?, allergies?, notes?, additionalNotes?, estimatedSubtotal? }
+   */
+  if (method === "POST" && pathname === "/api/admin/update-order-fields") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON body" });
+    }
+
+    const orderNumber = String(
+      body.orderNumber || body.orderId || body.order || "",
+    ).trim();
+    const sheetRow =
+      body.row != null && body.row !== ""
+        ? body.row
+        : body.sheetRow != null
+          ? body.sheetRow
+          : null;
+
+    if (!orderNumber && (sheetRow == null || sheetRow === "")) {
+      return json(res, 400, { error: "orderNumber or row is required" });
+    }
+
+    const fields = {};
+    if (body.customerName !== undefined) {
+      fields.customerName = String(body.customerName || "").trim();
+    }
+    if (body.customerEmail !== undefined) {
+      fields.customerEmail = String(body.customerEmail || "").trim();
+    }
+    if (body.customerPhone !== undefined) {
+      fields.customerPhone = String(body.customerPhone || "").trim();
+    }
+    if (body.eventDate !== undefined) {
+      fields.eventDate = String(body.eventDate || "").trim();
+    }
+    if (body.allergies !== undefined) {
+      fields.allergies = String(body.allergies || "").trim();
+    }
+    if (body.notes !== undefined) {
+      fields.notes = String(body.notes || "").trim();
+    }
+    if (body.decorationNotes !== undefined && body.notes === undefined) {
+      fields.notes = String(body.decorationNotes || "").trim();
+    }
+    if (body.additionalNotes !== undefined) {
+      fields.additionalNotes = String(body.additionalNotes || "").trim();
+    }
+    if (body.estimatedSubtotal !== undefined && body.estimatedSubtotal !== "") {
+      fields.estimatedSubtotal = body.estimatedSubtotal;
+    }
+    if (body.lineItemsDetail !== undefined) {
+      fields.lineItemsDetail = String(body.lineItemsDetail || "");
+    }
+
+    if (!Object.keys(fields).length) {
+      return json(res, 400, { error: "No fields to update" });
+    }
+
+    if (
+      fields.customerEmail !== undefined &&
+      fields.customerEmail &&
+      !fields.customerEmail.includes("@")
+    ) {
+      return json(res, 400, { error: "Invalid email address" });
+    }
+
+    try {
+      google.forceProductionTargets();
+      if (typeof google.updateOrderFieldsInSheet !== "function") {
+        throw new Error("Sheet field update not available on this deploy");
+      }
+      const sheetUpdate = await google.updateOrderFieldsInSheet({
+        orderNumber,
+        sheetRow,
+        fields,
+      });
+
+      // Mirror onto local orders.json when present
+      if (orderNumber) {
+        const list = loadOrders();
+        const order = list.find((o) => o.id === orderNumber);
+        if (order) {
+          if (fields.customerName !== undefined) {
+            order.customerName = fields.customerName;
+          }
+          if (fields.customerEmail !== undefined) {
+            order.customerEmail = fields.customerEmail;
+          }
+          if (fields.customerPhone !== undefined) {
+            order.customerPhone = fields.customerPhone || null;
+          }
+          if (fields.eventDate !== undefined) {
+            order.eventDate = fields.eventDate || null;
+          }
+          if (fields.allergies !== undefined) {
+            order.allergies = fields.allergies || null;
+          }
+          if (fields.notes !== undefined) {
+            order.decorationNotes = fields.notes || null;
+            order.notes = fields.notes || null;
+          }
+          if (fields.additionalNotes !== undefined) {
+            order.additionalNotes = fields.additionalNotes || null;
+          }
+          if (fields.lineItemsDetail !== undefined) {
+            order.lineItemsDetail = fields.lineItemsDetail;
+          } else if (sheetUpdate.updated && sheetUpdate.updated.lineItemsDetail) {
+            order.lineItemsDetail = sheetUpdate.updated.lineItemsDetail;
+          }
+          if (
+            fields.estimatedSubtotal !== undefined &&
+            Number.isFinite(Number(fields.estimatedSubtotal))
+          ) {
+            order.estimatedSubtotal = Number(fields.estimatedSubtotal);
+          }
+          order.updatedAt = new Date().toISOString();
+          saveOrders(list);
+        }
+      }
+
+      return json(res, 200, {
+        success: true,
+        orderNumber,
+        sheetUpdate,
+        updated: (sheetUpdate && sheetUpdate.updated) || fields,
+      });
+    } catch (e) {
+      console.error("[admin/update-order-fields]", e);
       return json(res, 500, { error: e.message || String(e) });
     }
   }

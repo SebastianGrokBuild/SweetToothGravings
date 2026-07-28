@@ -295,6 +295,141 @@
     }
     .stat-card.invoice.is-active { background: #F3F8FF; border-color: #90CAF9; box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.22); }
     .stat-card.paid.is-active { background: #F4FBF5; border-color: #A5D6A7; box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.22); }
+    .sales-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.55rem;
+    }
+    .sales-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 0.65rem 0.4rem;
+      text-align: center;
+      box-shadow: 0 3px 10px rgba(63, 42, 43, 0.04);
+    }
+    .sales-card .sales-num {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--ink);
+      word-break: break-word;
+    }
+    .sales-card .sales-label {
+      margin-top: 0.2rem;
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #8B6F6F;
+      line-height: 1.25;
+    }
+    .sales-card.revenue .sales-num { color: #2E7D32; font-size: 0.95rem; }
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+    .toolbar-btn {
+      height: 40px;
+      padding: 0 0.8rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+    .toolbar-btn:active { background: #F5EEFC; }
+    .toolbar-btn i { color: #C9A9E8; font-size: 0.75rem; }
+    .edit-block {
+      margin-top: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.95rem;
+      background: #FBF7FF;
+      overflow: hidden;
+    }
+    .edit-block summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .edit-block summary::-webkit-details-marker { display: none; }
+    .edit-block[open] summary .chev { transform: rotate(180deg); }
+    .edit-form {
+      padding: 0 0.85rem 0.9rem;
+      border-top: 1px solid var(--border);
+      display: grid;
+      gap: 0.55rem;
+    }
+    .edit-form label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #8B6F6F;
+      margin-bottom: 0.2rem;
+    }
+    .edit-form input,
+    .edit-form textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: #fff;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.9rem;
+      color: var(--ink);
+      font-family: inherit;
+    }
+    .edit-form textarea {
+      min-height: 4.2rem;
+      resize: vertical;
+    }
+    .edit-form input:focus,
+    .edit-form textarea:focus {
+      outline: none;
+      border-color: var(--lavender);
+      box-shadow: 0 0 0 3px rgba(201, 169, 232, 0.28);
+    }
+    .edit-form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.55rem;
+    }
+    @media (min-width: 420px) {
+      .edit-form-grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .review-btn {
+      margin-top: 0.55rem;
+      width: 100%;
+      min-height: 42px;
+      border-radius: 0.9rem;
+      border: 1px dashed #d7cce8;
+      background: #FBF7FF;
+      color: #5E35B1;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .review-btn:active { background: #F5EEFC; }
     .filter-bar {
       display: flex;
       align-items: center;
@@ -519,10 +654,16 @@
           <h2 class="heading-serif text-xl">Dashboard</h2>
           <p id="pending-count" class="text-sm text-[#6B5B5F] mt-0.5">Loading…</p>
         </div>
-        <button id="refresh-btn" type="button" class="h-10 px-3.5 rounded-2xl border border-[#EDE4DC] bg-white text-sm font-medium text-[#3F2A2B] flex items-center gap-1.5">
-          <i class="fa-solid fa-rotate-right text-xs text-[#C9A9E8]"></i>
-          Refresh
-        </button>
+        <div class="toolbar-actions">
+          <button id="export-csv-btn" type="button" class="toolbar-btn" title="Export filtered orders as CSV">
+            <i class="fa-solid fa-file-csv"></i>
+            CSV
+          </button>
+          <button id="refresh-btn" type="button" class="toolbar-btn">
+            <i class="fa-solid fa-rotate-right"></i>
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div id="summary-stats" class="stat-grid" aria-label="Order summary filters">
@@ -538,6 +679,21 @@
           <div class="stat-num" id="stat-paid">—</div>
           <div class="stat-label">Paid /<br>Completed</div>
         </button>
+      </div>
+
+      <div id="sales-stats" class="sales-grid" aria-label="Sales snapshot">
+        <div class="sales-card">
+          <div class="sales-num" id="sales-week">—</div>
+          <div class="sales-label">Orders<br>this week</div>
+        </div>
+        <div class="sales-card">
+          <div class="sales-num" id="sales-month">—</div>
+          <div class="sales-label">Orders<br>this month</div>
+        </div>
+        <div class="sales-card revenue">
+          <div class="sales-num" id="sales-revenue">—</div>
+          <div class="sales-label">Revenue<br>paid / done</div>
+        </div>
       </div>
 
       <div class="filter-bar">
@@ -972,6 +1128,174 @@
           s.paidCompleted != null ? s.paidCompleted : '—';
       }
 
+      /** Parse order created/submit date → Date or null (handles ISO + sheet formats). */
+      function parseOrderDate(o) {
+        var raw = o && (o.createdAt || o.submittedAt || o.submitDate || '');
+        if (!raw) return null;
+        var s = String(raw).trim();
+        if (!s) return null;
+        var d = new Date(s);
+        if (!isNaN(d.getTime())) return d;
+        // Sheet-style: M/D/YYYY or M/D/YYYY H:MM:SS
+        var m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+        if (m) {
+          var year = Number(m[3]);
+          if (year < 100) year += 2000;
+          var month = Number(m[1]) - 1;
+          var day = Number(m[2]);
+          var hour = m[4] != null ? Number(m[4]) : 12;
+          var min = m[5] != null ? Number(m[5]) : 0;
+          var sec = m[6] != null ? Number(m[6]) : 0;
+          if (m[7]) {
+            var ap = m[7].toUpperCase();
+            if (ap === 'PM' && hour < 12) hour += 12;
+            if (ap === 'AM' && hour === 12) hour = 0;
+          }
+          d = new Date(year, month, day, hour, min, sec);
+          if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+      }
+
+      function startOfLocalWeek(now) {
+        // Week starts Monday (local browser time — bakery phones are usually local)
+        var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var day = d.getDay(); // 0 Sun … 6 Sat
+        var diff = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      function startOfLocalMonth(now) {
+        return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      }
+
+      function orderRevenueAmount(o) {
+        if (!o) return 0;
+        if (o.estimatedSubtotal != null && isFinite(Number(o.estimatedSubtotal))) {
+          return Number(o.estimatedSubtotal);
+        }
+        // Fallback: deposit * 2 when only deposit is known
+        var dep = o.depositAmount != null ? o.depositAmount : o.depositDue;
+        if (dep != null && isFinite(Number(dep)) && Number(dep) > 0) {
+          return Number(dep) * 2;
+        }
+        return 0;
+      }
+
+      function computeSalesMetrics(orders) {
+        var now = new Date();
+        var weekStart = startOfLocalWeek(now);
+        var monthStart = startOfLocalMonth(now);
+        var weekCount = 0;
+        var monthCount = 0;
+        var revenue = 0;
+        (orders || []).forEach(function (o) {
+          var d = parseOrderDate(o);
+          if (d) {
+            if (d >= weekStart) weekCount += 1;
+            if (d >= monthStart) monthCount += 1;
+          }
+          if (isPaidStatus(o.status)) {
+            revenue += orderRevenueAmount(o);
+          }
+        });
+        return {
+          weekCount: weekCount,
+          monthCount: monthCount,
+          revenue: Math.round(revenue * 100) / 100,
+        };
+      }
+
+      function renderSalesMetrics(orders) {
+        var m = computeSalesMetrics(orders || []);
+        var weekEl = document.getElementById('sales-week');
+        var monthEl = document.getElementById('sales-month');
+        var revEl = document.getElementById('sales-revenue');
+        if (weekEl) weekEl.textContent = String(m.weekCount);
+        if (monthEl) monthEl.textContent = String(m.monthCount);
+        if (revEl) {
+          revEl.textContent =
+            m.revenue > 0
+              ? ('$' + m.revenue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }))
+              : '$0';
+        }
+      }
+
+      function csvEscape(val) {
+        var s = val == null ? '' : String(val);
+        if (/[",\n\r]/.test(s)) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }
+
+      function exportOrdersCsv() {
+        var list = getFilteredOrders();
+        if (!list.length) {
+          showToast('No orders to export for this filter', false);
+          return;
+        }
+        var headers = [
+          'Order',
+          'Status',
+          'Customer Name',
+          'Email',
+          'Phone',
+          'Event Date',
+          'Submit Date',
+          'Estimated Subtotal',
+          'Deposit',
+          'Line Items',
+          'Allergies',
+          'Notes',
+          'Order Type',
+        ];
+        var rows = [headers.join(',')];
+        list.forEach(function (o) {
+          var sub = o.estimatedSubtotal != null ? o.estimatedSubtotal : '';
+          var dep =
+            o.depositAmount != null
+              ? o.depositAmount
+              : o.depositDue != null
+                ? o.depositDue
+                : '';
+          rows.push(
+            [
+              csvEscape(o.orderNumber || o.id || ''),
+              csvEscape(canonicalStatus(o.status)),
+              csvEscape(o.customerName || ''),
+              csvEscape(o.customerEmail || ''),
+              csvEscape(o.customerPhone || ''),
+              csvEscape(o.eventDate || ''),
+              csvEscape(o.createdAt || ''),
+              csvEscape(sub),
+              csvEscape(dep),
+              csvEscape(o.lineItemsDetail || o.cartText || ''),
+              csvEscape(o.allergies || ''),
+              csvEscape(o.notes || o.specialRequests || ''),
+              csvEscape(o.orderType || ''),
+            ].join(',')
+          );
+        });
+        var blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        var stamp = new Date().toISOString().slice(0, 10);
+        var filterSlug = activeFilter === 'all' ? 'all' : activeFilter;
+        a.href = url;
+        a.download = 'stc-orders-' + filterSlug + '-' + stamp + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        showToast('Exported ' + list.length + ' order' + (list.length === 1 ? '' : 's'), true);
+      }
+
       // Dashboard card filters
       document.querySelectorAll('.stat-card[data-filter]').forEach(function (card) {
         card.addEventListener('click', function () {
@@ -981,6 +1305,12 @@
       showAllBtn.addEventListener('click', function () {
         setFilter('all');
       });
+      var exportCsvBtn = document.getElementById('export-csv-btn');
+      if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', function () {
+          exportOrdersCsv();
+        });
+      }
 
       async function loadOrders() {
         skeleton();
@@ -997,6 +1327,7 @@
             }
           });
           renderSummary(data.summary);
+          renderSalesMetrics(allOrders);
           // Keep current filter if still useful; default pending
           if (!activeFilter) activeFilter = 'pending';
           updateFilterUI();
@@ -1013,6 +1344,7 @@
           pendingCount.textContent = 'Could not load orders';
           allOrders = [];
           renderSummary({});
+          renderSalesMetrics([]);
           updateFilterUI();
           ordersList.innerHTML =
             '<div class="order-card text-center py-8">' +
@@ -1174,6 +1506,100 @@
         );
       }
 
+      function renderEditForm(o, formId) {
+        var orderNumber = o.orderNumber || o.id || '';
+        var row = o.sheetRow != null ? o.sheetRow : '';
+        var notes = (o.notes || o.specialRequests || o.decorationNotes || '').trim();
+        var allergies = (o.allergies || '').trim();
+        var additional = (o.additionalNotes || '').trim();
+        var eventVal = o.eventDate && o.eventDate !== '—' ? o.eventDate : '';
+        var subVal =
+          o.estimatedSubtotal != null && isFinite(Number(o.estimatedSubtotal))
+            ? Number(o.estimatedSubtotal)
+            : '';
+
+        return (
+          '<details class="edit-block">' +
+            '<summary>' +
+              '<span><i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Edit order</span>' +
+              '<i class="fa-solid fa-chevron-down chev text-[#8B6F6F] text-[0.7rem]"></i>' +
+            '</summary>' +
+            '<form class="edit-form order-edit-form" id="' + formId + '"' +
+              ' data-order="' + escapeHtml(orderNumber) + '"' +
+              ' data-row="' + escapeHtml(String(row)) + '">' +
+              '<div class="edit-form-grid-2">' +
+                '<div>' +
+                  '<label for="' + formId + '-name">Customer name</label>' +
+                  '<input id="' + formId + '-name" name="customerName" type="text" autocomplete="name" value="' +
+                    escapeHtml(o.customerName || '') + '" required>' +
+                '</div>' +
+                '<div>' +
+                  '<label for="' + formId + '-email">Email</label>' +
+                  '<input id="' + formId + '-email" name="customerEmail" type="email" autocomplete="email" value="' +
+                    escapeHtml(o.customerEmail || '') + '" required>' +
+                '</div>' +
+              '</div>' +
+              '<div class="edit-form-grid-2">' +
+                '<div>' +
+                  '<label for="' + formId + '-phone">Phone</label>' +
+                  '<input id="' + formId + '-phone" name="customerPhone" type="tel" autocomplete="tel" value="' +
+                    escapeHtml(o.customerPhone || '') + '">' +
+                '</div>' +
+                '<div>' +
+                  '<label for="' + formId + '-event">Event date</label>' +
+                  '<input id="' + formId + '-event" name="eventDate" type="text" inputmode="text" placeholder="YYYY-MM-DD or written date" value="' +
+                    escapeHtml(eventVal) + '">' +
+                '</div>' +
+              '</div>' +
+              '<div>' +
+                '<label for="' + formId + '-sub">Estimated subtotal ($)</label>' +
+                '<input id="' + formId + '-sub" name="estimatedSubtotal" type="number" min="0" step="0.01" inputmode="decimal" value="' +
+                  escapeHtml(subVal === '' ? '' : String(subVal)) + '">' +
+              '</div>' +
+              '<div>' +
+                '<label for="' + formId + '-allergies">Allergies</label>' +
+                '<input id="' + formId + '-allergies" name="allergies" type="text" value="' +
+                  escapeHtml(allergies) + '">' +
+              '</div>' +
+              '<div>' +
+                '<label for="' + formId + '-notes">Notes / special requests</label>' +
+                '<textarea id="' + formId + '-notes" name="notes" rows="3">' +
+                  escapeHtml(notes) +
+                '</textarea>' +
+              '</div>' +
+              '<div>' +
+                '<label for="' + formId + '-add">Additional notes</label>' +
+                '<textarea id="' + formId + '-add" name="additionalNotes" rows="2">' +
+                  escapeHtml(additional) +
+                '</textarea>' +
+              '</div>' +
+              '<button type="submit" class="btn-primary w-full flex items-center justify-center gap-2 save-edit-btn">' +
+                '<i class="fa-solid fa-floppy-disk text-sm"></i><span>Save to sheet</span>' +
+              '</button>' +
+              '<p class="edit-status text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
+            '</form>' +
+          '</details>'
+        );
+      }
+
+      function renderRequestReviewBtn(o) {
+        var status = String(o.status || '').toLowerCase();
+        if (status.indexOf('complete') < 0) return '';
+        var email = (o.customerEmail || '').trim();
+        var name = (o.customerName || '').trim();
+        var orderNumber = o.orderNumber || o.id || '';
+        return (
+          '<button type="button" class="review-btn request-review-btn"' +
+            ' data-order="' + escapeHtml(orderNumber) + '"' +
+            ' data-email="' + escapeHtml(email) + '"' +
+            ' data-name="' + escapeHtml(name) + '"' +
+            ' title="Draft a review request to the customer (coming soon full automation)">' +
+            '<i class="fa-regular fa-star"></i>' +
+            '<span>Request Review</span>' +
+          '</button>'
+        );
+      }
+
       var lightbox = document.getElementById('lightbox');
       var lightboxImg = document.getElementById('lightbox-img');
       var lightboxLabel = document.getElementById('lightbox-label');
@@ -1291,6 +1717,7 @@
               '</div>' +
               renderQuickActions(email, phone, name, orderNumber) +
               renderOrderDetails(o) +
+              renderEditForm(o, 'edit-form-' + i) +
               renderPhotoGallery(photos) +
               (showDepositSend || showCopyLink
                 ? '<div class="invoice-actions' + (showDepositSend && showCopyLink ? ' has-both' : '') + '">' +
@@ -1364,6 +1791,7 @@
                   '</button>' +
                 '</div>' +
               '</div>' +
+              renderRequestReviewBtn(o) +
               '<p class="send-status mt-2 text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
             '</article>'
           );
@@ -1395,6 +1823,17 @@
             var id = btn.getAttribute('data-for-select') || '';
             var sel = id ? document.getElementById(id) : null;
             if (sel) updateOrderStatusFromSelect(sel, { force: true });
+          });
+        });
+        ordersList.querySelectorAll('.order-edit-form').forEach(function (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            saveOrderEdits(form);
+          });
+        });
+        ordersList.querySelectorAll('.request-review-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            requestReview(btn);
           });
         });
         ordersList.querySelectorAll('.photo-open-btn').forEach(function (btn) {
@@ -1525,6 +1964,169 @@
             applyBtn.disabled = false;
             applyBtn.textContent = 'Update';
           }
+        }
+      }
+
+      async function saveOrderEdits(form) {
+        if (!form) return;
+        var orderNumber = form.getAttribute('data-order') || '';
+        var row = form.getAttribute('data-row') || '';
+        var statusEl = form.querySelector('.edit-status');
+        var submitBtn = form.querySelector('.save-edit-btn');
+        var fd = new FormData(form);
+
+        var body = {
+          orderNumber: orderNumber,
+          customerName: String(fd.get('customerName') || '').trim(),
+          customerEmail: String(fd.get('customerEmail') || '').trim(),
+          customerPhone: String(fd.get('customerPhone') || '').trim(),
+          eventDate: String(fd.get('eventDate') || '').trim(),
+          allergies: String(fd.get('allergies') || '').trim(),
+          notes: String(fd.get('notes') || '').trim(),
+          additionalNotes: String(fd.get('additionalNotes') || '').trim(),
+        };
+        if (row) body.row = row;
+
+        var subRaw = String(fd.get('estimatedSubtotal') || '').trim();
+        if (subRaw !== '') {
+          var subNum = Number(subRaw);
+          if (!isFinite(subNum) || subNum < 0) {
+            showToast('Subtotal must be a valid number', false);
+            return;
+          }
+          body.estimatedSubtotal = subNum;
+        }
+
+        if (!body.customerName) {
+          showToast('Customer name is required', false);
+          return;
+        }
+        if (!body.customerEmail || body.customerEmail.indexOf('@') < 0) {
+          showToast('A valid email is required', false);
+          return;
+        }
+        if (!orderNumber && !row) {
+          showToast('Missing order id', false);
+          return;
+        }
+
+        var original = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML =
+            '<i class="fa-solid fa-spinner fa-spin"></i><span>Saving…</span>';
+        }
+        if (statusEl) statusEl.textContent = 'Saving changes to Google Sheet…';
+
+        try {
+          var data = await api('/api/admin/update-order-fields', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (!data.success) throw new Error(data.error || 'Save failed');
+
+          // Update in-memory order so re-render keeps edits
+          for (var i = 0; i < allOrders.length; i++) {
+            var id = String(allOrders[i].orderNumber || allOrders[i].id || '');
+            if (id === String(orderNumber)) {
+              allOrders[i].customerName = body.customerName;
+              allOrders[i].customerEmail = body.customerEmail;
+              allOrders[i].customerPhone = body.customerPhone;
+              allOrders[i].eventDate = body.eventDate;
+              allOrders[i].allergies = body.allergies;
+              allOrders[i].notes = body.notes;
+              allOrders[i].specialRequests = body.notes;
+              allOrders[i].additionalNotes = body.additionalNotes;
+              if (body.estimatedSubtotal != null) {
+                allOrders[i].estimatedSubtotal = body.estimatedSubtotal;
+                allOrders[i].depositAmount =
+                  Math.round(body.estimatedSubtotal * 50) / 100;
+                allOrders[i].depositDue = allOrders[i].depositAmount;
+              }
+              if (data.updated && data.updated.lineItemsDetail) {
+                allOrders[i].lineItemsDetail = data.updated.lineItemsDetail;
+              }
+              break;
+            }
+          }
+
+          showToast('Saved ' + orderNumber + ' to sheet', true);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-green-700 font-medium">✓ Saved to Google Sheet</span>';
+          }
+          renderSalesMetrics(allOrders);
+          setTimeout(function () {
+            loadOrders();
+          }, 900);
+        } catch (e) {
+          showToast(e.message || 'Could not save order', false);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-red-600">' +
+              escapeHtml(e.message || 'Failed') +
+              '</span>';
+          }
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = original;
+          }
+        }
+      }
+
+      /**
+       * Lightweight “Request Review” prep for completed orders.
+       * Opens a prefilled email draft (mailto) — full automated flow later.
+       */
+      function requestReview(btn) {
+        var email = (btn.getAttribute('data-email') || '').trim();
+        var name = (btn.getAttribute('data-name') || '').trim();
+        var orderNumber = btn.getAttribute('data-order') || '';
+        var first = name ? name.split(/\s+/)[0] : 'there';
+
+        if (!email || email.indexOf('@') < 0) {
+          showToast('No customer email on this order', false);
+          return;
+        }
+
+        var subject = 'We’d love your review — Sweet Tooth Cravings';
+        var body =
+          'Hi ' +
+          first +
+          ',\n\n' +
+          'Thank you for choosing Sweet Tooth Cravings' +
+          (orderNumber ? ' (order ' + orderNumber + ')' : '') +
+          '!\n\n' +
+          'If you enjoyed your treats, we’d be so grateful for a quick review. ' +
+          'It helps other customers find us.\n\n' +
+          '[Add your Google / Instagram review link here]\n\n' +
+          'Thank you so much!\n' +
+          '— Sweet Tooth Cravings\n' +
+          'Miami, FL';
+
+        var mailto =
+          'mailto:' +
+          encodeURIComponent(email) +
+          '?subject=' +
+          encodeURIComponent(subject) +
+          '&body=' +
+          encodeURIComponent(body);
+
+        // Prefer opening the draft; also copy body so mobile share works if mailto is blocked
+        try {
+          window.location.href = mailto;
+        } catch (e) { /* ignore */ }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(body).catch(function () {});
+        }
+
+        showToast('Review request draft ready — paste review link before sending', true);
+        var card = btn.closest('.order-card');
+        var statusEl = card ? card.querySelector('.send-status') : null;
+        if (statusEl) {
+          statusEl.innerHTML =
+            '<span class="text-[#5E35B1] font-medium">Review draft opened · add your review link, then send</span>';
         }
       }
 
