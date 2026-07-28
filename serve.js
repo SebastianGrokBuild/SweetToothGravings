@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-mobile-admin-v15";
+const DEPLOY_BUILD = "2026-07-28-admin-photos-v16";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -1281,6 +1281,19 @@ async function api(req, res, pathname, baseUrl) {
             : sub != null && sub > 0
               ? Math.round(sub * 50) / 100
               : null;
+        const rawPhotos = Array.isArray(o.photoLinks)
+          ? o.photoLinks
+          : [];
+        const photos =
+          typeof google.normalizeSheetPhotoLinks === "function"
+            ? google.normalizeSheetPhotoLinks(rawPhotos)
+            : rawPhotos
+                .filter(Boolean)
+                .map((url, i) => ({
+                  url,
+                  thumb: url,
+                  label: `Photo ${i + 1}`,
+                }));
         return {
           id: o.id,
           orderNumber: o.id,
@@ -1296,18 +1309,37 @@ async function api(req, res, pathname, baseUrl) {
           depositDue: deposit,
           orderType: o.orderType || "",
           createdAt: o.createdAt || null,
+          photo1: rawPhotos[0] || "",
+          photo2: rawPhotos[1] || "",
+          photo3: rawPhotos[2] || "",
+          photos,
+          photoLinks: rawPhotos.filter(Boolean),
           source: "local",
         };
       });
 
       // Prefer sheet rows; merge local-only orders not already in sheet
+      // (and fill missing photos from local when sheet row has none)
       const byId = new Map();
       for (const o of sheetOrders) {
         byId.set(String(o.orderNumber || o.id), o);
       }
       for (const o of local) {
         const key = String(o.orderNumber || o.id);
-        if (!byId.has(key)) byId.set(key, o);
+        if (!byId.has(key)) {
+          byId.set(key, o);
+        } else {
+          const existing = byId.get(key);
+          const hasPhotos =
+            Array.isArray(existing.photos) && existing.photos.length > 0;
+          if (!hasPhotos && Array.isArray(o.photos) && o.photos.length > 0) {
+            existing.photos = o.photos;
+            existing.photoLinks = o.photoLinks;
+            existing.photo1 = o.photo1;
+            existing.photo2 = o.photo2;
+            existing.photo3 = o.photo3;
+          }
+        }
       }
 
       const all = [...byId.values()];

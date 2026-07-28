@@ -59,6 +59,95 @@
       padding: 1rem 1.1rem;
       box-shadow: 0 4px 14px rgba(63, 42, 43, 0.04);
     }
+    .photo-row {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.15rem 0;
+      scrollbar-width: none;
+    }
+    .photo-row::-webkit-scrollbar { display: none; }
+    .photo-thumb {
+      flex: 0 0 auto;
+      width: 4.5rem;
+      height: 4.5rem;
+      border-radius: 0.85rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #F9F1EB;
+      position: relative;
+      padding: 0;
+      cursor: pointer;
+    }
+    .photo-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .photo-thumb .photo-label {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-align: center;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(63,42,43,0.72));
+      padding: 0.45rem 0.15rem 0.2rem;
+    }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(30, 20, 22, 0.88);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img {
+      max-width: 100%;
+      max-height: min(82dvh, 900px);
+      border-radius: 1rem;
+      object-fit: contain;
+      background: #1a1213;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+    .lightbox-close {
+      position: absolute;
+      top: max(0.75rem, env(safe-area-inset-top));
+      right: 0.75rem;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 999px;
+      border: 0;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 1.1rem;
+    }
+    .lightbox-caption {
+      position: absolute;
+      left: 1rem;
+      right: 1rem;
+      bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+      text-align: center;
+      color: rgba(255,255,255,0.9);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .lightbox-open-tab {
+      display: inline-block;
+      margin-top: 0.35rem;
+      color: #E8D4F8;
+      font-size: 0.8rem;
+      text-decoration: underline;
+    }
     .toast {
       position: fixed;
       left: 1rem;
@@ -147,6 +236,18 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Full-size photo viewer -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Inspiration photo">
+    <button type="button" class="lightbox-close" id="lightbox-close" aria-label="Close">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="lightbox-img" src="" alt="Inspiration photo">
+    <div class="lightbox-caption">
+      <div id="lightbox-label"></div>
+      <a id="lightbox-open" class="lightbox-open-tab" href="#" target="_blank" rel="noopener">Open full size</a>
+    </div>
+  </div>
 
   <script>
     (function () {
@@ -324,6 +425,87 @@
         }
       }
 
+      function collectPhotos(o) {
+        if (Array.isArray(o.photos) && o.photos.length) {
+          return o.photos.filter(function (p) {
+            return p && (p.thumb || p.url);
+          });
+        }
+        // Fallback: raw photo1/2/3 or photoLinks
+        var raw = [];
+        if (o.photo1) raw.push(o.photo1);
+        if (o.photo2) raw.push(o.photo2);
+        if (o.photo3) raw.push(o.photo3);
+        if (!raw.length && Array.isArray(o.photoLinks)) raw = o.photoLinks;
+        return raw
+          .map(function (url, i) {
+            var s = String(url || '').trim();
+            if (!s || !/^https?:\/\//i.test(s) && s.indexOf('data:image/') !== 0) return null;
+            if (/upload failed/i.test(s)) return null;
+            var fileId = '';
+            var m = s.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (m) fileId = m[1];
+            return {
+              url: fileId ? ('https://drive.google.com/file/d/' + fileId + '/view') : s,
+              thumb: fileId ? ('https://drive.google.com/thumbnail?id=' + fileId + '&sz=w600') : s,
+              label: 'Photo ' + (i + 1),
+            };
+          })
+          .filter(Boolean);
+      }
+
+      function renderPhotoGallery(photos) {
+        if (!photos || !photos.length) return '';
+        var thumbs = photos.map(function (p, i) {
+          var thumb = p.thumb || p.url;
+          var openUrl = p.url || p.thumb;
+          var label = p.label || ('Photo ' + (i + 1));
+          return (
+            '<button type="button" class="photo-thumb photo-open-btn"' +
+              ' data-thumb="' + escapeHtml(thumb) + '"' +
+              ' data-url="' + escapeHtml(openUrl) + '"' +
+              ' data-label="' + escapeHtml(label) + '"' +
+              ' aria-label="View ' + escapeHtml(label) + '">' +
+              '<img src="' + escapeHtml(thumb) + '" alt="' + escapeHtml(label) + '" loading="lazy" decoding="async"' +
+                ' onerror="this.parentElement.style.display=\'none\'">' +
+              '<span class="photo-label">' + escapeHtml(label) + '</span>' +
+            '</button>'
+          );
+        }).join('');
+        return (
+          '<div class="mt-3">' +
+            '<div class="text-[10px] uppercase tracking-wider font-semibold text-[#8B6F6F] mb-1.5">Inspiration photos</div>' +
+            '<div class="photo-row">' + thumbs + '</div>' +
+          '</div>'
+        );
+      }
+
+      var lightbox = document.getElementById('lightbox');
+      var lightboxImg = document.getElementById('lightbox-img');
+      var lightboxLabel = document.getElementById('lightbox-label');
+      var lightboxOpen = document.getElementById('lightbox-open');
+
+      function openLightbox(thumb, url, label) {
+        lightboxImg.src = thumb || url;
+        lightboxImg.alt = label || 'Inspiration photo';
+        lightboxLabel.textContent = label || 'Inspiration photo';
+        lightboxOpen.href = url || thumb || '#';
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        lightbox.classList.remove('open');
+        lightboxImg.removeAttribute('src');
+        document.body.style.overflow = '';
+      }
+      document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+      lightbox.addEventListener('click', function (e) {
+        if (e.target === lightbox) closeLightbox();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeLightbox();
+      });
+
       function renderOrders(orders) {
         if (!orders.length) {
           ordersList.innerHTML =
@@ -347,6 +529,7 @@
           var subtotal = o.estimatedSubtotal;
           var row = o.sheetRow != null ? o.sheetRow : '';
           var lines = (o.lineItemsDetail || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+          var photos = collectPhotos(o);
 
           return (
             '<article class="order-card" data-idx="' + i + '">' +
@@ -366,6 +549,7 @@
                 '</span></div>' +
               '</div>' +
               (lines ? '<p class="mt-2 text-xs text-[#8B6F6F] line-clamp-2 leading-relaxed">' + escapeHtml(lines) + '</p>' : '') +
+              renderPhotoGallery(photos) +
               '<button type="button" class="btn-primary send-invoice-btn mt-4 w-full flex items-center justify-center gap-2"' +
                 ' data-order="' + escapeHtml(orderNumber) + '"' +
                 ' data-email="' + escapeHtml(email) + '"' +
@@ -386,6 +570,15 @@
         ordersList.querySelectorAll('.send-invoice-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
             sendInvoice(btn);
+          });
+        });
+        ordersList.querySelectorAll('.photo-open-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            openLightbox(
+              btn.getAttribute('data-thumb') || '',
+              btn.getAttribute('data-url') || '',
+              btn.getAttribute('data-label') || 'Photo'
+            );
           });
         });
       }
