@@ -344,6 +344,68 @@
       gap: 0.45rem;
       margin-top: 0.55rem;
     }
+    .status-change {
+      margin-top: 0.7rem;
+      padding: 0.65rem 0.7rem;
+      border-radius: 0.9rem;
+      border: 1px solid var(--border);
+      background: #FBF8F6;
+    }
+    .status-change-label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #8B6F6F;
+      margin-bottom: 0.4rem;
+    }
+    .status-change-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0.45rem;
+    }
+    .status-select {
+      flex: 1 1 auto;
+      min-width: 0;
+      min-height: 44px;
+      border-radius: 0.85rem;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.55rem 2.1rem 0.55rem 0.75rem;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235E35B1' d='M1.4.6 6 5.2 10.6.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 12px 8px;
+    }
+    .status-select:focus {
+      outline: 2px solid #C9A9E8;
+      outline-offset: 1px;
+      border-color: #C9A9E8;
+    }
+    .status-select:disabled {
+      opacity: 0.6;
+    }
+    .status-apply-btn {
+      flex: 0 0 auto;
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 0.9rem;
+      border-radius: 0.85rem;
+      border: 1px solid #d7cce8;
+      background: #F5EEFC;
+      color: #5E35B1;
+      font-size: 0.78rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .status-apply-btn:active:not(:disabled) { background: #EDE0F8; }
+    .status-apply-btn:disabled { opacity: 0.5; }
     .btn-secondary {
       min-height: 42px;
       border-radius: 0.9rem;
@@ -796,13 +858,36 @@
         if (isInvoiceStatus(status)) return 'invoice';
         return 'other';
       }
+      /** Map any sheet/status string onto one of the 4 admin-editable values. */
+      function canonicalStatus(status) {
+        var s = String(status || '').trim().toLowerCase();
+        if (!s || s.indexOf('pending') >= 0 || s === 'new' || s === 'review') {
+          return 'Pending Review';
+        }
+        if (s.indexOf('complete') >= 0) return 'Completed';
+        if (s === 'paid' || s.indexOf('paid') === 0) return 'Paid';
+        if (
+          s.indexOf('invoice') >= 0 ||
+          s.indexOf('balance') >= 0 ||
+          s === 'deposit sent'
+        ) {
+          return 'Invoice Sent';
+        }
+        return 'Pending Review';
+      }
+      var STATUS_OPTIONS = [
+        'Pending Review',
+        'Invoice Sent',
+        'Paid',
+        'Completed',
+      ];
       function statusBadgeHtml(status) {
         var bucket = statusBucket(status);
         var label =
           bucket === 'pending'
             ? 'Pending Review'
             : bucket === 'invoice'
-              ? 'Invoice Sent'
+              ? (isBalanceInvoiceStatus(status) ? 'Balance Invoice Sent' : 'Invoice Sent')
               : bucket === 'paid'
                 ? (String(status || '').toLowerCase().indexOf('complete') >= 0 ? 'Completed' : 'Paid')
                 : (status || 'Other');
@@ -1175,7 +1260,7 @@
           } else if (bucket === 'paid') {
             showBalanceSend = false;
           }
-          var showMarks = bucket === 'pending' || bucket === 'invoice' || isBalanceInvoiceStatus(o.status);
+          var currentCanonical = canonicalStatus(o.status);
           var paymentUrl = getPaymentLinkForOrder(o);
           var hasPaymentLink = !!(paymentUrl && /^https?:\/\//i.test(paymentUrl));
           // Show copy next to deposit send, or alone once invoice exists
@@ -1252,22 +1337,33 @@
                   '<span>Send Final Balance Invoice</span>' +
                 '</button>'
                 : '') +
-              (showMarks
-                ? '<div class="status-actions">' +
-                  '<button type="button" class="btn-secondary paid-btn mark-status-btn"' +
+              '<div class="status-change">' +
+                '<label class="status-change-label" for="status-select-' + i + '">' +
+                  '<i class="fa-solid fa-arrows-rotate text-[10px]"></i> Change Status' +
+                '</label>' +
+                '<div class="status-change-row">' +
+                  '<select id="status-select-' + i + '" class="status-select"' +
                     ' data-order="' + escapeHtml(orderNumber) + '"' +
                     ' data-row="' + escapeHtml(String(row)) + '"' +
-                    ' data-status="Paid">' +
-                    '<i class="fa-solid fa-circle-check"></i><span>Mark as Paid</span>' +
+                    ' data-current="' + escapeHtml(currentCanonical) + '"' +
+                    ' aria-label="Change order status">' +
+                    STATUS_OPTIONS.map(function (opt) {
+                      return (
+                        '<option value="' +
+                        escapeHtml(opt) +
+                        '"' +
+                        (opt === currentCanonical ? ' selected' : '') +
+                        '>' +
+                        escapeHtml(opt) +
+                        '</option>'
+                      );
+                    }).join('') +
+                  '</select>' +
+                  '<button type="button" class="status-apply-btn" data-for-select="status-select-' + i + '" title="Apply status change">' +
+                    'Update' +
                   '</button>' +
-                  '<button type="button" class="btn-secondary done-btn mark-status-btn"' +
-                    ' data-order="' + escapeHtml(orderNumber) + '"' +
-                    ' data-row="' + escapeHtml(String(row)) + '"' +
-                    ' data-status="Completed">' +
-                    '<i class="fa-solid fa-flag-checkered"></i><span>Mark as Completed</span>' +
-                  '</button>' +
-                '</div>'
-                : '') +
+                '</div>' +
+              '</div>' +
               '<p class="send-status mt-2 text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
             '</article>'
           );
@@ -1288,9 +1384,17 @@
             sendFinalBalanceInvoice(btn);
           });
         });
-        ordersList.querySelectorAll('.mark-status-btn').forEach(function (btn) {
+        ordersList.querySelectorAll('.status-select').forEach(function (sel) {
+          sel.addEventListener('change', function () {
+            // Auto-apply on change for fewer taps on mobile
+            updateOrderStatusFromSelect(sel);
+          });
+        });
+        ordersList.querySelectorAll('.status-apply-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
-            markOrderStatus(btn);
+            var id = btn.getAttribute('data-for-select') || '';
+            var sel = id ? document.getElementById(id) : null;
+            if (sel) updateOrderStatusFromSelect(sel, { force: true });
           });
         });
         ordersList.querySelectorAll('.photo-open-btn').forEach(function (btn) {
@@ -1336,25 +1440,36 @@
         });
       }
 
-      async function markOrderStatus(btn) {
-        var orderNumber = btn.getAttribute('data-order') || '';
-        var row = btn.getAttribute('data-row') || '';
-        var status = btn.getAttribute('data-status') || '';
-        var card = btn.closest('.order-card');
+      async function updateOrderStatusFromSelect(sel, opts) {
+        opts = opts || {};
+        if (!sel) return;
+        var orderNumber = sel.getAttribute('data-order') || '';
+        var row = sel.getAttribute('data-row') || '';
+        var current = sel.getAttribute('data-current') || '';
+        var status = String(sel.value || '').trim();
+        var card = sel.closest('.order-card');
         var statusEl = card ? card.querySelector('.send-status') : null;
-        var allStatusBtns = card
-          ? card.querySelectorAll('.mark-status-btn, .send-invoice-btn')
-          : [btn];
+        var applyBtn = card ? card.querySelector('.status-apply-btn') : null;
 
         if (!status) return;
+        if (!opts.force && status === current) {
+          // No change selected
+          return;
+        }
+        if (status === current && opts.force) {
+          showToast('Already ' + status, true);
+          return;
+        }
         if (!orderNumber && !row) {
           showToast('Missing order id', false);
           return;
         }
 
-        allStatusBtns.forEach(function (b) { b.disabled = true; });
-        var original = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Saving…</span>';
+        sel.disabled = true;
+        if (applyBtn) {
+          applyBtn.disabled = true;
+          applyBtn.textContent = '…';
+        }
         if (statusEl) statusEl.textContent = 'Updating status to ' + status + '…';
 
         try {
@@ -1365,12 +1480,34 @@
             body: JSON.stringify(body),
           });
           if (!data.success) throw new Error(data.error || 'Update failed');
+
+          // Reflect success immediately on the card
+          sel.setAttribute('data-current', status);
+          if (card) {
+            var badge = card.querySelector('.status-badge');
+            if (badge) {
+              badge.outerHTML = statusBadgeHtml(status);
+            }
+          }
           showToast(orderNumber + ' → ' + status, true);
           if (statusEl) {
             statusEl.innerHTML =
               '<span class="text-green-700 font-medium">✓ Status: ' +
               escapeHtml(status) +
               '</span>';
+          }
+          // Keep local list in sync so filters/counts stay correct after reload delay
+          for (var i = 0; i < allOrders.length; i++) {
+            var id = String(allOrders[i].orderNumber || allOrders[i].id || '');
+            if (id === String(orderNumber)) {
+              allOrders[i].status = status;
+              break;
+            }
+          }
+          sel.disabled = false;
+          if (applyBtn) {
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Update';
           }
           setTimeout(function () {
             loadOrders();
@@ -1381,8 +1518,13 @@
             statusEl.innerHTML =
               '<span class="text-red-600">' + escapeHtml(e.message || 'Failed') + '</span>';
           }
-          allStatusBtns.forEach(function (b) { b.disabled = false; });
-          btn.innerHTML = original;
+          // Revert select to previous value
+          if (current) sel.value = current;
+          sel.disabled = false;
+          if (applyBtn) {
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Update';
+          }
         }
       }
 

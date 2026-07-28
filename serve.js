@@ -1495,21 +1495,38 @@ async function api(req, res, pathname, baseUrl) {
           ? body.sheetRow
           : null;
     let status = String(body.status || "").trim();
-    // Normalize common button labels
-    const statusKey = status.toLowerCase();
-    if (statusKey === "mark as paid" || statusKey === "paid") status = "Paid";
+    // Normalize common labels / aliases from Admin UI
+    const statusKey = status.toLowerCase().replace(/[_-]+/g, " ").trim();
     if (
+      statusKey === "mark as paid" ||
+      statusKey === "paid" ||
+      statusKey === "payment received"
+    ) {
+      status = "Paid";
+    } else if (
       statusKey === "mark as completed" ||
       statusKey === "completed" ||
-      statusKey === "complete"
+      statusKey === "complete" ||
+      statusKey === "done"
     ) {
       status = "Completed";
-    }
-    if (
+    } else if (
       statusKey === "invoice sent" ||
-      statusKey === "deposit invoice sent"
+      statusKey === "deposit invoice sent" ||
+      statusKey === "balance invoice sent"
     ) {
       status = "Invoice Sent";
+    } else if (
+      statusKey === "pending review" ||
+      statusKey === "pending" ||
+      statusKey === "review" ||
+      statusKey === "new" ||
+      statusKey === "move back to pending" ||
+      statusKey === "revert"
+    ) {
+      status = "Pending Review";
+    } else if (statusKey === "declined" || statusKey === "decline") {
+      status = "Declined";
     }
 
     if (!orderNumber && (sheetRow == null || sheetRow === "")) {
@@ -1534,6 +1551,8 @@ async function api(req, res, pathname, baseUrl) {
 
     try {
       google.forceProductionTargets();
+      // Only update Stripe Deposit column for forward-looking paid/sent states.
+      // Leaving null on Pending Review keeps any prior deposit note intact.
       const stripeDepositLabel =
         status === "Invoice Sent"
           ? "✓ Sent"
