@@ -2,13 +2,14 @@
  * Caches shell + key assets for offline browse; always prefers network for API.
  * Bump CACHE_VERSION when shipping client changes so devices refresh.
  */
-const CACHE_VERSION = "stc-pwa-v1-20260728";
+const CACHE_VERSION = "stc-pwa-v2-20260728-admin";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   "/",
   "/index.html",
+  "/admin.html",
   "/offline.html",
   "/manifest.json",
   "/config.js",

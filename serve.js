@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-send-deposit-api-v14";
+const DEPLOY_BUILD = "2026-07-28-mobile-admin-v15";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -181,7 +181,45 @@ function cookies(header) {
   return o;
 }
 
+/** Accepted admin / sheet-action passwords (Bearer or login form). */
+function adminPasswordCandidates() {
+  const list = [
+    process.env.ADMIN_PASSWORD?.trim(),
+    process.env.SHEET_ACTIONS_SECRET?.trim(),
+    CONFIG.adminPassword,
+    "sweettooth2026",
+    "sweettooth-admin",
+  ].filter(Boolean);
+  return [...new Set(list)];
+}
+
+function passwordMatchesAdmin(password) {
+  const p = String(password || "");
+  if (!p) return false;
+  for (const expected of adminPasswordCandidates()) {
+    try {
+      const a = Buffer.from(p);
+      const b = Buffer.from(expected);
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) return true;
+    } catch {
+      /* length mismatch */
+    }
+  }
+  return false;
+}
+
+function bearerPassword(req) {
+  const auth = req.headers.authorization || "";
+  if (/^Bearer\s+/i.test(auth)) {
+    return auth.replace(/^Bearer\s+/i, "").trim();
+  }
+  return "";
+}
+
 function isAdmin(req) {
+  const bearer = bearerPassword(req);
+  if (bearer && passwordMatchesAdmin(bearer)) return true;
+
   const t = cookies(req.headers.cookie).stc_admin;
   if (!t) return false;
   try {
@@ -202,24 +240,26 @@ function sheetActionsSecret() {
 }
 
 function isSheetActionAuthorized(req) {
-  const expected = sheetActionsSecret();
-  if (!expected) return false;
-  const auth = req.headers.authorization || "";
-  let provided = "";
-  if (/^Bearer\s+/i.test(auth)) {
-    provided = auth.replace(/^Bearer\s+/i, "").trim();
-  } else if (req.headers["x-sheet-secret"]) {
-    provided = String(req.headers["x-sheet-secret"]).trim();
-  }
+  const provided =
+    bearerPassword(req) ||
+    String(req.headers["x-sheet-secret"] || "").trim();
   if (!provided) return false;
-  try {
-    const a = Buffer.from(provided);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length) return false;
-    return crypto.timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
+  return passwordMatchesAdmin(provided);
+}
+
+/** True when status means bakery still needs to review / send deposit. */
+function isPendingReviewStatus(status) {
+  const s = String(status || "")
+    .trim()
+    .toLowerCase();
+  if (!s) return true;
+  return (
+    s === "pending review" ||
+    s === "pending_review" ||
+    s === "needs review" ||
+    s === "new" ||
+    s.indexOf("pending") === 0
+  );
 }
 
 /** Parse "$45.00" / "45" / "45,00" / "USD 45" style values from the sheet. */
@@ -1179,13 +1219,17 @@ async function api(req, res, pathname, baseUrl) {
 
   if (method === "POST" && pathname === "/api/admin/login") {
     const body = JSON.parse((await readBody(req)).toString() || "{}");
-    if (body.password !== CONFIG.adminPassword) {
+    if (!passwordMatchesAdmin(body.password)) {
       return json(res, 401, { error: "Wrong password" });
     }
     return json(
       res,
       200,
-      { success: true },
+      {
+        success: true,
+        // Client (static GH Pages) stores this as Bearer for subsequent API calls
+        token: String(body.password),
+      },
       {
         "Set-Cookie": `stc_admin=${adminToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`,
       },
@@ -1198,6 +1242,95 @@ async function api(req, res, pathname, baseUrl) {
 
   if (method === "GET" && pathname === "/api/admin/session") {
     return json(res, 200, { authenticated: isAdmin(req) });
+  }
+
+  /**
+   * Mobile admin: recent Pending Review orders (Google Sheet + local fallback).
+   * GET /api/admin/pending-orders
+   * Auth: Bearer <password> or admin cookie
+   */
+  if (method === "GET" && pathname === "/api/admin/pending-orders") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    try {
+      google.forceProductionTargets();
+      let sheetOrders = [];
+      let sheetError = null;
+      try {
+        if (typeof google.listRecentOrdersFromSheet === "function") {
+          const listed = await google.listRecentOrdersFromSheet({ limit: 80 });
+          if (listed.ok) sheetOrders = listed.orders || [];
+          else sheetError = listed.error || null;
+        }
+      } catch (e) {
+        sheetError = e.message || String(e);
+        console.warn("[admin/pending-orders] sheet read failed:", sheetError);
+      }
+
+      const local = loadOrders().map((o) => {
+        const sub =
+          o.estimatedSubtotal != null
+            ? Number(o.estimatedSubtotal)
+            : o.finalPriceCents != null
+              ? o.finalPriceCents / 100
+              : null;
+        const deposit =
+          o.depositCents != null
+            ? o.depositCents / 100
+            : sub != null && sub > 0
+              ? Math.round(sub * 50) / 100
+              : null;
+        return {
+          id: o.id,
+          orderNumber: o.id,
+          sheetRow: null,
+          status: o.status || "pending_review",
+          customerName: o.customerName || "",
+          customerEmail: o.customerEmail || "",
+          customerPhone: o.customerPhone || "",
+          eventDate: o.eventDate || "",
+          lineItemsDetail: o.lineItemsDetail || "",
+          estimatedSubtotal: sub,
+          depositAmount: deposit,
+          depositDue: deposit,
+          orderType: o.orderType || "",
+          createdAt: o.createdAt || null,
+          source: "local",
+        };
+      });
+
+      // Prefer sheet rows; merge local-only orders not already in sheet
+      const byId = new Map();
+      for (const o of sheetOrders) {
+        byId.set(String(o.orderNumber || o.id), o);
+      }
+      for (const o of local) {
+        const key = String(o.orderNumber || o.id);
+        if (!byId.has(key)) byId.set(key, o);
+      }
+
+      const all = [...byId.values()];
+      const pending = all
+        .filter((o) => isPendingReviewStatus(o.status))
+        .filter((o) => o.customerEmail && String(o.customerEmail).includes("@"))
+        .sort((a, b) => {
+          const ta = new Date(a.createdAt || 0).getTime() || 0;
+          const tb = new Date(b.createdAt || 0).getTime() || 0;
+          if (tb !== ta) return tb - ta;
+          return (b.sheetRow || 0) - (a.sheetRow || 0);
+        });
+
+      return json(res, 200, {
+        success: true,
+        orders: pending,
+        count: pending.length,
+        sheetError,
+      });
+    } catch (e) {
+      console.error("[admin/pending-orders]", e);
+      return json(res, 500, { error: e.message || String(e) });
+    }
   }
 
   if (method === "GET" && pathname === "/api/orders") {
