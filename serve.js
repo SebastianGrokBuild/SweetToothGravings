@@ -756,9 +756,15 @@ async function stripeSendDepositInvoice(opts) {
 
   // Create draft invoice first, then attach lines explicitly (Stripe no longer
   // auto-includes pending invoice items unless pending_invoice_items_behavior=include).
-  const memoParts = [];
-  if (orderDetails) memoParts.push(orderDetails.replace(/\s+/g, " ").slice(0, 450));
-  memoParts.push(`Billed to: ${email}`);
+  // Note: Stripe Invoice create rejects "memo" on some API versions — use footer + description.
+  const footerBits = [
+    `Billed only to: ${email}`,
+    orderDetails ? orderDetails.replace(/\s+/g, " ").slice(0, 320) : null,
+    opts.footer ? String(opts.footer) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ")
+    .slice(0, 500);
   const invoiceFields = {
     customer: customer.id,
     collection_method: "send_invoice",
@@ -773,8 +779,7 @@ async function stripeSendDepositInvoice(opts) {
     "metadata[depositCents]": String(amountCents),
     "metadata[subtotalCents]": String(subtotalCents),
     description: description.slice(0, 500),
-    memo: memoParts.join(" · ").slice(0, 500),
-    ...(opts.footer ? { footer: String(opts.footer).slice(0, 500) } : {}),
+    ...(footerBits ? { footer: footerBits } : {}),
   };
   // Custom fields visible on hosted invoice (max 4)
   let cf = 0;
