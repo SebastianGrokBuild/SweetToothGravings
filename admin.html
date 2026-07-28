@@ -361,6 +361,27 @@
     .btn-secondary:disabled { opacity: 0.55; }
     .btn-secondary.paid-btn { border-color: #c8e6c9; color: #1B5E20; }
     .btn-secondary.done-btn { border-color: #d7cce8; color: #5E35B1; }
+    .btn-secondary.copy-link-btn {
+      border-color: #d7cce8;
+      color: #5E35B1;
+      background: #FBF7FF;
+    }
+    .btn-secondary.copy-link-btn:disabled,
+    .btn-secondary.copy-link-btn.is-disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .invoice-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.45rem;
+      margin-top: 1rem;
+    }
+    @media (min-width: 420px) {
+      .invoice-actions.has-both {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
     .toast {
       position: fixed;
       left: 1rem;
@@ -515,6 +536,89 @@
       var allOrders = [];
       // 'pending' | 'invoice' | 'paid' | 'all'
       var activeFilter = 'pending';
+      var PAYMENT_LINKS_KEY = 'stc_payment_links_v1';
+
+      function loadPaymentLinkCache() {
+        try {
+          return JSON.parse(sessionStorage.getItem(PAYMENT_LINKS_KEY) || '{}') || {};
+        } catch (e) {
+          return {};
+        }
+      }
+      function savePaymentLink(orderNumber, url) {
+        if (!orderNumber || !url) return;
+        var map = loadPaymentLinkCache();
+        map[String(orderNumber)] = String(url);
+        try {
+          sessionStorage.setItem(PAYMENT_LINKS_KEY, JSON.stringify(map));
+        } catch (e) { /* ignore */ }
+        // Keep in-memory order list in sync
+        for (var i = 0; i < allOrders.length; i++) {
+          var o = allOrders[i];
+          var id = String(o.orderNumber || o.id || '');
+          if (id === String(orderNumber)) {
+            o.paymentUrl = url;
+            o.stripePaymentUrl = o.stripePaymentUrl || url;
+            break;
+          }
+        }
+      }
+      function getPaymentLinkForOrder(o) {
+        if (!o) return '';
+        var id = String(o.orderNumber || o.id || '');
+        var cache = loadPaymentLinkCache();
+        return (
+          o.paymentUrl ||
+          o.stripePaymentUrl ||
+          o.checkoutUrl ||
+          o.stripeBalancePaymentUrl ||
+          cache[id] ||
+          ''
+        );
+      }
+      function copyTextToClipboard(text) {
+        return new Promise(function (resolve) {
+          if (!text) {
+            resolve(false);
+            return;
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              resolve(true);
+            }).catch(function () {
+              try {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                var ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                resolve(!!ok);
+              } catch (e) {
+                resolve(false);
+              }
+            });
+          } else {
+            try {
+              var ta2 = document.createElement('textarea');
+              ta2.value = text;
+              ta2.setAttribute('readonly', '');
+              ta2.style.position = 'fixed';
+              ta2.style.left = '-9999px';
+              document.body.appendChild(ta2);
+              ta2.select();
+              var ok2 = document.execCommand('copy');
+              document.body.removeChild(ta2);
+              resolve(!!ok2);
+            } catch (e2) {
+              resolve(false);
+            }
+          }
+        });
+      }
 
       function getToken() {
         return sessionStorage.getItem(TOKEN_KEY) || '';
@@ -799,6 +903,14 @@
         try {
           var data = await api('/api/admin/pending-orders');
           allOrders = data.orders || [];
+          // Merge session-cached payment links (from Send Invoice this session)
+          var linkCache = loadPaymentLinkCache();
+          allOrders.forEach(function (o) {
+            var id = String(o.orderNumber || o.id || '');
+            if (!o.paymentUrl && linkCache[id]) {
+              o.paymentUrl = linkCache[id];
+            }
+          });
           renderSummary(data.summary);
           // Keep current filter if still useful; default pending
           if (!activeFilter) activeFilter = 'pending';
@@ -1064,9 +1176,13 @@
             showBalanceSend = false;
           }
           var showMarks = bucket === 'pending' || bucket === 'invoice' || isBalanceInvoiceStatus(o.status);
+          var paymentUrl = getPaymentLinkForOrder(o);
+          var hasPaymentLink = !!(paymentUrl && /^https?:\/\//i.test(paymentUrl));
+          // Show copy next to deposit send, or alone once invoice exists
+          var showCopyLink = showDepositSend || hasPaymentLink || bucket === 'invoice' || isBalanceInvoiceStatus(o.status);
 
           return (
-            '<article class="order-card" data-idx="' + i + '">' +
+            '<article class="order-card" data-idx="' + i + '" data-order-id="' + escapeHtml(orderNumber) + '">' +
               '<div class="flex items-start justify-between gap-2">' +
                 '<div>' +
                   '<div class="text-[10px] uppercase tracking-wider font-semibold text-[#C9A9E8]">Order</div>' +
@@ -1091,19 +1207,34 @@
               renderQuickActions(email, phone, name, orderNumber) +
               renderOrderDetails(o) +
               renderPhotoGallery(photos) +
-              (showDepositSend
-                ? '<button type="button" class="btn-primary send-invoice-btn mt-4 w-full flex items-center justify-center gap-2"' +
-                  ' data-order="' + escapeHtml(orderNumber) + '"' +
-                  ' data-email="' + escapeHtml(email) + '"' +
-                  ' data-deposit="' + (deposit != null ? deposit : '') + '"' +
-                  ' data-subtotal="' + (subtotal != null ? subtotal : '') + '"' +
-                  ' data-row="' + escapeHtml(String(row)) + '"' +
-                  ' data-name="' + escapeHtml(name) + '"' +
-                  ' data-event="' + escapeHtml(eventDate) + '"' +
-                  ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
-                  '<i class="fa-solid fa-paper-plane text-sm"></i>' +
-                  '<span>Send Invoice by Email</span>' +
-                '</button>'
+              (showDepositSend || showCopyLink
+                ? '<div class="invoice-actions' + (showDepositSend && showCopyLink ? ' has-both' : '') + '">' +
+                  (showDepositSend
+                    ? '<button type="button" class="btn-primary send-invoice-btn w-full flex items-center justify-center gap-2"' +
+                      ' data-order="' + escapeHtml(orderNumber) + '"' +
+                      ' data-email="' + escapeHtml(email) + '"' +
+                      ' data-deposit="' + (deposit != null ? deposit : '') + '"' +
+                      ' data-subtotal="' + (subtotal != null ? subtotal : '') + '"' +
+                      ' data-row="' + escapeHtml(String(row)) + '"' +
+                      ' data-name="' + escapeHtml(name) + '"' +
+                      ' data-event="' + escapeHtml(eventDate) + '"' +
+                      ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
+                      '<i class="fa-solid fa-paper-plane text-sm"></i>' +
+                      '<span>Send Invoice by Email</span>' +
+                    '</button>'
+                    : '') +
+                  (showCopyLink
+                    ? '<button type="button" class="btn-secondary copy-link-btn w-full flex items-center justify-center gap-2' +
+                      (hasPaymentLink ? '' : ' is-disabled') + '"' +
+                      (hasPaymentLink ? '' : ' disabled') +
+                      ' data-order="' + escapeHtml(orderNumber) + '"' +
+                      ' data-url="' + escapeHtml(paymentUrl) + '"' +
+                      ' title="' + (hasPaymentLink ? 'Copy Stripe payment link' : 'Send the invoice first to create a payment link') + '">' +
+                      '<i class="fa-solid fa-link text-sm"></i>' +
+                      '<span>' + (hasPaymentLink ? 'Copy Payment Link' : 'No link yet') + '</span>' +
+                    '</button>'
+                    : '') +
+                '</div>'
                 : '') +
               (showBalanceSend
                 ? '<button type="button" class="btn-primary send-balance-btn mt-2 w-full flex items-center justify-center gap-2"' +
@@ -1145,6 +1276,11 @@
         ordersList.querySelectorAll('.send-invoice-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
             sendInvoice(btn);
+          });
+        });
+        ordersList.querySelectorAll('.copy-link-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            copyPaymentLink(btn);
           });
         });
         ordersList.querySelectorAll('.send-balance-btn').forEach(function (btn) {
@@ -1250,6 +1386,56 @@
         }
       }
 
+      async function copyPaymentLink(btn) {
+        var url = (btn.getAttribute('data-url') || '').trim();
+        var orderNumber = btn.getAttribute('data-order') || '';
+        var card = btn.closest('.order-card');
+        var statusEl = card ? card.querySelector('.send-status') : null;
+
+        if (!url || !/^https?:\/\//i.test(url)) {
+          // Try live order object / cache
+          var found = null;
+          for (var i = 0; i < allOrders.length; i++) {
+            if (String(allOrders[i].orderNumber || allOrders[i].id) === String(orderNumber)) {
+              found = allOrders[i];
+              break;
+            }
+          }
+          url = getPaymentLinkForOrder(found);
+        }
+
+        if (!url || !/^https?:\/\//i.test(url)) {
+          showToast('No payment link yet — send the invoice first', false);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-amber-700">Send Invoice by Email first to create a payment link.</span>';
+          }
+          return;
+        }
+
+        var ok = await copyTextToClipboard(url);
+        if (ok) {
+          showToast('Link copied!', true);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-green-700 font-medium">✓ Link copied!</span>';
+          }
+          var original = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-check text-sm"></i><span>Link copied!</span>';
+          setTimeout(function () {
+            btn.innerHTML = original;
+          }, 1600);
+        } else {
+          showToast('Could not copy — long-press and copy manually', false);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-[#5C4A4B] break-all text-[11px]">' +
+              escapeHtml(url) +
+              '</span>';
+          }
+        }
+      }
+
       async function sendInvoice(btn) {
         var orderNumber = btn.getAttribute('data-order') || '';
         var email = btn.getAttribute('data-email') || '';
@@ -1259,7 +1445,8 @@
         var name = btn.getAttribute('data-name') || '';
         var eventDate = btn.getAttribute('data-event') || '';
         var lines = btn.getAttribute('data-lines') || '';
-        var statusEl = btn.parentElement.querySelector('.send-status');
+        var card = btn.closest('.order-card');
+        var statusEl = card ? card.querySelector('.send-status') : null;
 
         if (!email || email.indexOf('@') < 0) {
           showToast('This order has no valid customer email', false);
@@ -1299,6 +1486,20 @@
           });
 
           if (!data.success) throw new Error(data.error || 'Send failed');
+
+          if (data.invoiceUrl) {
+            savePaymentLink(orderNumber, data.invoiceUrl);
+            // Enable sibling Copy Payment Link button immediately
+            var copyBtn = card ? card.querySelector('.copy-link-btn') : null;
+            if (copyBtn) {
+              copyBtn.disabled = false;
+              copyBtn.classList.remove('is-disabled');
+              copyBtn.setAttribute('data-url', data.invoiceUrl);
+              copyBtn.innerHTML =
+                '<i class="fa-solid fa-link text-sm"></i><span>Copy Payment Link</span>';
+              copyBtn.title = 'Copy Stripe payment link';
+            }
+          }
 
           var msg = 'Deposit invoice emailed to ' + email;
           if (data.depositDollars != null) {
@@ -1342,7 +1543,8 @@
         var name = btn.getAttribute('data-name') || '';
         var eventDate = btn.getAttribute('data-event') || '';
         var lines = btn.getAttribute('data-lines') || '';
-        var statusEl = btn.parentElement.querySelector('.send-status');
+        var card = btn.closest('.order-card');
+        var statusEl = card ? card.querySelector('.send-status') : null;
 
         if (!email || email.indexOf('@') < 0) {
           showToast('This order has no valid customer email', false);
@@ -1383,6 +1585,19 @@
             body: JSON.stringify(body),
           });
           if (!data.success) throw new Error(data.error || 'Send failed');
+
+          if (data.invoiceUrl) {
+            // Prefer balance link as latest payment URL for copy
+            savePaymentLink(orderNumber, data.invoiceUrl);
+            var copyBtn = card ? card.querySelector('.copy-link-btn') : null;
+            if (copyBtn) {
+              copyBtn.disabled = false;
+              copyBtn.classList.remove('is-disabled');
+              copyBtn.setAttribute('data-url', data.invoiceUrl);
+              copyBtn.innerHTML =
+                '<i class="fa-solid fa-link text-sm"></i><span>Copy Payment Link</span>';
+            }
+          }
 
           var msg =
             'Final balance $' +

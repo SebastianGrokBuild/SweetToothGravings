@@ -1394,12 +1394,20 @@ async function api(req, res, pathname, baseUrl) {
           photo3: rawPhotos[2] || "",
           photos,
           photoLinks: rawPhotos.filter(Boolean),
+          // Payment links for Admin “Copy Payment Link”
+          paymentUrl:
+            o.stripePaymentUrl ||
+            o.paymentUrl ||
+            o.checkoutUrl ||
+            null,
+          stripePaymentUrl: o.stripePaymentUrl || null,
+          stripeBalancePaymentUrl: o.stripeBalancePaymentUrl || null,
           source: "local",
         };
       });
 
       // Prefer sheet rows; merge local-only orders not already in sheet
-      // (and fill missing photos from local when sheet row has none)
+      // (and fill missing photos / payment links from local when sheet row has none)
       const byId = new Map();
       for (const o of sheetOrders) {
         byId.set(String(o.orderNumber || o.id), o);
@@ -1418,6 +1426,16 @@ async function api(req, res, pathname, baseUrl) {
             existing.photo1 = o.photo1;
             existing.photo2 = o.photo2;
             existing.photo3 = o.photo3;
+          }
+          if (!existing.paymentUrl && o.paymentUrl) {
+            existing.paymentUrl = o.paymentUrl;
+          }
+          if (!existing.stripePaymentUrl && o.stripePaymentUrl) {
+            existing.stripePaymentUrl = o.stripePaymentUrl;
+            existing.paymentUrl = existing.paymentUrl || o.stripePaymentUrl;
+          }
+          if (!existing.stripeBalancePaymentUrl && o.stripeBalancePaymentUrl) {
+            existing.stripeBalancePaymentUrl = o.stripeBalancePaymentUrl;
           }
         }
       }
