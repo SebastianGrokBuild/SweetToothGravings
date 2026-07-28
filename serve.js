@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-admin-filter-v19";
+const DEPLOY_BUILD = "2026-07-28-checkout-balance-v20";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -279,6 +279,8 @@ function isInvoiceSentStatus(status) {
   const s = String(status || "")
     .trim()
     .toLowerCase();
+  // Exclude final-balance invoices from the deposit "Invoice Sent" bucket
+  if (s.includes("balance")) return false;
   return (
     s === "invoice sent" ||
     s.includes("invoice sent") ||
@@ -1908,6 +1910,252 @@ async function api(req, res, pathname, baseUrl) {
   }
 
   /**
+   * Final balance invoice (remaining 50% after deposit).
+   * POST /api/send-final-balance-invoice
+   * Body: { orderNumber, email, estimatedSubtotal?, depositAmount?, row?, customerName?, ... }
+   */
+  if (method === "POST" && pathname === "/api/send-final-balance-invoice") {
+    if (!isSheetActionAuthorized(req) && !isAdmin(req)) {
+      return json(res, 401, {
+        error:
+          "Unauthorized. Send Authorization: Bearer <ADMIN_PASSWORD or SHEET_ACTIONS_SECRET>.",
+      });
+    }
+
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON body" });
+    }
+
+    const orderNumber = String(
+      body.orderNumber || body.orderId || body.order_id || body.order || "",
+    ).trim();
+    const email = String(body.email || body.customerEmail || body.sheetRowEmail || "")
+      .trim()
+      .replace(/^mailto:/i, "")
+      .split(/[?,\s;]/)[0]
+      .trim()
+      .toLowerCase();
+    const row =
+      body.row != null && body.row !== ""
+        ? String(body.row).trim()
+        : null;
+
+    if (!orderNumber) {
+      return json(res, 400, { error: "orderNumber is required" });
+    }
+    if (!email || !email.includes("@")) {
+      return json(res, 400, { error: "email is required" });
+    }
+    if (isBakeryInboxEmail(email)) {
+      return json(res, 400, {
+        error: "email cannot be the bakery inbox — use the customer address",
+      });
+    }
+    if (!stripeLiveConfigured()) {
+      return json(res, 503, {
+        error:
+          "Stripe is not in live mode. On Render set STRIPE_SECRET_KEY to sk_live_…",
+        keyMode: stripeKeyMode(),
+        livemode: false,
+      });
+    }
+
+    const stripeStatus = await getStripeAccountStatus();
+    if (!stripeStatus.ok || !stripeStatus.livemode) {
+      return json(res, 503, {
+        error:
+          stripeStatus.error ||
+          `Stripe must be live mode for account ${CONFIG.stripeAccountId}`,
+      });
+    }
+
+    const saved = loadOrders().find(
+      (o) =>
+        String(o.id || "") === orderNumber ||
+        String(o.orderId || "") === orderNumber,
+    );
+
+    let subtotal = parseMoneyValue(
+      body.estimatedSubtotal ??
+        body.subtotal ??
+        body.finalTotal ??
+        body.orderTotal,
+    );
+    let depositDollars = parseMoneyValue(
+      body.depositAmount ?? body.depositDollars ?? body.deposit,
+    );
+
+    if (saved) {
+      if ((!Number.isFinite(subtotal) || subtotal <= 0) && saved.estimatedSubtotal != null) {
+        subtotal = parseMoneyValue(saved.estimatedSubtotal);
+      }
+      if (
+        (!Number.isFinite(subtotal) || subtotal <= 0) &&
+        saved.finalPriceCents != null
+      ) {
+        subtotal = Number(saved.finalPriceCents) / 100;
+      }
+      if (
+        (!Number.isFinite(depositDollars) || depositDollars <= 0) &&
+        saved.depositCents != null
+      ) {
+        depositDollars = Number(saved.depositCents) / 100;
+      }
+    }
+
+    if ((!Number.isFinite(depositDollars) || depositDollars <= 0) && Number.isFinite(subtotal) && subtotal > 0) {
+      depositDollars = Math.round(subtotal * 50) / 100;
+    }
+    if ((!Number.isFinite(subtotal) || subtotal <= 0) && Number.isFinite(depositDollars) && depositDollars > 0) {
+      subtotal = Math.round(depositDollars * 2 * 100) / 100;
+    }
+
+    // Optional explicit balance amount
+    let balanceDollars = parseMoneyValue(
+      body.balanceAmount ?? body.finalBalance ?? body.remainingBalance,
+    );
+    if (!Number.isFinite(balanceDollars) || balanceDollars <= 0) {
+      if (Number.isFinite(subtotal) && Number.isFinite(depositDollars)) {
+        balanceDollars = Math.round((subtotal - depositDollars) * 100) / 100;
+      }
+    }
+    if (!Number.isFinite(balanceDollars) || balanceDollars < 0.5) {
+      return json(res, 400, {
+        error:
+          "Need a remaining balance of at least $0.50. Pass estimatedSubtotal and depositAmount (or balanceAmount).",
+      });
+    }
+
+    const balanceCents = Math.round(balanceDollars * 100);
+    const customerName = String(
+      body.customerName || body.name || (saved && saved.customerName) || "",
+    ).trim();
+    const eventDate = String(
+      body.eventDate || (saved && saved.eventDate) || "",
+    ).trim();
+    const lineSummary = String(
+      body.lineItemsDetail ||
+        body.lineItems ||
+        (saved && saved.lineItemsDetail) ||
+        "",
+    ).trim();
+    const parsedLineItems = parseSheetLineItems(lineSummary);
+    const desc = [
+      customerName ? `For ${customerName}` : null,
+      Number.isFinite(subtotal) ? `Order total $${subtotal.toFixed(2)}` : null,
+      Number.isFinite(depositDollars)
+        ? `Deposit paid $${depositDollars.toFixed(2)}`
+        : null,
+      `Final balance due $${balanceDollars.toFixed(2)}`,
+      `Order ${orderNumber}`,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+      .slice(0, 500);
+
+    try {
+      const inv = await stripeSendDepositInvoice({
+        orderId: orderNumber,
+        customerEmail: email,
+        customerName,
+        eventDate,
+        amountCents: balanceCents,
+        subtotalCents: Number.isFinite(subtotal)
+          ? Math.round(subtotal * 100)
+          : balanceCents * 2,
+        lineItems: parsedLineItems,
+        lineItemsText: lineSummary,
+        orderDetails: [
+          `Order: ${orderNumber}`,
+          `Final balance (after deposit)`,
+          customerName ? `Customer: ${customerName}` : null,
+          `Email: ${email}`,
+          Number.isFinite(subtotal) ? `Est. total: $${subtotal.toFixed(2)}` : null,
+          Number.isFinite(depositDollars)
+            ? `Deposit: $${depositDollars.toFixed(2)}`
+            : null,
+          `Balance due: $${balanceDollars.toFixed(2)}`,
+          lineSummary || null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        description: desc,
+        footer: [
+          `Final balance invoice · emailed only to: ${email}`,
+          `Order ${orderNumber}`,
+          eventDate ? `Event: ${eventDate}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 500),
+      });
+
+      const invoiceUrl = inv.url || "";
+      if (!invoiceUrl) {
+        return json(res, 500, { error: "Stripe did not return an invoice URL" });
+      }
+
+      if (saved) {
+        const list = loadOrders();
+        const order = list.find((o) => o.id === saved.id);
+        if (order) {
+          order.stripeBalancePaymentUrl = invoiceUrl;
+          order.stripeBalanceInvoiceId = inv.invoiceId;
+          order.balanceCents = inv.amountDueCents || balanceCents;
+          order.status = "Balance Invoice Sent";
+          order.updatedAt = new Date().toISOString();
+          saveOrders(list);
+        }
+      }
+
+      let sheetUpdate = null;
+      try {
+        if (typeof google.updateOrderStatusInSheet === "function") {
+          sheetUpdate = await google.updateOrderStatusInSheet({
+            orderNumber,
+            sheetRow: row,
+            status: "Balance Invoice Sent",
+            stripeDepositLabel: "Balance sent",
+          });
+        }
+      } catch (sheetErr) {
+        console.warn(
+          "[send-final-balance-invoice] sheet status update failed:",
+          sheetErr.message,
+        );
+        sheetUpdate = { ok: false, error: sheetErr.message };
+      }
+
+      console.log(
+        `[send-final-balance-invoice] LIVE ${inv.invoiceId} $${balanceDollars.toFixed(2)} → ${email} order=${orderNumber}`,
+      );
+
+      return json(res, 200, {
+        success: true,
+        invoiceUrl,
+        orderNumber,
+        email,
+        row,
+        invoiceId: inv.invoiceId,
+        balanceDollars: (inv.amountDueCents || balanceCents) / 100,
+        depositDollars: Number.isFinite(depositDollars) ? depositDollars : null,
+        estimatedSubtotal: Number.isFinite(subtotal) ? subtotal : null,
+        livemode: true,
+        keyMode: "live",
+        sheetStatus: "Balance Invoice Sent",
+        sheetUpdate,
+        paymentType: "final_balance",
+      });
+    } catch (e) {
+      console.error("[send-final-balance-invoice]", e);
+      return json(res, 500, { error: e.message || String(e) });
+    }
+  }
+
+  /**
    * Google Sheet one-click: create 50% deposit Checkout + email customer.
    * Does not change cart-submit / Sheets append / Drive upload.
    *
@@ -2479,6 +2727,34 @@ async function api(req, res, pathname, baseUrl) {
       list.push(order);
       saveOrders(list);
 
+      // Confirmation email to the customer (in addition to bakery new-order notify)
+      let customerEmailNotification = { sent: false };
+      try {
+        const conf = await notify.sendCustomerOrderConfirmation({
+          customerName: name,
+          customerEmail: email,
+          orderId,
+          eventDate,
+          lineItemsDetail: lineDetail.trim(),
+          estimatedSubtotal: subtotal,
+          allergies,
+          orderNotes,
+        });
+        customerEmailNotification = {
+          sent: !!(conf && conf.ok !== false && !conf.skipped),
+          to: email,
+          method: conf && conf.method,
+          error: conf && conf.error ? String(conf.error) : null,
+        };
+      } catch (e) {
+        console.warn("[cart-submit] customer confirmation email failed:", e.message);
+        customerEmailNotification = {
+          sent: false,
+          to: email,
+          error: e.message || String(e),
+        };
+      }
+
       const responseBody = {
         success: true,
         orderId,
@@ -2489,6 +2765,7 @@ async function api(req, res, pathname, baseUrl) {
         photoLinks: drivePhotos,
         photoErrors: saved.photoErrors || [],
         emailNotification: saved.emailNotification || { sent: false },
+        customerEmailNotification,
         checkoutUrl: null,
         paymentUrl: null,
         depositCents: null,

@@ -1151,8 +1151,8 @@
 
         <button type="button" id="submit-order-btn" onclick="openCartSubmitModal()"
                 class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition active:scale-[0.985] disabled:opacity-50 disabled:pointer-events-none">
-          <span>Submit Request</span>
-          <i class="fa-solid fa-paper-plane text-sm"></i>
+          <span>Checkout</span>
+          <i class="fa-solid fa-arrow-right text-sm"></i>
         </button>
 
         <p class="mt-2 text-center text-[10px] leading-tight text-[#6B5B5F] px-1">
@@ -1261,63 +1261,101 @@
     </div>
   </div>
 
-  <!-- CART SUBMIT MODAL (menu orders → Google Sheet) -->
+  <!-- MULTI-STEP CHECKOUT (Cart → Details → Review & Submit) -->
   <div id="cart-submit-modal" onclick="if (event.target.id === 'cart-submit-modal') closeCartSubmitModal()" class="hidden fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div onclick="event.stopImmediatePropagation()" class="cart-submit-panel modal bg-white w-full sm:max-w-lg md:max-w-xl md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden">
+    <div onclick="event.stopImmediatePropagation()" class="cart-submit-panel modal bg-white w-full sm:max-w-lg md:max-w-xl md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden max-h-[94vh]">
       <div class="sm:hidden flex justify-center pt-2 pb-1 shrink-0">
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
 
-      <div class="shrink-0 px-6 sm:px-8 pt-5 sm:pt-7 pb-4 border-b border-[#EDE4DC]">
+      <div class="shrink-0 px-5 sm:px-8 pt-4 sm:pt-6 pb-3 border-b border-[#EDE4DC]">
         <div class="flex justify-between items-start gap-3">
           <div>
-            <div class="heading-serif text-2xl sm:text-3xl tracking-tight">Submit Request</div>
-            <p class="text-sm text-[#6B5B5F] mt-1">We&apos;ll review your order and get back to you.</p>
+            <div class="heading-serif text-2xl sm:text-3xl tracking-tight">Checkout</div>
+            <p id="checkout-step-subtitle" class="text-sm text-[#6B5B5F] mt-1">Step 1 of 3 · Your cart</p>
           </div>
-          <button type="button" onclick="closeCartSubmitModal()" class="text-[#8B6F6F] p-1 shrink-0" aria-label="Close"><i class="fa-solid fa-times text-2xl"></i></button>
+          <button type="button" onclick="closeCartSubmitModal()" class="text-[#8B6F6F] p-1 shrink-0 min-w-[2.5rem] min-h-[2.5rem]" aria-label="Close"><i class="fa-solid fa-times text-2xl"></i></button>
+        </div>
+        <!-- Step indicator -->
+        <div class="mt-4 flex items-center gap-1.5" id="checkout-steps" aria-hidden="true">
+          <div class="checkout-step-dot flex-1 h-1.5 rounded-full bg-[#C9A9E8]" data-step="1"></div>
+          <div class="checkout-step-dot flex-1 h-1.5 rounded-full bg-[#EDE4DC]" data-step="2"></div>
+          <div class="checkout-step-dot flex-1 h-1.5 rounded-full bg-[#EDE4DC]" data-step="3"></div>
+        </div>
+        <div class="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-wide text-[#8B6F6F]">
+          <span id="step-label-1" class="text-[#7B4DB8]">Cart</span>
+          <span id="step-label-2">Details</span>
+          <span id="step-label-3">Review</span>
         </div>
       </div>
 
       <form id="cart-submit-form" onsubmit="submitCartRequest(event)" class="flex flex-col flex-1 min-h-0">
-        <div class="cart-submit-scroll flex-1 overflow-y-auto px-6 sm:px-8 py-5 space-y-4">
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">YOUR NAME *</label>
-            <input type="text" id="cart-submit-name" required class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+        <div class="cart-submit-scroll flex-1 overflow-y-auto px-5 sm:px-8 py-4 space-y-4">
+
+          <!-- STEP 1: Cart summary -->
+          <div id="checkout-step-1" class="checkout-step space-y-3">
+            <div class="text-sm font-semibold text-[#3F2A2B]">Your cart</div>
+            <div id="checkout-cart-summary" class="space-y-2"></div>
+            <div class="flex justify-between items-center pt-2 border-t border-[#EDE4DC] text-sm">
+              <span class="text-[#6B5B5F]">Estimated subtotal</span>
+              <span id="checkout-cart-subtotal" class="font-semibold text-[#3F2A2B]">$0.00</span>
+            </div>
+            <p class="text-[11px] text-[#8B6F6F]">Starting prices — final quote after review. 50% deposit emailed when ready.</p>
           </div>
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">EMAIL *</label>
-            <input type="email" id="cart-submit-email" required class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
+
+          <!-- STEP 2: Customer details + date -->
+          <div id="checkout-step-2" class="checkout-step hidden space-y-4">
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]" for="cart-submit-name">YOUR NAME *</label>
+              <input type="text" id="cart-submit-name" autocomplete="name" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-12 text-base sm:text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]" for="cart-submit-email">EMAIL *</label>
+              <input type="email" id="cart-submit-email" autocomplete="email" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-12 text-base sm:text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]" for="cart-submit-phone">PHONE</label>
+              <input type="tel" id="cart-submit-phone" autocomplete="tel" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-12 text-base sm:text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]" for="cart-submit-date">DATE NEEDED *</label>
+              <input type="date" id="cart-submit-date" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-12 text-base sm:text-sm" required>
+              <p id="cart-submit-date-hint" class="mt-1.5 text-[11px] text-[#8B6F6F] leading-snug">
+                Please choose a date at least <strong class="text-[#5C4A4B]">4 days</strong> from today (standard lead time).
+              </p>
+              <p id="cart-submit-date-error" class="hidden mt-1.5 text-[11px] text-red-600 font-medium"></p>
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]" for="cart-submit-allergies">ALLERGIES</label>
+              <input type="text" id="cart-submit-allergies" placeholder="List any allergies" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-12 text-base sm:text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]" for="cart-submit-notes">ORDER NOTES</label>
+              <textarea id="cart-submit-notes" rows="3" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-base sm:text-sm" placeholder="Pickup or delivery, decoration details, custom cake vision..."></textarea>
+            </div>
+            <div>
+              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">INSPIRATION PHOTOS (OPTIONAL)</label>
+              <p class="text-[10px] text-[#8B6F6F] mt-0.5 mb-2">Up to 3 photos, 10MB each</p>
+              <label class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C9A9E8]/40 bg-[#FDF8F5] py-5 cursor-pointer hover:border-[#C9A9E8] transition min-h-[5.5rem]">
+                <i class="fa-solid fa-camera text-xl text-[#C9A9E8]"></i>
+                <span class="mt-1.5 text-xs font-semibold">Tap to add photos</span>
+                <input type="file" id="cart-submit-photos" accept="image/*" multiple class="hidden" onchange="cartSubmitAddImages(this.files)">
+              </label>
+              <div id="cart-submit-previews" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+            </div>
           </div>
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">PHONE</label>
-            <input type="tel" id="cart-submit-phone" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
-          </div>
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">DATE NEEDED</label>
-            <input type="date" id="cart-submit-date" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
-          </div>
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">ALLERGIES</label>
-            <input type="text" id="cart-submit-allergies" placeholder="List any allergies" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm">
-          </div>
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">ORDER NOTES</label>
-            <textarea id="cart-submit-notes" rows="3" class="form-input mt-1 w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm" placeholder="Pickup or delivery, decoration details, custom cake vision..."></textarea>
-          </div>
-          <div>
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F]">INSPIRATION PHOTOS (OPTIONAL)</label>
-            <p class="text-[10px] text-[#a38a8f] mt-0.5">Up to 3 photos, 10MB each</p>
-            <p class="text-[10px] text-[#8B6F6F] mt-0.5 mb-2">Instagram screenshots or reference images — up to 3</p>
-            <label class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C9A9E8]/40 bg-[#FDF8F5] py-6 cursor-pointer hover:border-[#C9A9E8] transition">
-              <i class="fa-solid fa-camera text-xl text-[#C9A9E8]"></i>
-              <span class="mt-1.5 text-xs font-semibold">Tap to add photos</span>
-              <input type="file" id="cart-submit-photos" accept="image/*" multiple class="hidden" onchange="cartSubmitAddImages(this.files)">
-            </label>
-            <div id="cart-submit-previews" class="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2"></div>
+
+          <!-- STEP 3: Review -->
+          <div id="checkout-step-3" class="checkout-step hidden space-y-4">
+            <div class="text-sm font-semibold text-[#3F2A2B]">Review &amp; submit</div>
+            <div id="checkout-review-summary" class="rounded-2xl border border-[#EDE4DC] bg-[#FDF8F5] p-4 space-y-3 text-sm"></div>
+            <p class="text-[11px] text-[#6B5B5F] leading-relaxed">
+              By submitting, you request a quote for these items. We&apos;ll email a confirmation, then a secure <strong>50% deposit</strong> link after review. No charge is taken at this step.
+            </p>
           </div>
         </div>
 
-        <div class="shrink-0 border-t border-[#EDE4DC] bg-[#FDF8F5] px-6 sm:px-8 py-4 sm:py-5">
+        <div class="shrink-0 border-t border-[#EDE4DC] bg-[#FDF8F5] px-5 sm:px-8 py-4 sm:py-5">
           <div id="cart-submit-error" class="hidden mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-left">
             <div class="flex gap-3">
               <div class="w-9 h-9 shrink-0 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -1350,10 +1388,21 @@
             <span id="cart-submit-status-text">Sending your request…</span>
           </p>
 
-          <button type="submit" id="cart-submit-btn" class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-3xl font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
-            <span id="cart-submit-btn-label">Submit Request</span>
-            <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
-          </button>
+          <div class="flex gap-2">
+            <button type="button" id="checkout-back-btn" onclick="checkoutGoBack()"
+                    class="hidden min-h-[3.25rem] px-4 rounded-full border border-[#EDE4DC] bg-white font-semibold text-sm text-[#3F2A2B]">
+              Back
+            </button>
+            <button type="button" id="checkout-next-btn" onclick="checkoutGoNext()"
+                    class="flex-1 min-h-[3.25rem] bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-full font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
+              Continue
+              <i class="fa-solid fa-arrow-right text-sm"></i>
+            </button>
+            <button type="submit" id="cart-submit-btn" class="hidden flex-1 min-h-[3.25rem] bg-[#C9A9E8] hover:bg-[#B48AE0] disabled:opacity-70 text-white rounded-full font-semibold text-base shadow-sm transition flex items-center justify-center gap-2">
+              <span id="cart-submit-btn-label">Submit Request</span>
+              <i id="cart-submit-btn-spinner" class="fa-solid fa-circle-notch submit-spinner hidden text-sm"></i>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -3022,38 +3071,245 @@
       return items.some(item => /custom cake/i.test(item.name || ''))
     }
 
-    function showSubmitSuccessModal(submittedItems, orderId, photoErrors = []) {
+    function moneyFmt(n) {
+      const v = Number(n)
+      if (!isFinite(v)) return '$0.00'
+      return '$' + v.toFixed(2)
+    }
+
+    function cartHasPartyPackage() {
+      return cart.some((item) => /party package/i.test(item.name || '') || item.category === 'party')
+    }
+
+    /** Lead time: standard 4 days; party packages 7 days. Returns YYYY-MM-DD in local time. */
+    function getMinOrderDate() {
+      const days = cartHasPartyPackage() ? 7 : 4
+      const d = new Date()
+      d.setHours(0, 0, 0, 0)
+      d.setDate(d.getDate() + days)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return { minDate: `${y}-${m}-${day}`, days }
+    }
+
+    function applyDateLeadTimeRules() {
+      const { minDate, days } = getMinOrderDate()
+      const dateEl = document.getElementById('cart-submit-date')
+      const hint = document.getElementById('cart-submit-date-hint')
+      const err = document.getElementById('cart-submit-date-error')
+      if (dateEl) {
+        dateEl.min = minDate
+        dateEl.setAttribute('min', minDate)
+        // Clear invalid selection
+        if (dateEl.value && dateEl.value < minDate) dateEl.value = ''
+      }
+      if (hint) {
+        hint.innerHTML = cartHasPartyPackage()
+          ? `Party packages need at least <strong class="text-[#5C4A4B]">${days} days</strong> notice. Earliest date: <strong class="text-[#5C4A4B]">${minDate}</strong>.`
+          : `Please choose a date at least <strong class="text-[#5C4A4B]">${days} days</strong> from today. Earliest: <strong class="text-[#5C4A4B]">${minDate}</strong>.`
+      }
+      if (err) {
+        err.classList.add('hidden')
+        err.textContent = ''
+      }
+      return { minDate, days }
+    }
+
+    function validateCheckoutDate() {
+      const dateEl = document.getElementById('cart-submit-date')
+      const err = document.getElementById('cart-submit-date-error')
+      const { minDate, days } = getMinOrderDate()
+      if (!dateEl) return false
+      dateEl.min = minDate
+      const val = dateEl.value
+      if (!val) {
+        if (err) {
+          err.textContent = 'Please select the date you need your order.'
+          err.classList.remove('hidden')
+        }
+        return false
+      }
+      if (val < minDate) {
+        if (err) {
+          err.textContent = `That date is too soon. Choose ${minDate} or later (${days}+ day lead time).`
+          err.classList.remove('hidden')
+        }
+        return false
+      }
+      if (err) {
+        err.classList.add('hidden')
+        err.textContent = ''
+      }
+      return true
+    }
+
+    let checkoutStep = 1
+
+    function setCheckoutStep(step) {
+      checkoutStep = Math.max(1, Math.min(3, step))
+      for (let s = 1; s <= 3; s++) {
+        const panel = document.getElementById('checkout-step-' + s)
+        if (panel) panel.classList.toggle('hidden', s !== checkoutStep)
+        const dot = document.querySelector('.checkout-step-dot[data-step="' + s + '"]')
+        if (dot) {
+          dot.classList.toggle('bg-[#C9A9E8]', s <= checkoutStep)
+          dot.classList.toggle('bg-[#EDE4DC]', s > checkoutStep)
+        }
+        const lab = document.getElementById('step-label-' + s)
+        if (lab) lab.classList.toggle('text-[#7B4DB8]', s === checkoutStep)
+      }
+      const titles = {
+        1: 'Step 1 of 3 · Your cart',
+        2: 'Step 2 of 3 · Your details',
+        3: 'Step 3 of 3 · Review & submit',
+      }
+      const sub = document.getElementById('checkout-step-subtitle')
+      if (sub) sub.textContent = titles[checkoutStep] || ''
+
+      const backBtn = document.getElementById('checkout-back-btn')
+      const nextBtn = document.getElementById('checkout-next-btn')
+      const submitBtn = document.getElementById('cart-submit-btn')
+      if (backBtn) backBtn.classList.toggle('hidden', checkoutStep === 1)
+      if (nextBtn) nextBtn.classList.toggle('hidden', checkoutStep === 3)
+      if (submitBtn) submitBtn.classList.toggle('hidden', checkoutStep !== 3)
+
+      if (checkoutStep === 1) renderCheckoutCartSummary()
+      if (checkoutStep === 2) applyDateLeadTimeRules()
+      if (checkoutStep === 3) renderCheckoutReview()
+
+      const scroll = document.querySelector('#cart-submit-modal .cart-submit-scroll')
+      if (scroll) scroll.scrollTop = 0
+    }
+
+    function renderCheckoutCartSummary() {
+      const box = document.getElementById('checkout-cart-summary')
+      const subEl = document.getElementById('checkout-cart-subtotal')
+      if (!box) return
+      let subtotal = 0
+      box.innerHTML = cart.map((item) => {
+        const line = (Number(item.price) || 0) * (Number(item.quantity) || 1)
+        subtotal += line
+        const c = item.customizations || {}
+        const bits = []
+        if (c.tier) bits.push(c.tier)
+        if (c.flavor) bits.push(c.flavor)
+        if (c.fillings && c.fillings.length) bits.push(c.fillings.join(', '))
+        return (
+          '<div class="rounded-2xl border border-[#EDE4DC] bg-white px-3.5 py-3">' +
+            '<div class="flex justify-between gap-2">' +
+              '<div class="font-semibold text-sm text-[#3F2A2B]">' + (item.quantity || 1) + '× ' + escapeHtmlCheckout(item.name) + '</div>' +
+              '<div class="text-sm font-semibold text-[#3F2A2B] shrink-0">' + moneyFmt(line) + '</div>' +
+            '</div>' +
+            (bits.length ? '<div class="text-xs text-[#8B6F6F] mt-1">' + escapeHtmlCheckout(bits.join(' · ')) + '</div>' : '') +
+          '</div>'
+        )
+      }).join('') || '<p class="text-sm text-[#8B6F6F]">Your cart is empty.</p>'
+      if (subEl) subEl.textContent = moneyFmt(subtotal)
+    }
+
+    function escapeHtmlCheckout(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+    }
+
+    function renderCheckoutReview() {
+      const box = document.getElementById('checkout-review-summary')
+      if (!box) return
+      const name = document.getElementById('cart-submit-name')?.value.trim() || '—'
+      const email = document.getElementById('cart-submit-email')?.value.trim() || '—'
+      const phone = document.getElementById('cart-submit-phone')?.value.trim() || '—'
+      const date = document.getElementById('cart-submit-date')?.value || '—'
+      const allergies = document.getElementById('cart-submit-allergies')?.value.trim() || 'None listed'
+      const notes = document.getElementById('cart-submit-notes')?.value.trim() || '—'
+      let subtotal = 0
+      const lines = cart.map((item) => {
+        const line = (Number(item.price) || 0) * (Number(item.quantity) || 1)
+        subtotal += line
+        const c = item.customizations || {}
+        const bits = [ (item.quantity || 1) + '× ' + item.name ]
+        if (c.tier) bits.push(c.tier)
+        if (c.flavor) bits.push(c.flavor)
+        return bits.join(' · ') + ' — ' + moneyFmt(line)
+      })
+      box.innerHTML =
+        '<div><div class="text-[10px] uppercase tracking-wide font-semibold text-[#8B6F6F]">Contact</div>' +
+        '<div class="mt-1 font-medium">' + escapeHtmlCheckout(name) + '</div>' +
+        '<div class="text-xs text-[#6B5B5F] break-all">' + escapeHtmlCheckout(email) + (phone !== '—' ? ' · ' + escapeHtmlCheckout(phone) : '') + '</div></div>' +
+        '<div><div class="text-[10px] uppercase tracking-wide font-semibold text-[#8B6F6F]">Date needed</div>' +
+        '<div class="mt-1 font-medium">' + escapeHtmlCheckout(date) + '</div></div>' +
+        '<div><div class="text-[10px] uppercase tracking-wide font-semibold text-[#8B6F6F]">Items</div>' +
+        '<ul class="mt-1 space-y-1 text-xs text-[#5C4A4B]">' + lines.map((l) => '<li>' + escapeHtmlCheckout(l) + '</li>').join('') + '</ul>' +
+        '<div class="mt-2 font-semibold">Est. total ' + moneyFmt(subtotal) + '</div></div>' +
+        '<div><div class="text-[10px] uppercase tracking-wide font-semibold text-[#8B6F6F]">Allergies</div>' +
+        '<div class="mt-1 text-xs">' + escapeHtmlCheckout(allergies) + '</div></div>' +
+        '<div><div class="text-[10px] uppercase tracking-wide font-semibold text-[#8B6F6F]">Notes</div>' +
+        '<div class="mt-1 text-xs">' + escapeHtmlCheckout(notes) + '</div></div>' +
+        (cartSubmitImages.length
+          ? '<div class="text-xs text-[#6B5B5F]"><i class="fa-solid fa-image text-[#C9A9E8] mr-1"></i>' + cartSubmitImages.length + ' inspiration photo(s) attached</div>'
+          : '')
+    }
+
+    function checkoutGoNext() {
+      if (checkoutStep === 1) {
+        if (!cart.length) {
+          alert('Your cart is empty.')
+          return
+        }
+        setCheckoutStep(2)
+        return
+      }
+      if (checkoutStep === 2) {
+        const name = document.getElementById('cart-submit-name')?.value.trim()
+        const email = document.getElementById('cart-submit-email')?.value.trim()
+        if (!name || !email || email.indexOf('@') < 0) {
+          alert('Please enter your name and a valid email.')
+          return
+        }
+        if (!validateCheckoutDate()) return
+        setCheckoutStep(3)
+      }
+    }
+
+    function checkoutGoBack() {
+      if (checkoutStep > 1) setCheckoutStep(checkoutStep - 1)
+    }
+
+    function showSubmitSuccessModal(submittedItems, orderId, photoErrors = [], meta = {}) {
       const body = document.getElementById('success-modal-body')
       const ref = document.getElementById('success-modal-ref')
       if (!body) return
 
-      const isCustom = orderIncludesCustomCake(submittedItems)
       const photoNote = photoErrors.length
-        ? `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2">Some inspiration photos could not be uploaded to Google Drive (${photoErrors.join('; ')}). Your order details were still saved.</p>`
+        ? `<p class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2">Some inspiration photos could not be uploaded (${photoErrors.join('; ')}). Your order details were still saved.</p>`
         : ''
 
-      // No Stripe on submit — deposit link is emailed later via Order Log "Send Deposit Invoice".
-      const nextSteps = `
-          <p>We&apos;ll review your items and notes, then follow up with pricing if needed.</p>
-          <p class="text-xs text-[#8B6F6F]">After review, we&apos;ll email a secure Stripe link for the <strong>50% deposit</strong> to confirm your order.</p>
-          <p class="text-xs text-[#8B6F6F]">You will also hear from us via <strong>text or Instagram</strong> within <strong>24 hours</strong>.</p>
-        `
+      const itemsHtml = (submittedItems || []).map((item) => {
+        const c = item.customizations || {}
+        const bits = [(item.quantity || 1) + '× ' + (item.name || 'Item')]
+        if (c.tier) bits.push(c.tier)
+        if (c.flavor) bits.push(c.flavor)
+        return '<li class="text-sm">' + escapeHtmlCheckout(bits.join(' · ')) + '</li>'
+      }).join('')
 
-      if (isCustom) {
-        body.innerHTML = `
-          <p><strong>Your custom cake request has been submitted.</strong></p>
-          <p>We saved your details and inspiration photos to our order log.</p>
-          ${nextSteps}
+      body.innerHTML = `
+          <p class="font-semibold text-[#3F2A2B]">Thank you — your request is in!</p>
+          <p class="text-sm text-[#5C4A4B]">We saved your order and sent a confirmation email${meta.customerEmail ? ' to <strong>' + escapeHtmlCheckout(meta.customerEmail) + '</strong>' : ''}.</p>
+          ${meta.eventDate ? '<p class="text-sm"><span class="text-[#8B6F6F]">Date needed:</span> <strong>' + escapeHtmlCheckout(meta.eventDate) + '</strong></p>' : ''}
+          <div>
+            <div class="text-[10px] uppercase tracking-wide font-semibold text-[#8B6F6F] mb-1">Order summary</div>
+            <ul class="space-y-1 list-disc pl-4 text-[#5C4A4B]">${itemsHtml || '<li>See confirmation email</li>'}</ul>
+            ${meta.estimatedSubtotal != null ? '<p class="mt-2 text-sm font-semibold">Est. total ' + moneyFmt(meta.estimatedSubtotal) + '</p>' : ''}
+          </div>
+          <div class="text-xs text-[#6B5B5F] space-y-1.5 pt-1 border-t border-[#EDE4DC]">
+            <p>We typically respond within <strong class="text-[#3F2A2B]">24 hours</strong>.</p>
+            <p>After review, we&apos;ll email a secure <strong class="text-[#3F2A2B]">50% deposit</strong> Stripe link to confirm your order.</p>
+          </div>
           ${photoNote}
         `
-      } else {
-        body.innerHTML = `
-          <p><strong>Your order request has been submitted.</strong></p>
-          <p>We saved your cart and notes to our order log.</p>
-          ${nextSteps}
-          ${photoNote}
-        `
-      }
 
       if (ref && orderId) {
         ref.textContent = `Order reference: ${orderId}`
@@ -3072,18 +3328,16 @@
         alert('Your cart is empty.')
         return
       }
-      const d = new Date()
-      d.setDate(d.getDate() + 4)
-      const minDate = d.toISOString().split('T')[0]
-      const dateEl = document.getElementById('cart-submit-date')
-      if (dateEl) dateEl.min = minDate
 
       // Fresh idempotency key for this checkout session
       stcClientRequestId = stcNewClientRequestId()
       stcSubmitInFlight = false
+      checkoutStep = 1
 
       hideCartSubmitError()
       setCartSubmitLoading(false)
+      applyDateLeadTimeRules()
+      setCheckoutStep(1)
       stcWarmApiIfLive()
       document.getElementById('cart-submit-modal').classList.remove('hidden')
       document.getElementById('cart-submit-modal').classList.add('flex')
@@ -3098,11 +3352,20 @@
       setCartSubmitLoading(false)
       cartSubmitClearImages()
       stcSubmitInFlight = false
+      checkoutStep = 1
     }
+
+    // Expose step helpers for inline onclick
+    window.checkoutGoNext = checkoutGoNext
+    window.checkoutGoBack = checkoutGoBack
 
     async function performCartSubmit() {
       // Hard lock: one in-flight request only (no auto POST retries, no double-click dups)
       if (stcSubmitInFlight) return
+      if (checkoutStep !== 3) {
+        setCheckoutStep(3)
+        return
+      }
       stcSubmitInFlight = true
 
       hideCartSubmitError()
@@ -3112,12 +3375,19 @@
       if (!payload.customerName || !payload.customerEmail) {
         stcSubmitInFlight = false
         setCartSubmitLoading(false)
+        setCheckoutStep(2)
         showCartSubmitError({
           title: 'Name and email required',
           message: 'Please fill in your name and email so we can confirm your order.',
-          steps: ['Complete the fields above, then tap Submit Request again.'],
+          steps: ['Complete the fields above, then continue to Review & submit.'],
           retryable: false
         })
+        return
+      }
+      if (!validateCheckoutDate()) {
+        stcSubmitInFlight = false
+        setCartSubmitLoading(false)
+        setCheckoutStep(2)
         return
       }
 
@@ -3129,6 +3399,11 @@
         const result = await postCartSubmitPayload(payload)
         const orderId = result.json.orderId
         const photoErrors = result.json.photoErrors || []
+        const customerEmail = payload.customerEmail
+        const eventDate = payload.eventDate
+        const estimatedSubtotal = result.json.estimatedSubtotal != null
+          ? result.json.estimatedSubtotal
+          : payload.items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0)
 
         // New key for any future order after this success
         stcClientRequestId = ''
@@ -3145,9 +3420,14 @@
         updateCartCount()
         updateCartSubmitButton()
 
-        // Request received only — no Stripe redirect; deposit emailed after sheet review
-        showSubmitSuccessModal(result.submittedItems, orderId, photoErrors)
-        showToast('Request saved — we\'ll be in touch soon.')
+        // Confirmation page + customer confirmation email is sent server-side
+        showSubmitSuccessModal(result.submittedItems, orderId, photoErrors, {
+          customerEmail,
+          eventDate,
+          estimatedSubtotal,
+          customerEmailSent: !!(result.json.customerEmailNotification && result.json.customerEmailNotification.sent),
+        })
+        showToast('Request saved — check your email for confirmation.')
       } catch (err) {
         stcSubmitInFlight = false
         setCartSubmitLoading(false)

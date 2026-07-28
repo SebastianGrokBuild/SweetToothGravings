@@ -664,12 +664,17 @@
       }
       function isInvoiceStatus(status) {
         var s = String(status || '').trim().toLowerCase();
+        if (s.indexOf('balance') >= 0) return false;
         return (
           s === 'invoice sent' ||
           s.indexOf('invoice sent') >= 0 ||
           s === 'deposit_invoice_sent' ||
           s.indexOf('deposit invoice sent') >= 0
         );
+      }
+      function isBalanceInvoiceStatus(status) {
+        var s = String(status || '').trim().toLowerCase();
+        return s.indexOf('balance invoice') >= 0 || s === 'balance_invoice_sent';
       }
       function isPaidStatus(status) {
         var s = String(status || '').trim().toLowerCase();
@@ -1035,8 +1040,30 @@
           var row = o.sheetRow != null ? o.sheetRow : '';
           var photos = collectPhotos(o);
           var bucket = statusBucket(o.status);
-          var showSend = bucket === 'pending' || bucket === 'invoice';
-          var showMarks = bucket === 'pending' || bucket === 'invoice';
+          if (isBalanceInvoiceStatus(o.status)) bucket = 'invoice';
+          var showDepositSend = bucket === 'pending';
+          // Final balance after deposit invoice has been sent (or deposit marked paid)
+          var balance = null;
+          if (subtotal != null && deposit != null) {
+            balance = Math.round((Number(subtotal) - Number(deposit)) * 100) / 100;
+          } else if (subtotal != null) {
+            balance = Math.round(Number(subtotal) * 50) / 100;
+          }
+          var showBalanceSend =
+            (bucket === 'invoice' || isBalanceInvoiceStatus(o.status) || bucket === 'paid') &&
+            balance != null &&
+            balance >= 0.5 &&
+            !isPaidStatus(o.status); // hide when fully completed? allow if invoice sent
+          // Show final balance for Invoice Sent and Balance Invoice Sent; hide when Completed
+          if (String(o.status || '').toLowerCase().indexOf('completed') >= 0) {
+            showBalanceSend = false;
+          }
+          if (bucket === 'invoice' || isBalanceInvoiceStatus(o.status)) {
+            showBalanceSend = balance != null && balance >= 0.5;
+          } else if (bucket === 'paid') {
+            showBalanceSend = false;
+          }
+          var showMarks = bucket === 'pending' || bucket === 'invoice' || isBalanceInvoiceStatus(o.status);
 
           return (
             '<article class="order-card" data-idx="' + i + '">' +
@@ -1057,11 +1084,14 @@
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Deposit</span><span class="font-semibold text-[#3F2A2B]">' + money(deposit) +
                   (subtotal != null ? ' <span class="text-xs font-normal text-[#8B6F6F]">(50% of ' + money(subtotal) + ')</span>' : '') +
                 '</span></div>' +
+                (balance != null && balance >= 0
+                  ? '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Balance</span><span class="font-semibold text-[#3F2A2B]">' + money(balance) + '</span></div>'
+                  : '') +
               '</div>' +
               renderQuickActions(email, phone, name, orderNumber) +
               renderOrderDetails(o) +
               renderPhotoGallery(photos) +
-              (showSend
+              (showDepositSend
                 ? '<button type="button" class="btn-primary send-invoice-btn mt-4 w-full flex items-center justify-center gap-2"' +
                   ' data-order="' + escapeHtml(orderNumber) + '"' +
                   ' data-email="' + escapeHtml(email) + '"' +
@@ -1073,6 +1103,22 @@
                   ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
                   '<i class="fa-solid fa-paper-plane text-sm"></i>' +
                   '<span>Send Invoice by Email</span>' +
+                '</button>'
+                : '') +
+              (showBalanceSend
+                ? '<button type="button" class="btn-primary send-balance-btn mt-2 w-full flex items-center justify-center gap-2"' +
+                  ' style="background:#5E35B1"' +
+                  ' data-order="' + escapeHtml(orderNumber) + '"' +
+                  ' data-email="' + escapeHtml(email) + '"' +
+                  ' data-deposit="' + (deposit != null ? deposit : '') + '"' +
+                  ' data-subtotal="' + (subtotal != null ? subtotal : '') + '"' +
+                  ' data-balance="' + balance + '"' +
+                  ' data-row="' + escapeHtml(String(row)) + '"' +
+                  ' data-name="' + escapeHtml(name) + '"' +
+                  ' data-event="' + escapeHtml(eventDate) + '"' +
+                  ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
+                  '<i class="fa-solid fa-file-invoice-dollar text-sm"></i>' +
+                  '<span>Send Final Balance Invoice</span>' +
                 '</button>'
                 : '') +
               (showMarks
@@ -1099,6 +1145,11 @@
         ordersList.querySelectorAll('.send-invoice-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
             sendInvoice(btn);
+          });
+        });
+        ordersList.querySelectorAll('.send-balance-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            sendFinalBalanceInvoice(btn);
           });
         });
         ordersList.querySelectorAll('.mark-status-btn').forEach(function (btn) {
@@ -1228,7 +1279,7 @@
         var original = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Sending email invoice…</span>';
-        if (statusEl) statusEl.textContent = 'Emailing live Stripe invoice…';
+        if (statusEl) statusEl.textContent = 'Emailing live Stripe deposit invoice…';
 
         try {
           var body = {
@@ -1249,7 +1300,7 @@
 
           if (!data.success) throw new Error(data.error || 'Send failed');
 
-          var msg = 'Invoice emailed to ' + email;
+          var msg = 'Deposit invoice emailed to ' + email;
           if (data.depositDollars != null) {
             msg = 'Emailed $' + Number(data.depositDollars).toFixed(2) + ' deposit to ' + email;
           }
@@ -1261,22 +1312,104 @@
           showToast(msg, true);
           if (statusEl) {
             statusEl.innerHTML =
-              '<span class="text-green-700 font-medium">✓ Emailed · Invoice Sent</span>' +
+              '<span class="text-green-700 font-medium">✓ Deposit emailed · Invoice Sent</span>' +
               (data.invoiceUrl
                 ? ' · <a class="underline text-[#7B4DB8]" href="' +
                   escapeHtml(data.invoiceUrl) +
                   '" target="_blank" rel="noopener">View invoice</a>'
                 : '');
           }
-          btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Invoice sent</span>';
+          btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Deposit invoice sent</span>';
           btn.classList.add('opacity-80');
-          // Refresh list so the order leaves Pending Review after sheet status update
           setTimeout(function () {
             loadOrders();
           }, 1400);
         } catch (e) {
           showToast(e.message || 'Failed to send invoice', false);
           if (statusEl) statusEl.innerHTML = '<span class="text-red-600">' + escapeHtml(e.message || 'Failed') + '</span>';
+          btn.disabled = false;
+          btn.innerHTML = original;
+        }
+      }
+
+      async function sendFinalBalanceInvoice(btn) {
+        var orderNumber = btn.getAttribute('data-order') || '';
+        var email = btn.getAttribute('data-email') || '';
+        var deposit = parseFloat(btn.getAttribute('data-deposit'));
+        var subtotal = parseFloat(btn.getAttribute('data-subtotal'));
+        var balance = parseFloat(btn.getAttribute('data-balance'));
+        var row = btn.getAttribute('data-row') || '';
+        var name = btn.getAttribute('data-name') || '';
+        var eventDate = btn.getAttribute('data-event') || '';
+        var lines = btn.getAttribute('data-lines') || '';
+        var statusEl = btn.parentElement.querySelector('.send-status');
+
+        if (!email || email.indexOf('@') < 0) {
+          showToast('This order has no valid customer email', false);
+          return;
+        }
+        if (!isFinite(balance) || balance < 0.5) {
+          if (isFinite(subtotal) && isFinite(deposit)) {
+            balance = Math.round((subtotal - deposit) * 100) / 100;
+          } else if (isFinite(subtotal)) {
+            balance = Math.round(subtotal * 50) / 100;
+          }
+        }
+        if (!isFinite(balance) || balance < 0.5) {
+          showToast('Could not calculate remaining balance', false);
+          return;
+        }
+
+        var original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Sending balance invoice…</span>';
+        if (statusEl) statusEl.textContent = 'Emailing final balance invoice…';
+
+        try {
+          var body = {
+            orderNumber: orderNumber,
+            email: email,
+            balanceAmount: balance,
+            customerName: name,
+            eventDate: eventDate === '—' ? '' : eventDate,
+            lineItemsDetail: lines,
+          };
+          if (isFinite(subtotal) && subtotal > 0) body.estimatedSubtotal = subtotal;
+          if (isFinite(deposit) && deposit > 0) body.depositAmount = deposit;
+          if (row) body.row = row;
+
+          var data = await api('/api/send-final-balance-invoice', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          if (!data.success) throw new Error(data.error || 'Send failed');
+
+          var msg =
+            'Final balance $' +
+            Number(data.balanceDollars != null ? data.balanceDollars : balance).toFixed(2) +
+            ' emailed to ' +
+            email;
+          showToast(msg, true);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-green-700 font-medium">✓ Balance invoice sent</span>' +
+              (data.invoiceUrl
+                ? ' · <a class="underline text-[#7B4DB8]" href="' +
+                  escapeHtml(data.invoiceUrl) +
+                  '" target="_blank" rel="noopener">View</a>'
+                : '');
+          }
+          btn.innerHTML = '<i class="fa-solid fa-check"></i><span>Balance invoice sent</span>';
+          btn.classList.add('opacity-80');
+          setTimeout(function () {
+            loadOrders();
+          }, 1400);
+        } catch (e) {
+          showToast(e.message || 'Failed to send balance invoice', false);
+          if (statusEl) {
+            statusEl.innerHTML =
+              '<span class="text-red-600">' + escapeHtml(e.message || 'Failed') + '</span>';
+          }
           btn.disabled = false;
           btn.innerHTML = original;
         }
