@@ -29,7 +29,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-admin-dashboard-v18";
+const DEPLOY_BUILD = "2026-07-28-admin-filter-v19";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -1420,21 +1420,25 @@ async function api(req, res, pathname, baseUrl) {
         }
       }
 
-      const all = [...byId.values()];
+      const all = [...byId.values()].sort((a, b) => {
+        const ta = new Date(a.createdAt || 0).getTime() || 0;
+        const tb = new Date(b.createdAt || 0).getTime() || 0;
+        if (tb !== ta) return tb - ta;
+        return (b.sheetRow || 0) - (a.sheetRow || 0);
+      });
       const summary = summarizeOrderStatuses(all);
-      const pending = all
-        .filter((o) => isPendingReviewStatus(o.status))
-        .filter((o) => o.customerEmail && String(o.customerEmail).includes("@"))
-        .sort((a, b) => {
-          const ta = new Date(a.createdAt || 0).getTime() || 0;
-          const tb = new Date(b.createdAt || 0).getTime() || 0;
-          if (tb !== ta) return tb - ta;
-          return (b.sheetRow || 0) - (a.sheetRow || 0);
-        });
+      const pending = all.filter(
+        (o) =>
+          isPendingReviewStatus(o.status) &&
+          o.customerEmail &&
+          String(o.customerEmail).includes("@"),
+      );
 
       return json(res, 200, {
         success: true,
-        orders: pending,
+        // Full recent list so Admin can filter by dashboard cards
+        orders: all,
+        pending,
         count: pending.length,
         summary,
         sheetError,

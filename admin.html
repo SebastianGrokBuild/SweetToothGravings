@@ -281,6 +281,63 @@
     .stat-card.pending .stat-num { color: #7B4DB8; }
     .stat-card.invoice .stat-num { color: #1565C0; }
     .stat-card.paid .stat-num { color: #2E7D32; }
+    .stat-card {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      user-select: none;
+    }
+    .stat-card:active { transform: scale(0.98); }
+    .stat-card.is-active {
+      border-color: #C9A9E8;
+      box-shadow: 0 0 0 2px rgba(201, 169, 232, 0.35), 0 6px 16px rgba(63, 42, 43, 0.06);
+      background: #FBF7FF;
+    }
+    .stat-card.invoice.is-active { background: #F3F8FF; border-color: #90CAF9; box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.22); }
+    .stat-card.paid.is-active { background: #F4FBF5; border-color: #A5D6A7; box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.22); }
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      min-height: 2rem;
+    }
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #5E35B1;
+      background: #F5EEFC;
+      border-radius: 999px;
+      padding: 0.35rem 0.7rem;
+    }
+    .show-all-btn {
+      min-height: 2.25rem;
+      padding: 0 0.85rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .show-all-btn:active { background: #F5EEFC; }
+    .status-badge {
+      shrink: 0;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .status-badge.pending { background: #F5EEFC; color: #7B4DB8; }
+    .status-badge.invoice { background: #E3F2FD; color: #1565C0; }
+    .status-badge.paid { background: #E8F5E9; color: #2E7D32; }
+    .status-badge.other { background: #F5F5F5; color: #616161; }
     .status-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -385,22 +442,28 @@
         </button>
       </div>
 
-      <div id="summary-stats" class="stat-grid" aria-label="Order summary">
-        <div class="stat-card pending">
+      <div id="summary-stats" class="stat-grid" aria-label="Order summary filters">
+        <button type="button" class="stat-card pending" data-filter="pending" id="filter-card-pending" aria-pressed="false">
           <div class="stat-num" id="stat-pending">—</div>
           <div class="stat-label">Pending<br>Review</div>
-        </div>
-        <div class="stat-card invoice">
+        </button>
+        <button type="button" class="stat-card invoice" data-filter="invoice" id="filter-card-invoice" aria-pressed="false">
           <div class="stat-num" id="stat-invoice">—</div>
           <div class="stat-label">Invoice<br>Sent</div>
-        </div>
-        <div class="stat-card paid">
+        </button>
+        <button type="button" class="stat-card paid" data-filter="paid" id="filter-card-paid" aria-pressed="false">
           <div class="stat-num" id="stat-paid">—</div>
           <div class="stat-label">Paid /<br>Completed</div>
-        </div>
+        </button>
       </div>
 
-      <h3 class="heading-serif text-lg mt-5">Pending Review</h3>
+      <div class="filter-bar">
+        <div>
+          <h3 class="heading-serif text-lg leading-tight" id="list-heading">Pending Review</h3>
+          <div id="active-filter-chip" class="hidden filter-chip mt-1"></div>
+        </div>
+        <button type="button" id="show-all-btn" class="show-all-btn hidden">Show All</button>
+      </div>
     </div>
 
     <div id="orders-list" class="flex-1 overflow-y-auto px-4 pb-8 space-y-3">
@@ -442,8 +505,16 @@
       var logoutBtn = document.getElementById('logout-btn');
       var ordersList = document.getElementById('orders-list');
       var pendingCount = document.getElementById('pending-count');
+      var listHeading = document.getElementById('list-heading');
+      var showAllBtn = document.getElementById('show-all-btn');
+      var activeFilterChip = document.getElementById('active-filter-chip');
       var toastEl = document.getElementById('toast');
       var toastTimer = null;
+
+      // Full list from API; filter client-side via dashboard cards
+      var allOrders = [];
+      // 'pending' | 'invoice' | 'paid' | 'all'
+      var activeFilter = 'pending';
 
       function getToken() {
         return sessionStorage.getItem(TOKEN_KEY) || '';
@@ -568,6 +639,135 @@
         }).join('');
       }
 
+      function isPendingStatus(status) {
+        var s = String(status || '').trim().toLowerCase();
+        if (!s) return true;
+        if (
+          s.indexOf('invoice sent') >= 0 ||
+          s.indexOf('deposit invoice') >= 0 ||
+          s === 'deposit_invoice_sent' ||
+          s === 'paid' ||
+          s === 'completed' ||
+          s === 'complete' ||
+          s.indexOf('declined') >= 0 ||
+          s.indexOf('✓ sent') >= 0
+        ) {
+          return false;
+        }
+        return (
+          s === 'pending review' ||
+          s === 'pending_review' ||
+          s === 'needs review' ||
+          s === 'new' ||
+          s.indexOf('pending') === 0
+        );
+      }
+      function isInvoiceStatus(status) {
+        var s = String(status || '').trim().toLowerCase();
+        return (
+          s === 'invoice sent' ||
+          s.indexOf('invoice sent') >= 0 ||
+          s === 'deposit_invoice_sent' ||
+          s.indexOf('deposit invoice sent') >= 0
+        );
+      }
+      function isPaidStatus(status) {
+        var s = String(status || '').trim().toLowerCase();
+        return (
+          s === 'paid' ||
+          s === 'completed' ||
+          s === 'complete' ||
+          s.indexOf('paid') === 0 ||
+          s.indexOf('completed') === 0
+        );
+      }
+      function statusBucket(status) {
+        if (isPendingStatus(status)) return 'pending';
+        if (isPaidStatus(status)) return 'paid';
+        if (isInvoiceStatus(status)) return 'invoice';
+        return 'other';
+      }
+      function statusBadgeHtml(status) {
+        var bucket = statusBucket(status);
+        var label =
+          bucket === 'pending'
+            ? 'Pending Review'
+            : bucket === 'invoice'
+              ? 'Invoice Sent'
+              : bucket === 'paid'
+                ? (String(status || '').toLowerCase().indexOf('complete') >= 0 ? 'Completed' : 'Paid')
+                : (status || 'Other');
+        return (
+          '<span class="status-badge ' +
+          bucket +
+          '">' +
+          escapeHtml(label) +
+          '</span>'
+        );
+      }
+
+      function filterLabel(key) {
+        if (key === 'pending') return 'Pending Review';
+        if (key === 'invoice') return 'Invoice Sent';
+        if (key === 'paid') return 'Paid / Completed';
+        return 'All orders';
+      }
+
+      function getFilteredOrders() {
+        if (activeFilter === 'all') return allOrders.slice();
+        return allOrders.filter(function (o) {
+          var b = statusBucket(o.status);
+          return b === activeFilter;
+        });
+      }
+
+      function updateFilterUI() {
+        ['pending', 'invoice', 'paid'].forEach(function (key) {
+          var el = document.getElementById('filter-card-' + key);
+          if (!el) return;
+          var on = activeFilter === key;
+          el.classList.toggle('is-active', on);
+          el.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        listHeading.textContent = filterLabel(activeFilter);
+        if (activeFilter === 'all') {
+          activeFilterChip.classList.add('hidden');
+          activeFilterChip.textContent = '';
+          showAllBtn.classList.add('hidden');
+        } else {
+          activeFilterChip.classList.remove('hidden');
+          activeFilterChip.innerHTML =
+            '<i class="fa-solid fa-filter text-[10px]"></i> Filtered · tap card again or Show All';
+          showAllBtn.classList.remove('hidden');
+        }
+        var filtered = getFilteredOrders();
+        var total = allOrders.length;
+        if (activeFilter === 'all') {
+          pendingCount.textContent =
+            total + ' order' + (total === 1 ? '' : 's') + ' loaded';
+        } else {
+          pendingCount.textContent =
+            filtered.length +
+            ' of ' +
+            total +
+            ' · ' +
+            filterLabel(activeFilter).toLowerCase();
+        }
+      }
+
+      function setFilter(key) {
+        // Toggle off if same card clicked again
+        if (key && key === activeFilter) {
+          activeFilter = 'all';
+        } else if (key === 'pending' || key === 'invoice' || key === 'paid' || key === 'all') {
+          activeFilter = key;
+        } else {
+          activeFilter = 'all';
+        }
+        updateFilterUI();
+        renderOrders(getFilteredOrders());
+      }
+
       function renderSummary(summary) {
         var s = summary || {};
         document.getElementById('stat-pending').textContent =
@@ -578,17 +778,27 @@
           s.paidCompleted != null ? s.paidCompleted : '—';
       }
 
+      // Dashboard card filters
+      document.querySelectorAll('.stat-card[data-filter]').forEach(function (card) {
+        card.addEventListener('click', function () {
+          setFilter(card.getAttribute('data-filter'));
+        });
+      });
+      showAllBtn.addEventListener('click', function () {
+        setFilter('all');
+      });
+
       async function loadOrders() {
         skeleton();
         pendingCount.textContent = 'Loading orders…';
         try {
           var data = await api('/api/admin/pending-orders');
-          var orders = data.orders || [];
+          allOrders = data.orders || [];
           renderSummary(data.summary);
-          pendingCount.textContent = orders.length
-            ? orders.length + ' pending · email invoices when ready'
-            : 'No pending review orders';
-          renderOrders(orders);
+          // Keep current filter if still useful; default pending
+          if (!activeFilter) activeFilter = 'pending';
+          updateFilterUI();
+          renderOrders(getFilteredOrders());
           if (data.sheetError) {
             console.warn('Sheet read warning:', data.sheetError);
           }
@@ -599,7 +809,9 @@
             return;
           }
           pendingCount.textContent = 'Could not load orders';
+          allOrders = [];
           renderSummary({});
+          updateFilterUI();
           ordersList.innerHTML =
             '<div class="order-card text-center py-8">' +
             '<p class="text-[#6B5B5F] text-sm">' + escapeHtml(e.message || 'Load failed') + '</p>' +
@@ -788,12 +1000,24 @@
 
       function renderOrders(orders) {
         if (!orders.length) {
+          var emptyMsg =
+            activeFilter === 'invoice'
+              ? 'No Invoice Sent orders yet.'
+              : activeFilter === 'paid'
+                ? 'No Paid / Completed orders yet.'
+                : activeFilter === 'all'
+                  ? 'No orders found.'
+                  : 'No Pending Review orders right now.';
           ordersList.innerHTML =
             '<div class="order-card text-center py-10">' +
             '<div class="text-3xl text-[#C9A9E8] mb-3"><i class="fa-solid fa-inbox"></i></div>' +
-            '<p class="font-semibold">All caught up</p>' +
-            '<p class="text-sm text-[#6B5B5F] mt-1">No orders with status Pending Review.</p>' +
+            '<p class="font-semibold">' + escapeHtml(emptyMsg) + '</p>' +
+            (activeFilter !== 'all'
+              ? '<button type="button" class="btn-primary mt-4 px-6 clear-filter-inline">Show All</button>'
+              : '') +
             '</div>';
+          var clr = ordersList.querySelector('.clear-filter-inline');
+          if (clr) clr.onclick = function () { setFilter('all'); };
           return;
         }
 
@@ -810,6 +1034,9 @@
           var subtotal = o.estimatedSubtotal;
           var row = o.sheetRow != null ? o.sheetRow : '';
           var photos = collectPhotos(o);
+          var bucket = statusBucket(o.status);
+          var showSend = bucket === 'pending' || bucket === 'invoice';
+          var showMarks = bucket === 'pending' || bucket === 'invoice';
 
           return (
             '<article class="order-card" data-idx="' + i + '">' +
@@ -818,7 +1045,7 @@
                   '<div class="text-[10px] uppercase tracking-wider font-semibold text-[#C9A9E8]">Order</div>' +
                   '<div class="font-semibold text-base leading-tight">' + escapeHtml(orderNumber) + '</div>' +
                 '</div>' +
-                '<span class="shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full bg-[#F5EEFC] text-[#7B4DB8]">Pending Review</span>' +
+                statusBadgeHtml(o.status) +
               '</div>' +
               '<div class="mt-3 grid grid-cols-1 gap-1.5 text-sm">' +
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Customer</span><span class="font-medium break-words">' + escapeHtml(name) + '</span></div>' +
@@ -834,32 +1061,36 @@
               renderQuickActions(email, phone, name, orderNumber) +
               renderOrderDetails(o) +
               renderPhotoGallery(photos) +
-              '<button type="button" class="btn-primary send-invoice-btn mt-4 w-full flex items-center justify-center gap-2"' +
-                ' data-order="' + escapeHtml(orderNumber) + '"' +
-                ' data-email="' + escapeHtml(email) + '"' +
-                ' data-deposit="' + (deposit != null ? deposit : '') + '"' +
-                ' data-subtotal="' + (subtotal != null ? subtotal : '') + '"' +
-                ' data-row="' + escapeHtml(String(row)) + '"' +
-                ' data-name="' + escapeHtml(name) + '"' +
-                ' data-event="' + escapeHtml(eventDate) + '"' +
-                ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
-                '<i class="fa-solid fa-paper-plane text-sm"></i>' +
-                '<span>Send Invoice by Email</span>' +
-              '</button>' +
-              '<div class="status-actions">' +
-                '<button type="button" class="btn-secondary paid-btn mark-status-btn"' +
+              (showSend
+                ? '<button type="button" class="btn-primary send-invoice-btn mt-4 w-full flex items-center justify-center gap-2"' +
                   ' data-order="' + escapeHtml(orderNumber) + '"' +
+                  ' data-email="' + escapeHtml(email) + '"' +
+                  ' data-deposit="' + (deposit != null ? deposit : '') + '"' +
+                  ' data-subtotal="' + (subtotal != null ? subtotal : '') + '"' +
                   ' data-row="' + escapeHtml(String(row)) + '"' +
-                  ' data-status="Paid">' +
-                  '<i class="fa-solid fa-circle-check"></i><span>Mark as Paid</span>' +
-                '</button>' +
-                '<button type="button" class="btn-secondary done-btn mark-status-btn"' +
-                  ' data-order="' + escapeHtml(orderNumber) + '"' +
-                  ' data-row="' + escapeHtml(String(row)) + '"' +
-                  ' data-status="Completed">' +
-                  '<i class="fa-solid fa-flag-checkered"></i><span>Mark as Completed</span>' +
-                '</button>' +
-              '</div>' +
+                  ' data-name="' + escapeHtml(name) + '"' +
+                  ' data-event="' + escapeHtml(eventDate) + '"' +
+                  ' data-lines="' + escapeHtml(o.lineItemsDetail || '') + '">' +
+                  '<i class="fa-solid fa-paper-plane text-sm"></i>' +
+                  '<span>Send Invoice by Email</span>' +
+                '</button>'
+                : '') +
+              (showMarks
+                ? '<div class="status-actions">' +
+                  '<button type="button" class="btn-secondary paid-btn mark-status-btn"' +
+                    ' data-order="' + escapeHtml(orderNumber) + '"' +
+                    ' data-row="' + escapeHtml(String(row)) + '"' +
+                    ' data-status="Paid">' +
+                    '<i class="fa-solid fa-circle-check"></i><span>Mark as Paid</span>' +
+                  '</button>' +
+                  '<button type="button" class="btn-secondary done-btn mark-status-btn"' +
+                    ' data-order="' + escapeHtml(orderNumber) + '"' +
+                    ' data-row="' + escapeHtml(String(row)) + '"' +
+                    ' data-status="Completed">' +
+                    '<i class="fa-solid fa-flag-checkered"></i><span>Mark as Completed</span>' +
+                  '</button>' +
+                '</div>'
+                : '') +
               '<p class="send-status mt-2 text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
             '</article>'
           );
