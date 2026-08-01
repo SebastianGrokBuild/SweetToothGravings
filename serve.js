@@ -22,6 +22,7 @@ const DATA = path.join(ROOT, "data");
 const ORDERS = path.join(DATA, "orders.json");
 const FEEDBACK = path.join(DATA, "feedback.json");
 const REVIEWS = path.join(DATA, "reviews.json");
+const ORDERS_TRASH = path.join(DATA, "orders-trash.json");
 
 loadEnv(path.join(ROOT, ".env"));
 
@@ -31,7 +32,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-08-01-admin-delete-orders-v1";
+const DEPLOY_BUILD = "2026-08-01-admin-order-undo-v1";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -94,6 +95,75 @@ function loadOrders() {
 
 function saveOrders(list) {
   fs.writeFileSync(ORDERS, JSON.stringify(list, null, 2) + "\n");
+}
+
+function loadOrdersTrash() {
+  try {
+    if (!fs.existsSync(ORDERS_TRASH)) return [];
+    const list = JSON.parse(fs.readFileSync(ORDERS_TRASH, "utf8"));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveOrdersTrash(list) {
+  fs.writeFileSync(ORDERS_TRASH, JSON.stringify(list, null, 2) + "\n");
+}
+
+/** Keep last 40 trash entries (~undo buffer). */
+function pushOrdersTrash(entry) {
+  const list = loadOrdersTrash();
+  list.unshift(entry);
+  if (list.length > 40) list.length = 40;
+  saveOrdersTrash(list);
+  return entry;
+}
+
+function takeOrdersTrash(trashId) {
+  const list = loadOrdersTrash();
+  const idx = list.findIndex((t) => String(t.id) === String(trashId));
+  if (idx < 0) return null;
+  const [entry] = list.splice(idx, 1);
+  saveOrdersTrash(list);
+  return entry;
+}
+
+function orderSnapshotFromAdminShape(o) {
+  if (!o || typeof o !== "object") return null;
+  const orderNumber = String(o.orderNumber || o.id || o.orderId || "").trim();
+  if (!orderNumber) return null;
+  return {
+    id: orderNumber,
+    orderId: orderNumber,
+    orderNumber,
+    status: o.status || "Pending Review",
+    orderType: o.orderType || "Menu Order",
+    customerName: o.customerName || "",
+    customerEmail: o.customerEmail || "",
+    customerPhone: o.customerPhone || "",
+    eventDate: o.eventDate || "",
+    lineItemsDetail: o.lineItemsDetail || o.cartText || "",
+    estimatedSubtotal:
+      o.estimatedSubtotal != null ? Number(o.estimatedSubtotal) : null,
+    depositAmount:
+      o.depositAmount != null
+        ? Number(o.depositAmount)
+        : o.depositDue != null
+          ? Number(o.depositDue)
+          : null,
+    allergies: o.allergies || "",
+    notes: o.notes || o.specialRequests || o.decorationNotes || "",
+    additionalNotes: o.additionalNotes || "",
+    photoLinks: Array.isArray(o.photoLinks)
+      ? o.photoLinks
+      : [o.photo1, o.photo2, o.photo3].filter(Boolean),
+    photo1: o.photo1 || "",
+    photo2: o.photo2 || "",
+    photo3: o.photo3 || "",
+    createdAt: o.createdAt || new Date().toISOString(),
+    sheetRow: o.sheetRow != null ? o.sheetRow : null,
+  };
 }
 
 function loadFeedback() {
@@ -1887,6 +1957,7 @@ async function api(req, res, pathname, baseUrl) {
 
   /**
    * Delete order(s) — Admin cleanup for test orders.
+   * Snapshots each order into a short undo trash before remove.
    * DELETE /api/admin/orders?orderNumber=ST-…&row=12
    * DELETE /api/admin/orders?pending=1  — remove all Pending Review orders
    */
@@ -1927,6 +1998,43 @@ async function api(req, res, pathname, baseUrl) {
         const pendingSheet = sheetOrders.filter((o) =>
           isPendingReviewStatus(o.status),
         );
+        const pendingLocal = local.filter((o) =>
+          isPendingReviewStatus(o.status),
+        );
+
+        // Snapshot pending for undo (batch trash entry)
+        const batchId = `trash_batch_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
+        const snapshots = [];
+        const seenIds = new Set();
+        for (const o of pendingSheet) {
+          const snap = orderSnapshotFromAdminShape(o);
+          if (!snap) continue;
+          const key = String(snap.orderNumber).toLowerCase();
+          if (seenIds.has(key)) continue;
+          seenIds.add(key);
+          snapshots.push(snap);
+        }
+        for (const o of pendingLocal) {
+          const snap = orderSnapshotFromAdminShape({
+            ...o,
+            orderNumber: o.id || o.orderId,
+            id: o.id || o.orderId,
+          });
+          if (!snap) continue;
+          const key = String(snap.orderNumber).toLowerCase();
+          if (seenIds.has(key)) continue;
+          seenIds.add(key);
+          snapshots.push(snap);
+        }
+        if (snapshots.length) {
+          pushOrdersTrash({
+            id: batchId,
+            kind: "batch",
+            deletedAt: new Date().toISOString(),
+            orders: snapshots,
+          });
+        }
+
         // Delete sheet rows bottom-up so indexes stay valid
         const rows = pendingSheet
           .map((o) => ({
@@ -1969,12 +2077,15 @@ async function api(req, res, pathname, baseUrl) {
           localRemoved,
           "errors=",
           errors.length,
+          "trash=",
+          batchId,
         );
         return json(res, 200, {
           ok: true,
           clearedPending: true,
           deletedSheet: deleted,
           deletedLocal: localRemoved,
+          trashId: snapshots.length ? batchId : null,
           errors,
         });
       }
@@ -1982,6 +2093,63 @@ async function api(req, res, pathname, baseUrl) {
       if (!orderNumber && !(sheetRow >= 2)) {
         return json(res, 400, {
           error: "Provide orderNumber (and optional row) or pending=1 to clear all pending.",
+        });
+      }
+
+      // Snapshot before delete (sheet + local) for undo
+      let snapshot = null;
+      try {
+        if (typeof google.listRecentOrdersFromSheet === "function") {
+          const listed = await google.listRecentOrdersFromSheet({ limit: 200 });
+          const orders = (listed && listed.orders) || [];
+          const want = String(orderNumber || "").trim().toLowerCase();
+          const match = orders.find((o) => {
+            const id = String(o.orderNumber || o.id || "")
+              .trim()
+              .toLowerCase();
+            const row = o.sheetRow != null ? Number(o.sheetRow) : null;
+            if (want && id === want) return true;
+            if (sheetRow >= 2 && row === sheetRow) return true;
+            return false;
+          });
+          if (match) snapshot = orderSnapshotFromAdminShape(match);
+        }
+      } catch (e) {
+        console.warn("[admin/delete-orders] snapshot sheet:", e.message);
+      }
+      if (!snapshot && orderNumber) {
+        const localHit = loadOrders().find((o) => {
+          const id = String(o.id || o.orderId || "")
+            .trim()
+            .toLowerCase();
+          return id === String(orderNumber).trim().toLowerCase();
+        });
+        if (localHit) {
+          snapshot = orderSnapshotFromAdminShape({
+            ...localHit,
+            orderNumber: localHit.id || localHit.orderId,
+            id: localHit.id || localHit.orderId,
+          });
+        }
+      }
+      // Minimal fallback so undo still has an order number
+      if (!snapshot && orderNumber) {
+        snapshot = orderSnapshotFromAdminShape({
+          orderNumber,
+          id: orderNumber,
+          sheetRow: sheetRow >= 2 ? sheetRow : null,
+          status: "Pending Review",
+        });
+      }
+
+      let trashId = null;
+      if (snapshot) {
+        trashId = `trash_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`;
+        pushOrdersTrash({
+          id: trashId,
+          kind: "single",
+          deletedAt: new Date().toISOString(),
+          order: snapshot,
         });
       }
 
@@ -2011,6 +2179,8 @@ async function api(req, res, pathname, baseUrl) {
       if (localDeleted > 0) saveOrders(localNext);
 
       if (!sheetDeleted && localDeleted === 0) {
+        // Delete failed — drop the trash entry we just added
+        if (trashId) takeOrdersTrash(trashId);
         return json(res, 404, {
           error: sheetError || "Order not found in sheet or local store.",
         });
@@ -2021,10 +2191,131 @@ async function api(req, res, pathname, baseUrl) {
         orderNumber: orderNumber || null,
         sheetDeleted,
         localDeleted,
+        trashId,
         sheetError,
       });
     } catch (e) {
       console.error("[admin/delete-orders]", e);
+      return json(res, 500, { error: e.message || String(e) });
+    }
+  }
+
+  /**
+   * Restore a deleted order from undo trash.
+   * POST /api/admin/orders/restore  Body: { trashId }
+   */
+  if (method === "POST" && pathname === "/api/admin/orders/restore") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON body" });
+    }
+    const trashId = String(body.trashId || body.id || "").trim();
+    if (!trashId) {
+      return json(res, 400, { error: "trashId required" });
+    }
+
+    const entry = takeOrdersTrash(trashId);
+    if (!entry) {
+      return json(res, 404, {
+        error: "Undo expired or already used. Order is no longer in trash.",
+      });
+    }
+
+    const toRestore =
+      entry.kind === "batch" && Array.isArray(entry.orders)
+        ? entry.orders
+        : entry.order
+          ? [entry.order]
+          : [];
+
+    if (!toRestore.length) {
+      return json(res, 400, { error: "Trash entry has no order data" });
+    }
+
+    try {
+      google.forceProductionTargets();
+      const restored = [];
+      const errors = [];
+      const local = loadOrders();
+
+      for (const order of toRestore) {
+        try {
+          if (typeof google.restoreOrderToSheet === "function") {
+            await google.restoreOrderToSheet(order);
+          }
+          // Re-add to local store if missing
+          const id = String(order.orderNumber || order.id || "").trim();
+          if (id) {
+            const exists = local.some(
+              (o) =>
+                String(o.id || o.orderId || "")
+                  .trim()
+                  .toLowerCase() === id.toLowerCase(),
+            );
+            if (!exists) {
+              local.unshift({
+                id,
+                orderId: id,
+                status: order.status || "Pending Review",
+                orderType: order.orderType || "Menu Order",
+                customerName: order.customerName || "",
+                customerEmail: order.customerEmail || "",
+                customerPhone: order.customerPhone || "",
+                eventDate: order.eventDate || "",
+                lineItemsDetail: order.lineItemsDetail || "",
+                estimatedSubtotal: order.estimatedSubtotal,
+                allergies: order.allergies || "",
+                decorationNotes: order.notes || "",
+                additionalNotes: order.additionalNotes || "",
+                photoLinks: order.photoLinks || [],
+                createdAt: order.createdAt || new Date().toISOString(),
+              });
+            }
+          }
+          restored.push(id || "unknown");
+        } catch (e) {
+          errors.push({
+            order: order.orderNumber || order.id,
+            error: e.message || String(e),
+          });
+          console.warn("[admin/restore-order]", e.message);
+        }
+      }
+
+      saveOrders(local);
+
+      // If nothing restored, put trash back so user can retry
+      if (!restored.length) {
+        pushOrdersTrash(entry);
+        return json(res, 500, {
+          error: errors[0]?.error || "Could not restore order",
+          errors,
+        });
+      }
+
+      console.log(
+        "[admin/restore-order] trash=",
+        trashId,
+        "restored=",
+        restored.length,
+        "errors=",
+        errors.length,
+      );
+      return json(res, 200, {
+        ok: true,
+        trashId,
+        restored,
+        errors,
+      });
+    } catch (e) {
+      // Put trash back on unexpected failure
+      pushOrdersTrash(entry);
+      console.error("[admin/restore-order]", e);
       return json(res, 500, { error: e.message || String(e) });
     }
   }

@@ -17,6 +17,7 @@ index.html.pre-*
 *.log
 node_modules/
 data/orders.json
+data/orders-trash.json
 data/feedback.json
 data/reviews.json
 .server-url

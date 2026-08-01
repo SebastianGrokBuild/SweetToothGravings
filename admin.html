@@ -592,10 +592,30 @@
       box-shadow: 0 12px 30px rgba(0,0,0,0.12);
       transform: translateY(120%);
       transition: transform 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
     }
     .toast.show { transform: translateY(0); }
     .toast.ok { background: #1B5E20; color: #fff; }
     .toast.err { background: #B71C1C; color: #fff; }
+    .toast-msg { flex: 1; min-width: 0; }
+    .toast-undo {
+      flex-shrink: 0;
+      background: rgba(255,255,255,0.22);
+      border: 1px solid rgba(255,255,255,0.45);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.75rem;
+      border-radius: 0.6rem;
+      cursor: pointer;
+    }
+    .toast-undo:hover { background: rgba(255,255,255,0.32); }
+    .toast-undo:disabled { opacity: 0.6; cursor: wait; }
     .skeleton {
       background: linear-gradient(90deg, #f3ebe4 25%, #faf5f1 50%, #f3ebe4 75%);
       background-size: 200% 100%;
@@ -917,13 +937,55 @@
         else sessionStorage.removeItem(TOKEN_KEY);
       }
 
-      function showToast(msg, ok) {
-        toastEl.textContent = msg;
-        toastEl.className = 'toast show ' + (ok ? 'ok' : 'err');
+      function showToast(msg, ok, opts) {
+        opts = opts || {};
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () {
-          toastEl.classList.remove('show');
-        }, 4200);
+        toastEl.className = 'toast show ' + (ok ? 'ok' : 'err');
+        toastEl.innerHTML = '';
+        var msgEl = document.createElement('span');
+        msgEl.className = 'toast-msg';
+        msgEl.textContent = msg;
+        toastEl.appendChild(msgEl);
+        if (opts.undoTrashId) {
+          var undoBtn = document.createElement('button');
+          undoBtn.type = 'button';
+          undoBtn.className = 'toast-undo';
+          undoBtn.textContent = 'Undo';
+          undoBtn.setAttribute('aria-label', 'Undo delete');
+          undoBtn.addEventListener('click', function () {
+            restoreDeletedOrder(opts.undoTrashId, undoBtn);
+          });
+          toastEl.appendChild(undoBtn);
+          toastTimer = setTimeout(function () {
+            toastEl.classList.remove('show');
+          }, 10000);
+        } else {
+          toastTimer = setTimeout(function () {
+            toastEl.classList.remove('show');
+          }, 4200);
+        }
+      }
+
+      async function restoreDeletedOrder(trashId, btn) {
+        if (!trashId) return;
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = '…';
+        }
+        try {
+          var data = await api('/api/admin/orders/restore', {
+            method: 'POST',
+            body: JSON.stringify({ trashId: trashId }),
+          });
+          var n = (data.restored && data.restored.length) || 0;
+          showToast(
+            n > 1 ? 'Restored ' + n + ' orders' : 'Order restored',
+            true
+          );
+          await loadOrders();
+        } catch (e) {
+          showToast(e.message || 'Could not undo delete', false);
+        }
       }
 
       function money(n) {
@@ -2330,7 +2392,7 @@
         var name = btn.getAttribute('data-name') || '';
         var label = orderNumber || ('row ' + row);
         if (name) label += ' (' + name + ')';
-        if (!confirm('Delete order ' + label + '?\n\nThis removes it from the Order Log and admin list. Use for test orders only.')) {
+        if (!confirm('Delete order ' + label + '?\n\nYou can Undo right after if this was a mistake.')) {
           return;
         }
         btn.disabled = true;
@@ -2340,8 +2402,13 @@
           var q = '/api/admin/orders?';
           if (orderNumber) q += 'orderNumber=' + encodeURIComponent(orderNumber) + '&';
           if (row) q += 'row=' + encodeURIComponent(row);
-          await api(q.replace(/&$/, ''), { method: 'DELETE' });
-          showToast('Order deleted: ' + (orderNumber || row), true);
+          var data = await api(q.replace(/&$/, ''), { method: 'DELETE' });
+          var trashId = data && data.trashId ? data.trashId : null;
+          showToast(
+            'Order deleted: ' + (orderNumber || row),
+            true,
+            trashId ? { undoTrashId: trashId } : null
+          );
           await loadOrders();
         } catch (e) {
           showToast(e.message || 'Could not delete order', false);
@@ -2360,8 +2427,7 @@
         }
         if (!confirm(
           'Delete ALL ' + pendingCount + ' Pending Review order(s)?\n\n' +
-          'This permanently removes them from Google Sheets and the admin list.\n' +
-          'Paid / Invoice Sent orders are kept. Use this to wipe old test orders.'
+          'Paid / Invoice Sent orders are kept. You can Undo this clear for a short time if needed.'
         )) {
           return;
         }
@@ -2374,13 +2440,13 @@
           var data = await api('/api/admin/orders?pending=1', { method: 'DELETE' });
           var n = (data.deletedSheet && data.deletedSheet.length) || 0;
           var local = data.deletedLocal || 0;
-          showToast(
-            'Cleared pending: ' + n + ' from sheet' + (local ? ', ' + local + ' local' : ''),
-            true
-          );
+          var trashId = data && data.trashId ? data.trashId : null;
+          var msg = 'Cleared pending: ' + n + ' from sheet' + (local ? ', ' + local + ' local' : '');
           if (data.errors && data.errors.length) {
             console.warn('Some deletes failed', data.errors);
             showToast('Some rows could not be deleted — check console', false);
+          } else {
+            showToast(msg, true, trashId ? { undoTrashId: trashId } : null);
           }
           await loadOrders();
         } catch (e) {
