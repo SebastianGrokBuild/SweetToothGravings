@@ -655,6 +655,11 @@
           <p id="pending-count" class="text-sm text-[#6B5B5F] mt-0.5">Loading…</p>
         </div>
         <div class="toolbar-actions">
+          <button id="reviews-admin-btn" type="button" class="toolbar-btn" title="Public cake reviews">
+            <i class="fa-solid fa-star"></i>
+            Reviews
+            <span id="reviews-pending-badge" class="hidden ml-0.5 text-[10px] font-bold bg-[#C9A9E8] text-white min-w-[1.15rem] h-[1.15rem] px-1 rounded-full inline-flex items-center justify-center">0</span>
+          </button>
           <button id="feedback-btn" type="button" class="toolbar-btn" title="Website feedback from customers">
             <i class="fa-solid fa-lightbulb"></i>
             Feedback
@@ -671,12 +676,51 @@
         </div>
       </div>
 
-      <!-- Website feedback panel (admin-only, private) -->
+      <!-- Public cake reviews moderation -->
+      <div id="reviews-admin-panel" class="hidden mt-3 mb-1 rounded-2xl border border-[#EDE4DC] bg-white overflow-hidden">
+        <div class="px-4 py-3 flex items-center justify-between gap-2 border-b border-[#EDE4DC] bg-[#FDF8F5]">
+          <div>
+            <div class="font-semibold text-sm text-[#3F2A2B]"><i class="fa-solid fa-star text-[#C9A9E8] mr-1"></i>Cake Reviews</div>
+            <div class="text-[11px] text-[#8B6F6F]">Approve to show on the website · separate from Website Feedback</div>
+          </div>
+          <button type="button" id="reviews-admin-close-btn" class="toolbar-btn text-xs" aria-label="Close reviews">Close</button>
+        </div>
+        <div class="px-3 py-3 border-b border-[#EDE4DC]">
+          <div class="text-[11px] font-semibold text-[#3F2A2B] mb-2">Post a review</div>
+          <form id="admin-add-review-form" class="space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input type="text" id="admin-review-name" required placeholder="Customer name"
+                     class="form-input sm:col-span-2 w-full border border-[#EDE4DC] rounded-xl px-3 h-9 text-sm">
+              <select id="admin-review-rating" class="form-input w-full border border-[#EDE4DC] rounded-xl px-2 h-9 text-sm">
+                <option value="5">5 ★</option>
+                <option value="4">4 ★</option>
+                <option value="3">3 ★</option>
+                <option value="2">2 ★</option>
+                <option value="1">1 ★</option>
+              </select>
+            </div>
+            <textarea id="admin-review-text" required rows="2" placeholder="Review text…"
+                      class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none"></textarea>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="inline-flex items-center gap-1.5 text-[11px] text-[#5C4A4B]">
+                <input type="checkbox" id="admin-review-verified" class="rounded border-[#EDE4DC]"> Verified order
+              </label>
+              <button type="submit" class="btn-primary px-4 h-9 text-xs rounded-xl ml-auto">Publish on site</button>
+            </div>
+            <p id="admin-review-status" class="hidden text-[11px]"></p>
+          </form>
+        </div>
+        <div id="reviews-admin-list" class="max-h-[45vh] overflow-y-auto px-3 py-3 space-y-2 text-sm">
+          <p class="text-[#8B6F6F] text-center py-4 text-xs">Loading…</p>
+        </div>
+      </div>
+
+      <!-- Website feedback panel (admin-only, private — not cake reviews) -->
       <div id="feedback-panel" class="hidden mt-3 mb-1 rounded-2xl border border-[#EDE4DC] bg-white overflow-hidden">
         <div class="px-4 py-3 flex items-center justify-between gap-2 border-b border-[#EDE4DC] bg-[#FDF8F5]">
           <div>
             <div class="font-semibold text-sm text-[#3F2A2B]"><i class="fa-solid fa-lightbulb text-[#C9A9E8] mr-1"></i>Website Feedback</div>
-            <div class="text-[11px] text-[#8B6F6F]">Private — only visible in Admin</div>
+            <div class="text-[11px] text-[#8B6F6F]">Private site suggestions — never shown as public reviews</div>
           </div>
           <button type="button" id="feedback-close-btn" class="toolbar-btn text-xs" aria-label="Close feedback">Close</button>
         </div>
@@ -971,6 +1015,11 @@
           loadFeedback({ showLoading: true });
         } else {
           loadFeedback({ showLoading: false });
+        }
+        if (reviewsAdminPanel && !reviewsAdminPanel.classList.contains('hidden')) {
+          loadAdminReviews({ showLoading: true });
+        } else {
+          loadAdminReviews({ showLoading: false });
         }
       });
 
@@ -1341,6 +1390,11 @@
       var feedbackBadge = document.getElementById('feedback-badge');
       var feedbackBtn = document.getElementById('feedback-btn');
       var feedbackCloseBtn = document.getElementById('feedback-close-btn');
+      var reviewsAdminPanel = document.getElementById('reviews-admin-panel');
+      var reviewsAdminList = document.getElementById('reviews-admin-list');
+      var reviewsPendingBadge = document.getElementById('reviews-pending-badge');
+      var reviewsAdminBtn = document.getElementById('reviews-admin-btn');
+      var reviewsAdminCloseBtn = document.getElementById('reviews-admin-close-btn');
 
       function formatFeedbackDate(iso) {
         if (!iso) return '';
@@ -1421,6 +1475,212 @@
         });
       }
 
+      function reviewStatusLabel(s) {
+        s = String(s || 'pending').toLowerCase();
+        if (s === 'published' || s === 'approved') return 'Published';
+        if (s === 'rejected' || s === 'hidden') return 'Hidden';
+        return 'Pending';
+      }
+
+      function reviewStatusClass(s) {
+        s = String(s || 'pending').toLowerCase();
+        if (s === 'published' || s === 'approved') return 'bg-emerald-100 text-emerald-800';
+        if (s === 'rejected' || s === 'hidden') return 'bg-stone-200 text-stone-700';
+        return 'bg-amber-100 text-amber-900';
+      }
+
+      async function loadAdminReviews(opts) {
+        opts = opts || {};
+        if (!reviewsAdminList && opts.showLoading === false) {
+          // still fetch for badge
+        }
+        if (reviewsAdminList && opts.showLoading !== false) {
+          reviewsAdminList.innerHTML = '<p class="text-[#8B6F6F] text-center py-4 text-xs">Loading…</p>';
+        }
+        try {
+          var data = await api('/api/admin/reviews');
+          var items = data.reviews || [];
+          var pending = data.pending != null
+            ? data.pending
+            : items.filter(function (r) {
+                return String(r.status || '').toLowerCase() === 'pending';
+              }).length;
+          if (reviewsPendingBadge) {
+            if (pending > 0) {
+              reviewsPendingBadge.textContent = pending > 99 ? '99+' : String(pending);
+              reviewsPendingBadge.classList.remove('hidden');
+            } else {
+              reviewsPendingBadge.classList.add('hidden');
+            }
+          }
+          if (!reviewsAdminList) return;
+          if (!items.length) {
+            reviewsAdminList.innerHTML =
+              '<p class="text-[#8B6F6F] text-center py-6 text-xs">No reviews yet.</p>';
+            return;
+          }
+          reviewsAdminList.innerHTML = items.map(function (r) {
+            var stars = '★'.repeat(Math.min(5, Math.max(1, Number(r.rating) || 5)));
+            var st = String(r.status || 'pending').toLowerCase();
+            var id = escapeHtml(r.id || '');
+            var actions = '';
+            if (st === 'pending') {
+              actions =
+                '<button type="button" class="toolbar-btn text-[11px] rv-approve" data-id="' + id + '">Approve</button>' +
+                '<button type="button" class="toolbar-btn text-[11px] rv-reject" data-id="' + id + '">Hide</button>';
+            } else if (st === 'published' || st === 'approved') {
+              actions =
+                '<button type="button" class="toolbar-btn text-[11px] rv-reject" data-id="' + id + '">Unpublish</button>';
+            } else {
+              actions =
+                '<button type="button" class="toolbar-btn text-[11px] rv-approve" data-id="' + id + '">Publish</button>';
+            }
+            actions +=
+              '<button type="button" class="toolbar-btn text-[11px] text-red-700 rv-delete" data-id="' + id + '">Delete</button>';
+            return (
+              '<div class="rounded-xl border border-[#EDE4DC] bg-[#FDF8F5] px-3 py-2.5">' +
+                '<div class="flex items-start justify-between gap-2">' +
+                  '<div class="min-w-0">' +
+                    '<div class="font-semibold text-[#3F2A2B] text-[13px]">' + escapeHtml(r.name || 'Anonymous') +
+                      ' <span class="text-[#C9A9E8] font-normal">' + stars + '</span></div>' +
+                    '<div class="text-[10px] text-[#8B6F6F] mt-0.5">' +
+                      escapeHtml(formatFeedbackDate(r.createdAt) || r.dateLabel || '') +
+                      ' · <span class="inline-block px-1.5 py-0.5 rounded-full ' + reviewStatusClass(st) + '">' +
+                      escapeHtml(reviewStatusLabel(st)) + '</span>' +
+                      (r.source ? ' · ' + escapeHtml(r.source) : '') +
+                    '</div>' +
+                  '</div>' +
+                '</div>' +
+                '<p class="mt-1.5 text-[13px] text-[#5C4A4B] leading-snug whitespace-pre-wrap">' +
+                  escapeHtml(r.text || '') +
+                '</p>' +
+                '<div class="mt-2 flex flex-wrap gap-1.5">' + actions + '</div>' +
+              '</div>'
+            );
+          }).join('');
+
+          reviewsAdminList.querySelectorAll('.rv-approve').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              patchReview(btn.getAttribute('data-id'), { status: 'published' });
+            });
+          });
+          reviewsAdminList.querySelectorAll('.rv-reject').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              patchReview(btn.getAttribute('data-id'), { status: 'rejected' });
+            });
+          });
+          reviewsAdminList.querySelectorAll('.rv-delete').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              if (!confirm('Delete this review permanently?')) return;
+              deleteReview(btn.getAttribute('data-id'));
+            });
+          });
+        } catch (e) {
+          if (e.status === 401) {
+            showLogin();
+            return;
+          }
+          if (reviewsAdminList) {
+            reviewsAdminList.innerHTML =
+              '<p class="text-red-600 text-center py-4 text-xs">' +
+              escapeHtml(e.message || 'Could not load reviews') +
+              '</p>';
+          }
+        }
+      }
+
+      async function patchReview(id, body) {
+        try {
+          await api('/api/admin/reviews', {
+            method: 'PATCH',
+            body: JSON.stringify(Object.assign({ id: id }, body || {})),
+          });
+          showToast('Review updated', true);
+          loadAdminReviews({ showLoading: true });
+        } catch (e) {
+          showToast(e.message || 'Update failed', false);
+        }
+      }
+
+      async function deleteReview(id) {
+        try {
+          await api('/api/admin/reviews?id=' + encodeURIComponent(id), { method: 'DELETE' });
+          showToast('Review deleted', true);
+          loadAdminReviews({ showLoading: true });
+        } catch (e) {
+          showToast(e.message || 'Delete failed', false);
+        }
+      }
+
+      if (reviewsAdminBtn) {
+        reviewsAdminBtn.addEventListener('click', function () {
+          if (!reviewsAdminPanel) return;
+          var open = reviewsAdminPanel.classList.contains('hidden');
+          if (open) {
+            if (feedbackPanel) feedbackPanel.classList.add('hidden');
+            reviewsAdminPanel.classList.remove('hidden');
+            loadAdminReviews({ showLoading: true });
+          } else {
+            reviewsAdminPanel.classList.add('hidden');
+          }
+        });
+      }
+      if (reviewsAdminCloseBtn) {
+        reviewsAdminCloseBtn.addEventListener('click', function () {
+          if (reviewsAdminPanel) reviewsAdminPanel.classList.add('hidden');
+        });
+      }
+
+      var adminAddReviewForm = document.getElementById('admin-add-review-form');
+      if (adminAddReviewForm) {
+        adminAddReviewForm.addEventListener('submit', async function (ev) {
+          ev.preventDefault();
+          var statusEl = document.getElementById('admin-review-status');
+          var name = (document.getElementById('admin-review-name').value || '').trim();
+          var text = (document.getElementById('admin-review-text').value || '').trim();
+          var rating = parseInt(document.getElementById('admin-review-rating').value, 10) || 5;
+          var verified = !!(document.getElementById('admin-review-verified') || {}).checked;
+          if (!name || !text) return;
+          try {
+            await api('/api/admin/reviews', {
+              method: 'POST',
+              body: JSON.stringify({
+                name: name,
+                text: text,
+                rating: rating,
+                verified: verified,
+                status: 'published',
+              }),
+            });
+            document.getElementById('admin-review-name').value = '';
+            document.getElementById('admin-review-text').value = '';
+            document.getElementById('admin-review-verified').checked = false;
+            if (statusEl) {
+              statusEl.textContent = 'Published on the website.';
+              statusEl.className = 'text-[11px] text-emerald-700';
+              statusEl.classList.remove('hidden');
+            }
+            showToast('Review published', true);
+            loadAdminReviews({ showLoading: true });
+          } catch (e) {
+            if (statusEl) {
+              statusEl.textContent = e.message || 'Could not publish';
+              statusEl.className = 'text-[11px] text-red-600';
+              statusEl.classList.remove('hidden');
+            }
+            showToast(e.message || 'Failed', false);
+          }
+        });
+      }
+
+      // When opening feedback, close reviews panel
+      if (feedbackBtn) {
+        var prevFeedbackHandler = feedbackBtn.onclick;
+        feedbackBtn.addEventListener('click', function () {
+          if (reviewsAdminPanel) reviewsAdminPanel.classList.add('hidden');
+        });
+      }
+
       async function loadOrders() {
         skeleton();
         pendingCount.textContent = 'Loading orders…';
@@ -1444,9 +1704,12 @@
           if (data.sheetError) {
             console.warn('Sheet read warning:', data.sheetError);
           }
-          // Quietly refresh feedback badge count for admin
+          // Quietly refresh feedback + reviews badges for admin
           loadFeedback({
             showLoading: feedbackPanel && !feedbackPanel.classList.contains('hidden'),
+          });
+          loadAdminReviews({
+            showLoading: reviewsAdminPanel && !reviewsAdminPanel.classList.contains('hidden'),
           });
         } catch (e) {
           if (e.status === 401) {

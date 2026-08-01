@@ -18,6 +18,7 @@ index.html.pre-*
 node_modules/
 data/orders.json
 data/feedback.json
+data/reviews.json
 .server-url
 uploads/
 .env

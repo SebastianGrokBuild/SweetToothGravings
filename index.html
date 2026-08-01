@@ -1096,7 +1096,7 @@
     </div>
   </div>
 
-  <!-- REVIEWS MODAL — reviews first, compact form -->
+  <!-- REVIEWS MODAL — reviews + leave-a-review first; website feedback collapsed -->
   <div id="reviews-modal" onclick="if (event.target.id === 'reviews-modal') closeReviewsModal()" class="hidden fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
     <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
       <div class="md:hidden flex justify-center pt-2 pb-1 bg-white shrink-0">
@@ -1114,36 +1114,31 @@
               <span id="reviews-average" class="ml-1.5 font-semibold text-[#3F2A2B]">5.0</span>
             </div>
           </div>
-          <div id="reviews-count" class="text-[#8B6F6F] text-xs sm:text-sm mt-0.5">Based on 17+ reviews</div>
+          <div id="reviews-count" class="text-[#8B6F6F] text-xs sm:text-sm mt-0.5">Loading reviews…</div>
         </div>
         <button type="button" onclick="closeReviewsModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B] shrink-0" aria-label="Close">×</button>
       </div>
 
-      <!-- Reviews take most of the space -->
+      <!-- Public cake reviews (primary space) -->
       <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-3 bg-[#FDF8F5]">
-        <!-- Populated by JS -->
+        <p class="text-center text-[#8B6F6F] text-sm py-6">Loading reviews…</p>
       </div>
 
-      <!-- Compact leave-a-review + website feedback -->
-      <div class="border-t border-[#EDE4DC] bg-white shrink-0 max-h-[42%] overflow-y-auto">
-        <div class="px-4 sm:px-6 pt-3 pb-2">
-          <button type="button" id="review-form-toggle" onclick="toggleReviewFormPanel()"
-                  class="w-full flex items-center justify-between text-left text-sm font-semibold text-[#3F2A2B] py-1">
-            <span><i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review</span>
-            <i id="review-form-chevron" class="fa-solid fa-chevron-up text-[#C9A9E8] text-xs transition"></i>
-          </button>
-        </div>
-
-        <div id="review-form-panel" class="px-4 sm:px-6 pb-3">
+      <!-- Leave a cake review (always visible, comfortable size) -->
+      <div class="border-t border-[#EDE4DC] bg-white shrink-0">
+        <div class="px-4 sm:px-6 pt-3.5 pb-3">
+          <div class="text-sm font-semibold text-[#3F2A2B] mb-2.5">
+            <i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review
+          </div>
           <form id="review-form" onsubmit="submitReview(event)" class="space-y-2.5">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-name">NAME</label>
-                <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-9 text-sm" placeholder="Your name">
+                <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-10 text-sm" placeholder="Your name" autocomplete="name">
               </div>
               <div>
                 <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5">RATING</label>
-                <div id="star-rating" class="flex gap-x-0.5 text-xl text-[#EDE4DC] cursor-pointer h-9 items-center">
+                <div id="star-rating" class="flex gap-x-0.5 text-2xl text-[#EDE4DC] cursor-pointer h-10 items-center" role="group" aria-label="Star rating">
                   <span data-rating="1">★</span>
                   <span data-rating="2">★</span>
                   <span data-rating="3">★</span>
@@ -1154,23 +1149,28 @@
               </div>
             </div>
             <div>
-              <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">REVIEW</label>
-              <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none" placeholder="Tell others about your experience..."></textarea>
+              <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">YOUR REVIEW</label>
+              <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2.5 text-sm resize-none" placeholder="Tell others about the cakes and treats…"></textarea>
             </div>
-            <button type="submit"
-                    class="w-full h-10 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm">
+            <button type="submit" id="review-submit-btn"
+                    class="w-full h-11 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm">
               Submit Review
             </button>
+            <p id="review-status" class="hidden text-[11px] text-center leading-snug"></p>
           </form>
         </div>
 
-        <div class="px-4 sm:px-6 pb-4 pt-1 border-t border-[#EDE4DC]/80">
-          <div class="rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
-            <div class="text-xs font-semibold text-[#3F2A2B] mb-1">
-              <i class="fa-solid fa-lightbulb text-[#C9A9E8] mr-1"></i>Website Feedback
-            </div>
-            <p class="text-[11px] text-[#6B5B5F] leading-snug mb-2.5">
-              Ideas to improve the site? Sent privately to Sweet Tooth Cravings — not posted as a review.
+        <!-- Website feedback: small button, expands only when needed -->
+        <div class="px-4 sm:px-6 pb-4 pt-1">
+          <button type="button" id="website-feedback-toggle" onclick="toggleWebsiteFeedbackPanel()"
+                  class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8B6F6F] hover:text-[#C9A9E8] transition py-1">
+            <i class="fa-solid fa-lightbulb text-[#C9A9E8]"></i>
+            Website Feedback
+            <i id="website-feedback-chevron" class="fa-solid fa-chevron-down text-[9px] ml-0.5"></i>
+          </button>
+          <div id="website-feedback-panel" class="hidden mt-2 rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
+            <p class="text-[11px] text-[#6B5B5F] leading-snug mb-2">
+              Suggestions about the website only — private to Sweet Tooth Cravings, not a public cake review.
             </p>
             <form id="website-feedback-form" onsubmit="submitWebsiteFeedback(event)" class="space-y-2">
               <input type="text" id="feedback-name" autocomplete="name"
@@ -3503,55 +3503,80 @@
       }
     }
 
-    // ==================== REVIEWS SYSTEM ====================
+    // ==================== REVIEWS SYSTEM (public cake reviews) ====================
+    // Fallback if API is offline — same seed used server-side when reviews.json is created
     const hardcodedReviews = [
       { id: 1, name: "Diana R", date: "2 months ago", rating: 5, text: "Best desserts you will ever have." },
-      { id: 2, name: "Jenny", date: "2 months ago", rating: 5, text: "Ashley is an absolute sweetheart. She offers a variety of different delicious desserts. Everything she makes is amazing. I’ve ordered her pistachio coquito which was phenomenal! Her chocoflan was creamy and full of flavor. Her cakes are the best! She will exceed your expectations. I truly recommend her, you will not be disappointed." },
+      { id: 2, name: "Jenny", date: "2 months ago", rating: 5, text: "Ashley is an absolute sweetheart. She offers a variety of different delicious desserts. Everything she makes is amazing. I've ordered her pistachio coquito which was phenomenal! Her chocoflan was creamy and full of flavor. Her cakes are the best! She will exceed your expectations. I truly recommend her, you will not be disappointed." },
       { id: 3, name: "Jenny", date: "2 months ago", rating: 5, text: "The best!!" },
       { id: 4, name: "Joey Gonzalez", date: "2 months ago", rating: 5, text: "Great products and service! Highly recommended. Great service, prompt replies. Excellent custom cakes and other party items. Very tasty! Place your orders with confidence!" },
       { id: 5, name: "Pam", date: "2 months ago", rating: 5, text: "Great desserts. I ordered a party package and everything was gone in minutes! My family loved it and the design was so perfect. Thanks!" },
-      { id: 6, name: "Claudia Rodriguez", date: "2 months ago", rating: 5, text: "Simply the best! She is truly the best! She knows exactly what I like and always brings my ideas to life perfectly. Every order is made exactly how I ask and somehow she still manages to exceed my expectations every single time. Her attention to detail, creativity, and consistency are unmatched. I wouldn’t trust anyone else with my cakes!" },
+      { id: 6, name: "Claudia Rodriguez", date: "2 months ago", rating: 5, text: "Simply the best! She is truly the best! She knows exactly what I like and always brings my ideas to life perfectly. Every order is made exactly how I ask and somehow she still manages to exceed my expectations every single time. Her attention to detail, creativity, and consistency are unmatched. I wouldn't trust anyone else with my cakes!" },
       { id: 7, name: "Adriana R", date: "2 months ago", rating: 5, text: "Amazing service & delicious desserts! Ashley is such a joy to work with and made my ideas come to life with such ease. The cake was gorgeous and tasted so good ♡ Thank you for making my birthday extra sweet!" },
-      { id: 8, name: "Betty", date: "2 months ago", rating: 5, text: "Great taste. Super good tasting cakes. I found her on Instagram and she didn’t disappoint! Will be booking her again!" },
-      { id: 9, name: "Katherine Galeano", date: "12 months ago", rating: 5, text: "Unforgettable Sweets. Sweet Tooth Cravings truly lives up to the name. These are hands down the best sweets I’ve ever had! The chocolate they use for their chocolate-covered strawberries is rich and luxurious. Their cakes are just as incredible. I’m obsessed with the guava-filled cake. The flan is also a must-try—so smooth and creamy.", verified: true },
-      { id: 10, name: "Pamela", date: "12 months ago", rating: 5, text: "Two cake customer. Ok I have ordered two cakes, one for my bridal proposal brunch and the other for my best friend’s birthday and both not only have been so freaking adorable and well put together but the flavors are so delicious and moist! I will forever be a lifelong customer.", verified: true },
+      { id: 8, name: "Betty", date: "2 months ago", rating: 5, text: "Great taste. Super good tasting cakes. I found her on Instagram and she didn't disappoint! Will be booking her again!" },
+      { id: 9, name: "Katherine Galeano", date: "12 months ago", rating: 5, text: "Unforgettable Sweets. Sweet Tooth Cravings truly lives up to the name. These are hands down the best sweets I've ever had! The chocolate they use for their chocolate-covered strawberries is rich and luxurious. Their cakes are just as incredible. I'm obsessed with the guava-filled cake. The flan is also a must-try—so smooth and creamy.", verified: true },
+      { id: 10, name: "Pamela", date: "12 months ago", rating: 5, text: "Two cake customer. Ok I have ordered two cakes, one for my bridal proposal brunch and the other for my best friend's birthday and both not only have been so freaking adorable and well put together but the flavors are so delicious and moist! I will forever be a lifelong customer.", verified: true },
       { id: 11, name: "Elizabeth", date: "12 months ago", rating: 5, text: "Catering. The best for catering — we hire her for every event. Honestly every craving me and my family have, she never disappoints us.", verified: true },
       { id: 12, name: "neilyn P", date: "1 year ago", rating: 5, text: "Cupcakes and chocolate covered strawberries. The strawberries were fresh and the cupcakes were flavorful and decorated nicely. I highly recommend sweettoothcravings." },
       { id: 13, name: "Marlyn Peguero", date: "1 year ago", rating: 5, text: "Best cake and flancocho. I'm glad I chose you. The cake and the flancocho were delicious. I will 100% recommend you to everyone I know. You're the best. Guests were very excited about tasting everything." },
       { id: 14, name: "Zenaida", date: "1 year ago", rating: 5, text: "Amazing 🤩. Starting with the baker — she is very sweet, overall reliable (super on time) and honest. What you request is what you get. She makes sure to go over and beyond what you imagine. Then the treats are amazing — my orders have always been the hits of the party." },
       { id: 15, name: "Cami Gonzalez", date: "1 year ago", rating: 5, text: "Delicioso. Muy bueno los cakes y la decoración bella." },
-      { id: 16, name: "Nicklas Boscan", date: "1 year ago", rating: 5, text: "The best desserts! These desserts are one better than the other. I don’t think you can go wrong with any choice. The tres leches, the coquito and the flan are my favorite items." },
-      { id: 17, name: "Kasey Bonilla", date: "1 year ago", rating: 5, text: "Amazing! The most amazing treats I’ve ever tried!" }
+      { id: 16, name: "Nicklas Boscan", date: "1 year ago", rating: 5, text: "The best desserts! These desserts are one better than the other. I don't think you can go wrong with any choice. The tres leches, the coquito and the flan are my favorite items." },
+      { id: 17, name: "Kasey Bonilla", date: "1 year ago", rating: 5, text: "Amazing! The most amazing treats I've ever tried!" }
     ];
 
-    let userReviews = [];
+    let publishedReviews = hardcodedReviews.slice();
+    let reviewsAverage = 5.0;
 
-    function loadUserReviews() {
-      const saved = localStorage.getItem('stc_user_reviews');
-      userReviews = saved ? JSON.parse(saved) : [];
+    function escapeReviewHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     }
 
-    function saveUserReviews() {
-      localStorage.setItem('stc_user_reviews', JSON.stringify(userReviews));
-    }
-
-    function getAllReviews() {
-      return [...hardcodedReviews, ...userReviews].sort((a, b) => {
-        // Put user reviews first (newest feel)
-        if (a.id && !b.id) return -1;
-        if (!a.id && b.id) return 1;
-        return 0;
-      });
+    async function fetchPublishedReviews() {
+      try {
+        const url = typeof stcApiUrl === 'function'
+          ? stcApiUrl('/api/reviews')
+          : 'https://sweettooth-cravings-api.onrender.com/api/reviews';
+        const res = await fetch(url, { method: 'GET', mode: 'cors', credentials: 'omit', cache: 'no-store' });
+        if (!res.ok) throw new Error('reviews_unavailable');
+        const data = await res.json();
+        if (data && Array.isArray(data.reviews) && data.reviews.length) {
+          publishedReviews = data.reviews.map((r) => ({
+            id: r.id,
+            name: r.name,
+            rating: Number(r.rating) || 5,
+            text: r.text,
+            date: r.date || r.dateLabel || '',
+            verified: !!r.verified,
+          }));
+          reviewsAverage = Number(data.average) || 5;
+          return true;
+        }
+      } catch (_) { /* use fallback */ }
+      publishedReviews = hardcodedReviews.slice();
+      reviewsAverage = 5.0;
+      return false;
     }
 
     function openReviewsModal() {
-      loadUserReviews();
       const modal = document.getElementById('reviews-modal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-
+      // Keep website feedback collapsed by default
+      const fbPanel = document.getElementById('website-feedback-panel');
+      const fbChev = document.getElementById('website-feedback-chevron');
+      if (fbPanel) fbPanel.classList.add('hidden');
+      if (fbChev) {
+        fbChev.classList.remove('fa-chevron-up');
+        fbChev.classList.add('fa-chevron-down');
+      }
       renderReviews();
       setupStarRating();
+      fetchPublishedReviews().then(() => renderReviews());
     }
 
     function closeReviewsModal() {
@@ -3562,37 +3587,37 @@
 
     function renderReviews() {
       const container = document.getElementById('reviews-list');
-      const allReviews = getAllReviews();
-
-      // Update stats
+      if (!container) return;
+      const allReviews = publishedReviews || [];
       const total = allReviews.length;
-      document.getElementById('reviews-count').textContent = `Based on ${total}+ reviews`;
-      document.getElementById('reviews-average').textContent = '5.0';
+      const countEl = document.getElementById('reviews-count');
+      const avgEl = document.getElementById('reviews-average');
+      if (countEl) countEl.textContent = total ? `Based on ${total}+ reviews` : 'No public reviews yet';
+      if (avgEl) avgEl.textContent = (reviewsAverage || 5).toFixed(1);
 
       container.innerHTML = '';
-
-      if (allReviews.length === 0) {
-        container.innerHTML = `<p class="text-center text-[#8B6F6F] py-8">No reviews yet. Be the first to leave one!</p>`;
+      if (!allReviews.length) {
+        container.innerHTML = '<p class="text-center text-[#8B6F6F] py-8 text-sm">No reviews yet. Be the first to leave one!</p>';
         return;
       }
 
-      allReviews.forEach(review => {
-        const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
-        const verifiedBadge = review.verified ? 
-          `<span class="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Verified Order</span>` : '';
-
+      allReviews.forEach((review) => {
+        const rating = Math.min(5, Math.max(1, Number(review.rating) || 5));
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const verifiedBadge = review.verified
+          ? '<span class="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Verified Order</span>'
+          : '';
         const card = document.createElement('div');
         card.className = 'bg-white border border-[#EDE4DC] rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4';
-        card.innerHTML = `
-          <div class="flex justify-between items-start gap-3">
-            <div class="min-w-0">
-              <div class="font-semibold text-[15px] text-[#3F2A2B]">${review.name}</div>
-              <div class="text-[11px] text-[#8B6F6F] mt-0.5">${review.date} ${verifiedBadge}</div>
-            </div>
-            <div class="text-[#C9A9E8] text-sm tracking-[-1px] shrink-0">${stars}</div>
-          </div>
-          <p class="mt-2 text-sm text-[#3F2A2B] leading-relaxed">${review.text}</p>
-        `;
+        card.innerHTML =
+          '<div class="flex justify-between items-start gap-3">' +
+            '<div class="min-w-0">' +
+              '<div class="font-semibold text-[15px] text-[#3F2A2B]">' + escapeReviewHtml(review.name) + '</div>' +
+              '<div class="text-[11px] text-[#8B6F6F] mt-0.5">' + escapeReviewHtml(review.date || '') + ' ' + verifiedBadge + '</div>' +
+            '</div>' +
+            '<div class="text-[#C9A9E8] text-sm tracking-[-1px] shrink-0">' + stars + '</div>' +
+          '</div>' +
+          '<p class="mt-2 text-sm text-[#3F2A2B] leading-relaxed">' + escapeReviewHtml(review.text) + '</p>';
         container.appendChild(card);
       });
     }
@@ -3602,9 +3627,7 @@
     function setupStarRating() {
       const container = document.getElementById('star-rating');
       const hiddenInput = document.getElementById('review-rating');
-      
-      if (!container) return;
-
+      if (!container || !hiddenInput) return;
       const stars = container.querySelectorAll('span');
 
       function updateStars(rating) {
@@ -3625,63 +3648,90 @@
         star.onclick = () => updateStars(index + 1);
         star.onmouseover = () => updateStars(index + 1);
       });
-
       container.onmouseleave = () => updateStars(selectedRating);
-
-      // Default to 5 stars
       updateStars(5);
     }
 
-    function submitReview(e) {
+    async function submitReview(e) {
       e.preventDefault();
-
-      const name = document.getElementById('review-name').value.trim();
-      const text = document.getElementById('review-text').value.trim();
-      const rating = parseInt(document.getElementById('review-rating').value) || 5;
-
+      const nameEl = document.getElementById('review-name');
+      const textEl = document.getElementById('review-text');
+      const statusEl = document.getElementById('review-status');
+      const btn = document.getElementById('review-submit-btn');
+      const name = (nameEl && nameEl.value || '').trim();
+      const text = (textEl && textEl.value || '').trim();
+      const rating = parseInt((document.getElementById('review-rating') || {}).value, 10) || 5;
       if (!name || !text) return;
 
-      const newReview = {
-        name: name,
-        date: "Just now",
-        rating: rating,
-        text: text
-      };
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Submitting…';
+      }
+      if (statusEl) statusEl.classList.add('hidden');
 
-      userReviews.unshift(newReview); // newest first
-      saveUserReviews();
+      let url = typeof stcApiUrl === 'function'
+        ? stcApiUrl('/api/reviews')
+        : 'https://sweettooth-cravings-api.onrender.com/api/reviews';
+      if (url === '/api/reviews' || (url.startsWith('/api/') && !url.startsWith('http'))) {
+        url = (location.origin || '') + (url.startsWith('/') ? url : '/' + url);
+      }
 
-      // Re-render
-      renderReviews();
+      try {
+        if (typeof stcWarmApiIfLive === 'function') {
+          try { await stcWarmApiIfLive(); } catch (_) { /* ignore */ }
+        }
+        const res = await fetch(url, {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, text, rating }),
+        });
+        let data = {};
+        try { data = await res.json(); } catch (_) { /* ignore */ }
+        if (!res.ok) throw new Error((data && data.error) || 'Could not submit review.');
 
-      // Reset form
-      document.getElementById('review-form').reset();
-      selectedRating = 5;
-      setupStarRating();
-
-      // Success message
-      const successMsg = document.createElement('div');
-      successMsg.className = 'mt-2 text-center text-xs bg-emerald-50 text-emerald-700 py-2 rounded-xl';
-      successMsg.textContent = 'Thank you! Your review has been added.';
-      const formContainer = document.getElementById('review-form-panel') || document.querySelector('#reviews-modal .border-t');
-      if (formContainer) formContainer.appendChild(successMsg);
-
-      setTimeout(() => {
-        successMsg.remove();
-      }, 2800);
-    }
-
-    function toggleReviewFormPanel() {
-      const panel = document.getElementById('review-form-panel');
-      const chevron = document.getElementById('review-form-chevron');
-      if (!panel) return;
-      const hidden = panel.classList.toggle('hidden');
-      if (chevron) {
-        chevron.classList.toggle('fa-chevron-up', !hidden);
-        chevron.classList.toggle('fa-chevron-down', hidden);
+        if (nameEl) nameEl.value = '';
+        if (textEl) textEl.value = '';
+        selectedRating = 5;
+        setupStarRating();
+        if (statusEl) {
+          statusEl.textContent = (data && data.message) || 'Thank you! Your review will appear after we approve it.';
+          statusEl.className = 'text-[11px] text-center leading-snug text-emerald-700';
+          statusEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        // Offline fallback: keep locally only (not public until admin path is up)
+        try {
+          const saved = JSON.parse(localStorage.getItem('stc_pending_reviews') || '[]');
+          saved.unshift({ name, text, rating, at: new Date().toISOString() });
+          localStorage.setItem('stc_pending_reviews', JSON.stringify(saved.slice(0, 20)));
+        } catch (_) { /* ignore */ }
+        if (statusEl) {
+          statusEl.textContent = (err && err.message) || 'Could not submit. Please try again.';
+          statusEl.className = 'text-[11px] text-center leading-snug text-red-600';
+          statusEl.classList.remove('hidden');
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Submit Review';
+        }
       }
     }
-    window.toggleReviewFormPanel = toggleReviewFormPanel;
+    window.submitReview = submitReview;
+
+    function toggleWebsiteFeedbackPanel() {
+      const panel = document.getElementById('website-feedback-panel');
+      const chevron = document.getElementById('website-feedback-chevron');
+      if (!panel) return;
+      const open = panel.classList.toggle('hidden') === false;
+      if (chevron) {
+        chevron.classList.toggle('fa-chevron-up', open);
+        chevron.classList.toggle('fa-chevron-down', !open);
+      }
+    }
+    window.toggleWebsiteFeedbackPanel = toggleWebsiteFeedbackPanel;
 
     /**
      * Website feedback → Admin only (POST /api/feedback).

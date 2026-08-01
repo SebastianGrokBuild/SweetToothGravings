@@ -21,6 +21,7 @@ const UPLOADS = path.join(ROOT, "uploads");
 const DATA = path.join(ROOT, "data");
 const ORDERS = path.join(DATA, "orders.json");
 const FEEDBACK = path.join(DATA, "feedback.json");
+const REVIEWS = path.join(DATA, "reviews.json");
 
 loadEnv(path.join(ROOT, ".env"));
 
@@ -30,7 +31,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-08-01-website-feedback-v1";
+const DEPLOY_BUILD = "2026-08-01-reviews-moderation-v1";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -78,6 +79,9 @@ function ensureDirs() {
   }
   if (!fs.existsSync(ORDERS)) fs.writeFileSync(ORDERS, "[]\n");
   if (!fs.existsSync(FEEDBACK)) fs.writeFileSync(FEEDBACK, "[]\n");
+  if (!fs.existsSync(REVIEWS)) {
+    saveReviews(seedDefaultReviews());
+  }
 }
 
 function loadOrders() {
@@ -103,6 +107,89 @@ function loadFeedback() {
 
 function saveFeedback(list) {
   fs.writeFileSync(FEEDBACK, JSON.stringify(list, null, 2) + "\n");
+}
+
+/** Seed public cake reviews (published) so the shop never starts empty. */
+function seedDefaultReviews() {
+  const seeds = [
+    { name: "Diana R", dateLabel: "2 months ago", rating: 5, text: "Best desserts you will ever have." },
+    { name: "Jenny", dateLabel: "2 months ago", rating: 5, text: "Ashley is an absolute sweetheart. She offers a variety of different delicious desserts. Everything she makes is amazing. I've ordered her pistachio coquito which was phenomenal! Her chocoflan was creamy and full of flavor. Her cakes are the best! She will exceed your expectations. I truly recommend her, you will not be disappointed." },
+    { name: "Jenny", dateLabel: "2 months ago", rating: 5, text: "The best!!" },
+    { name: "Joey Gonzalez", dateLabel: "2 months ago", rating: 5, text: "Great products and service! Highly recommended. Great service, prompt replies. Excellent custom cakes and other party items. Very tasty! Place your orders with confidence!" },
+    { name: "Pam", dateLabel: "2 months ago", rating: 5, text: "Great desserts. I ordered a party package and everything was gone in minutes! My family loved it and the design was so perfect. Thanks!" },
+    { name: "Claudia Rodriguez", dateLabel: "2 months ago", rating: 5, text: "Simply the best! She is truly the best! She knows exactly what I like and always brings my ideas to life perfectly. Every order is made exactly how I ask and somehow she still manages to exceed my expectations every single time. Her attention to detail, creativity, and consistency are unmatched. I wouldn't trust anyone else with my cakes!" },
+    { name: "Adriana R", dateLabel: "2 months ago", rating: 5, text: "Amazing service & delicious desserts! Ashley is such a joy to work with and made my ideas come to life with such ease. The cake was gorgeous and tasted so good ♡ Thank you for making my birthday extra sweet!" },
+    { name: "Betty", dateLabel: "2 months ago", rating: 5, text: "Great taste. Super good tasting cakes. I found her on Instagram and she didn't disappoint! Will be booking her again!" },
+    { name: "Katherine Galeano", dateLabel: "12 months ago", rating: 5, text: "Unforgettable Sweets. Sweet Tooth Cravings truly lives up to the name. These are hands down the best sweets I've ever had! The chocolate they use for their chocolate-covered strawberries is rich and luxurious. Their cakes are just as incredible. I'm obsessed with the guava-filled cake. The flan is also a must-try—so smooth and creamy.", verified: true },
+    { name: "Pamela", dateLabel: "12 months ago", rating: 5, text: "Two cake customer. Ok I have ordered two cakes, one for my bridal proposal brunch and the other for my best friend's birthday and both not only have been so freaking adorable and well put together but the flavors are so delicious and moist! I will forever be a lifelong customer.", verified: true },
+    { name: "Elizabeth", dateLabel: "12 months ago", rating: 5, text: "Catering. The best for catering — we hire her for every event. Honestly every craving me and my family have, she never disappoints us.", verified: true },
+    { name: "neilyn P", dateLabel: "1 year ago", rating: 5, text: "Cupcakes and chocolate covered strawberries. The strawberries were fresh and the cupcakes were flavorful and decorated nicely. I highly recommend sweettoothcravings." },
+    { name: "Marlyn Peguero", dateLabel: "1 year ago", rating: 5, text: "Best cake and flancocho. I'm glad I chose you. The cake and the flancocho were delicious. I will 100% recommend you to everyone I know. You're the best. Guests were very excited about tasting everything." },
+    { name: "Zenaida", dateLabel: "1 year ago", rating: 5, text: "Amazing 🤩. Starting with the baker — she is very sweet, overall reliable (super on time) and honest. What you request is what you get. She makes sure to go over and beyond what you imagine. Then the treats are amazing — my orders have always been the hits of the party." },
+    { name: "Cami Gonzalez", dateLabel: "1 year ago", rating: 5, text: "Delicioso. Muy bueno los cakes y la decoración bella." },
+    { name: "Nicklas Boscan", dateLabel: "1 year ago", rating: 5, text: "The best desserts! These desserts are one better than the other. I don't think you can go wrong with any choice. The tres leches, the coquito and the flan are my favorite items." },
+    { name: "Kasey Bonilla", dateLabel: "1 year ago", rating: 5, text: "Amazing! The most amazing treats I've ever tried!" },
+  ];
+  const now = Date.now();
+  return seeds.map((s, i) => ({
+    id: `rv_seed_${i + 1}`,
+    name: s.name,
+    rating: s.rating,
+    text: s.text,
+    dateLabel: s.dateLabel || "",
+    verified: !!s.verified,
+    status: "published",
+    source: "seed",
+    createdAt: new Date(now - (seeds.length - i) * 86400000).toISOString(),
+  }));
+}
+
+function loadReviews() {
+  try {
+    if (!fs.existsSync(REVIEWS)) {
+      const seeded = seedDefaultReviews();
+      saveReviews(seeded);
+      return seeded;
+    }
+    const list = JSON.parse(fs.readFileSync(REVIEWS, "utf8"));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return seedDefaultReviews();
+  }
+}
+
+function saveReviews(list) {
+  fs.writeFileSync(REVIEWS, JSON.stringify(list, null, 2) + "\n");
+}
+
+function normalizeReviewStatus(s) {
+  const v = String(s || "").toLowerCase().trim();
+  if (v === "published" || v === "approved" || v === "live") return "published";
+  if (v === "rejected" || v === "hidden" || v === "spam") return "rejected";
+  return "pending";
+}
+
+function publicReviewShape(r) {
+  return {
+    id: r.id,
+    name: r.name,
+    rating: r.rating,
+    text: r.text,
+    date: r.dateLabel || formatReviewDate(r.createdAt),
+    dateLabel: r.dateLabel || formatReviewDate(r.createdAt),
+    verified: !!r.verified,
+  };
+}
+
+function formatReviewDate(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  } catch {
+    return "";
+  }
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -1221,7 +1308,7 @@ const LIVE_ORIGINS = new Set([
 function corsHeaders(req) {
   const origin = req.headers.origin || "";
   const headers = {
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
@@ -1402,6 +1489,210 @@ async function api(req, res, pathname, baseUrl) {
     }
     const list = loadFeedback();
     return json(res, 200, { ok: true, count: list.length, feedback: list });
+  }
+
+  /**
+   * Public cake reviews (published only).
+   * GET /api/reviews
+   */
+  if (method === "GET" && pathname === "/api/reviews") {
+    const all = loadReviews();
+    const published = all.filter((r) => normalizeReviewStatus(r.status) === "published");
+    const avg =
+      published.length === 0
+        ? 5
+        : Math.round(
+            (published.reduce((s, r) => s + (Number(r.rating) || 5), 0) / published.length) * 10,
+          ) / 10;
+    return json(res, 200, {
+      ok: true,
+      count: published.length,
+      average: avg,
+      reviews: published.map(publicReviewShape),
+    });
+  }
+
+  /**
+   * Customer submits a cake review → pending until admin approves.
+   * POST /api/reviews  { name, text/message, rating }
+   */
+  if (method === "POST" && pathname === "/api/reviews") {
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req, 64 * 1024)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+    const name = String(body.name || "").trim().slice(0, 80);
+    const text = String(body.text || body.message || body.review || "").trim();
+    let rating = parseInt(body.rating, 10);
+    if (!Number.isFinite(rating) || rating < 1) rating = 5;
+    if (rating > 5) rating = 5;
+    if (!name) return json(res, 400, { error: "Please enter your name." });
+    if (!text || text.length < 3) {
+      return json(res, 400, { error: "Please write a short review." });
+    }
+    if (text.length > 4000) {
+      return json(res, 400, { error: "Review is too long (max 4000 characters)." });
+    }
+    const entry = {
+      id: `rv_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`,
+      name,
+      rating,
+      text,
+      dateLabel: "Just now",
+      verified: false,
+      status: "pending",
+      source: "customer",
+      createdAt: new Date().toISOString(),
+    };
+    const list = loadReviews();
+    list.unshift(entry);
+    if (list.length > 1000) list.length = 1000;
+    saveReviews(list);
+    console.log("[reviews] pending", entry.id, "from", entry.name);
+
+    // Private owner alert (not customer)
+    try {
+      if (notify.notifyEnabled && notify.notifyEnabled() && notify.sendEmail) {
+        const to = (notify.notifyTo && notify.notifyTo()) || "sweettoothcravingsorder@gmail.com";
+        notify
+          .sendEmail({
+            to,
+            subject: `New cake review pending — ${entry.name}`,
+            text: [
+              "A customer left a cake review (not public yet).",
+              "",
+              `From: ${entry.name}`,
+              `Rating: ${entry.rating}/5`,
+              `Id: ${entry.id}`,
+              "",
+              entry.text,
+              "",
+              "Approve it in Admin → Reviews to show it on the website.",
+            ].join("\n"),
+          })
+          .catch((e) => console.warn("[reviews] owner email failed:", e.message));
+      }
+    } catch (_) { /* ignore */ }
+
+    return json(res, 200, {
+      ok: true,
+      id: entry.id,
+      status: "pending",
+      message: "Thanks! Your review was submitted and will appear after approval.",
+    });
+  }
+
+  /**
+   * Admin: list all cake reviews (pending / published / rejected).
+   * GET /api/admin/reviews
+   */
+  if (method === "GET" && pathname === "/api/admin/reviews") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    const list = loadReviews();
+    const pending = list.filter((r) => normalizeReviewStatus(r.status) === "pending").length;
+    const published = list.filter((r) => normalizeReviewStatus(r.status) === "published").length;
+    return json(res, 200, {
+      ok: true,
+      count: list.length,
+      pending,
+      published,
+      reviews: list,
+    });
+  }
+
+  /**
+   * Admin: add a review (defaults to published so it shows on the site).
+   * POST /api/admin/reviews  { name, text, rating, status?, verified? }
+   */
+  if (method === "POST" && pathname === "/api/admin/reviews") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req, 64 * 1024)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+    const name = String(body.name || "").trim().slice(0, 80);
+    const text = String(body.text || body.message || "").trim();
+    let rating = parseInt(body.rating, 10);
+    if (!Number.isFinite(rating) || rating < 1) rating = 5;
+    if (rating > 5) rating = 5;
+    if (!name || !text) return json(res, 400, { error: "Name and review text are required." });
+    const status = body.status != null ? normalizeReviewStatus(body.status) : "published";
+    const entry = {
+      id: `rv_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`,
+      name,
+      rating,
+      text,
+      dateLabel: String(body.dateLabel || body.date || "Recently").slice(0, 40),
+      verified: !!body.verified,
+      status,
+      source: "admin",
+      createdAt: new Date().toISOString(),
+    };
+    const list = loadReviews();
+    list.unshift(entry);
+    saveReviews(list);
+    console.log("[reviews] admin add", entry.id, entry.status);
+    return json(res, 200, { ok: true, review: entry });
+  }
+
+  /**
+   * Admin: approve / reject / update a review.
+   * PATCH /api/admin/reviews  { id, status?, name?, text?, rating?, verified? }
+   * DELETE /api/admin/reviews?id=…
+   */
+  if (method === "PATCH" && pathname === "/api/admin/reviews") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req, 64 * 1024)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+    const id = String(body.id || "").trim();
+    if (!id) return json(res, 400, { error: "Review id required." });
+    const list = loadReviews();
+    const idx = list.findIndex((r) => String(r.id) === id);
+    if (idx < 0) return json(res, 404, { error: "Review not found." });
+    const cur = { ...list[idx] };
+    if (body.status != null) cur.status = normalizeReviewStatus(body.status);
+    if (body.name != null) cur.name = String(body.name).trim().slice(0, 80) || cur.name;
+    if (body.text != null) cur.text = String(body.text).trim().slice(0, 4000) || cur.text;
+    if (body.rating != null) {
+      let rating = parseInt(body.rating, 10);
+      if (Number.isFinite(rating)) cur.rating = Math.min(5, Math.max(1, rating));
+    }
+    if (body.verified != null) cur.verified = !!body.verified;
+    if (body.dateLabel != null) cur.dateLabel = String(body.dateLabel).slice(0, 40);
+    cur.updatedAt = new Date().toISOString();
+    list[idx] = cur;
+    saveReviews(list);
+    console.log("[reviews] admin patch", id, cur.status);
+    return json(res, 200, { ok: true, review: cur });
+  }
+
+  if (method === "DELETE" && pathname === "/api/admin/reviews") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    const urlObj = new URL(req.url, "http://localhost");
+    const id = String(urlObj.searchParams.get("id") || "").trim();
+    if (!id) return json(res, 400, { error: "Review id required." });
+    const list = loadReviews();
+    const next = list.filter((r) => String(r.id) !== id);
+    if (next.length === list.length) return json(res, 404, { error: "Review not found." });
+    saveReviews(next);
+    console.log("[reviews] admin delete", id);
+    return json(res, 200, { ok: true, deleted: id });
   }
 
   /**
