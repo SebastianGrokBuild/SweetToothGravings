@@ -432,37 +432,61 @@
       }
     }
 
-    /* Liquid glass — Details buttons (soft glass on cream cards) */
+    /*
+     * Liquid glass — Details buttons
+     * Soft frosted glass inspired by hero “How it works” (white/12 + blur + border),
+     * adapted for cream product cards so text stays readable.
+     */
     .btn-liquid-glass {
-      background: linear-gradient(
-        145deg,
-        rgba(255, 255, 255, 0.72) 0%,
-        rgba(253, 248, 245, 0.55) 100%
-      );
-      backdrop-filter: blur(14px) saturate(1.2);
-      -webkit-backdrop-filter: blur(14px) saturate(1.2);
-      border: 1px solid rgba(255, 255, 255, 0.75);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(
+          155deg,
+          rgba(255, 255, 255, 0.78) 0%,
+          rgba(253, 248, 245, 0.42) 48%,
+          rgba(245, 238, 252, 0.38) 100%
+        );
+      backdrop-filter: blur(16px) saturate(1.35);
+      -webkit-backdrop-filter: blur(16px) saturate(1.35);
+      border: 1px solid rgba(255, 255, 255, 0.65);
       box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.9) inset,
-        0 4px 14px rgba(63, 42, 43, 0.06),
-        0 0 0 1px rgba(237, 228, 220, 0.65);
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(201, 169, 232, 0.12),
+        0 2px 10px rgba(63, 42, 43, 0.05),
+        0 0 0 1px rgba(201, 169, 232, 0.18);
       color: #3F2A2B;
       font-weight: 600;
-      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+      letter-spacing: -0.01em;
+      transition:
+        background 0.18s ease,
+        box-shadow 0.18s ease,
+        border-color 0.18s ease,
+        transform 0.1s ease;
     }
     .btn-liquid-glass:hover {
-      background: linear-gradient(
-        145deg,
-        rgba(255, 255, 255, 0.88) 0%,
-        rgba(253, 248, 245, 0.7) 100%
-      );
+      background:
+        linear-gradient(
+          155deg,
+          rgba(255, 255, 255, 0.92) 0%,
+          rgba(253, 248, 245, 0.62) 50%,
+          rgba(245, 238, 252, 0.55) 100%
+        );
+      border-color: rgba(255, 255, 255, 0.85);
       box-shadow:
-        0 1px 0 rgba(255, 255, 255, 1) inset,
-        0 6px 18px rgba(63, 42, 43, 0.08),
-        0 0 0 1px rgba(201, 169, 232, 0.35);
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -1px 0 rgba(201, 169, 232, 0.18),
+        0 4px 16px rgba(63, 42, 43, 0.07),
+        0 0 0 1px rgba(201, 169, 232, 0.32);
     }
     .btn-liquid-glass:active {
       transform: scale(0.985);
+    }
+    @media (max-width: 640px) {
+      .btn-liquid-glass {
+        min-height: 2.85rem;
+      }
     }
 
     .modal {
@@ -1874,8 +1898,8 @@
             <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
             
             <div class="card-actions flex flex-col sm:flex-row gap-2 mt-4 sm:mt-5">
-              <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="btn-liquid-glass flex-1 min-h-[2.85rem] text-sm rounded-full font-semibold">
+              <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
+                      class="btn-liquid-glass flex-1 min-h-[2.85rem] text-sm rounded-full px-4">
                 Details
               </button>
               ${selectBtn}
@@ -1923,8 +1947,8 @@
             <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
             
             <div class="flex flex-col sm:flex-row gap-2 mt-5">
-              <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="btn-liquid-glass flex-1 min-h-[2.85rem] h-11 text-sm rounded-full font-semibold">
+              <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
+                      class="btn-liquid-glass flex-1 min-h-[2.85rem] h-11 text-sm rounded-full px-4">
                 View Details
               </button>
               <button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
