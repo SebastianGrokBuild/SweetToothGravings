@@ -405,16 +405,20 @@
       }
     }
 
-    /* Desktop / tablet: solid white badge, pinned lower-right (not mid-image) */
+    /* Desktop / tablet: float solid white badge bottom-right (classic placement) */
     @media (min-width: 641px) {
       .hero-trust-badge {
+        position: absolute !important;
         left: auto !important;
-        right: 1.75rem !important;
-        bottom: 1.5rem !important;
-        max-width: 17.5rem !important;
+        right: 2rem !important;
+        bottom: 2rem !important;
+        margin: 0 !important;
+        width: auto !important;
+        max-width: 20rem !important;
         background: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.95) !important;
-        box-shadow: 0 12px 36px rgba(20, 12, 14, 0.18) !important;
+        border: 1px solid #ffffff !important;
+        box-shadow: 0 14px 40px rgba(20, 12, 14, 0.2) !important;
+        z-index: 20 !important;
       }
     }
     @media (min-width: 1024px) {
@@ -423,8 +427,8 @@
       }
       .hero-trust-badge {
         right: 2.25rem !important;
-        bottom: 2rem !important;
-        max-width: 18rem !important;
+        bottom: 2.25rem !important;
+        max-width: 21rem !important;
       }
     }
 
@@ -896,8 +900,8 @@
           </button>
         </div>
 
-        <!-- Lead time + deposit: solid white, dark text; stacks on mobile, lower-right on desktop -->
-        <div class="hero-trust-badge relative z-10 absolute bottom-6 right-6 left-5 sm:left-auto bg-white px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-[#EDE4DC] max-w-md sm:max-w-[17.5rem]">
+        <!-- Lead time + deposit: white card — stacks in flow on mobile; absolute bottom-right on desktop -->
+        <div class="hero-trust-badge z-20 bg-white px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-[#EDE4DC]">
           <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
             <i class="fa-solid fa-clock text-[#9B6FD4] mt-0.5 shrink-0"></i>
             <span class="font-semibold text-[#3F2A2B]">Most orders need <strong class="font-bold">3–5 days</strong> notice. Party packages need at least <strong class="font-bold">1 week</strong>.</span>
