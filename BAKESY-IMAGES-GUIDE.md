@@ -10,6 +10,15 @@ The `SweetToothCravings/` folder contents were processed.
 
 ---
 
+## Image source of truth
+
+Use **only** high-quality files in `assets/images/` (e.g. `assets/images/cupcakes.jpg`).  
+Do **not** use or maintain an `opt/` subfolder — the site loads HQ paths directly so updates are fast and consistent on every device.
+
+Replace a product photo by overwriting the same filename in `assets/images/`, then hard-refresh the site.
+
+---
+
 ## Step-by-Step Instructions (Easiest Method)
 
 ### On Mobile (Recommended - Fastest)

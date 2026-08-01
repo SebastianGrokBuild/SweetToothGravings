@@ -180,6 +180,7 @@
       display: flex;
       flex-direction: column;
       max-height: min(92vh, 900px);
+      max-height: min(92dvh, 900px);
     }
     #product-modal .product-modal-scroll {
       flex: 1 1 auto;
@@ -187,16 +188,39 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      touch-action: pan-y;
     }
     #product-modal .product-modal-footer {
       flex: 0 0 auto;
       background: #fff;
+      padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
     }
     @media (max-width: 767px) {
       #product-modal .product-modal-panel {
-        max-height: 92vh;
-        max-height: 92dvh;
+        max-height: 93vh;
+        max-height: 93dvh;
       }
+    }
+
+    /* Reviews + feedback modal: one scroll region so nothing is cut off */
+    #reviews-modal .reviews-modal-panel {
+      display: flex;
+      flex-direction: column;
+      max-height: min(94vh, 920px);
+      max-height: min(94dvh, 920px);
+    }
+    #reviews-modal .reviews-modal-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #reviews-modal .reviews-modal-actions {
+      flex: 0 0 auto;
+      background: #fff;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
     }
 
     .section-title {
@@ -236,11 +260,15 @@
       border-radius: 1.35rem;
       overflow: hidden;
       height: 100%;
+      min-height: 100%;
       display: flex;
       flex-direction: column;
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                   box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 4px 14px rgba(63, 42, 43, 0.03);
+    }
+    .products-grid > .product-card {
+      height: 100%;
     }
     .product-card .card-body {
       flex: 1 1 auto;
@@ -248,14 +276,33 @@
       flex-direction: column;
       min-height: 0;
     }
+    /* Pin action row to card bottom so Details / Select line up across the grid */
     .product-card .card-actions {
-      margin-top: auto;
+      margin-top: auto !important;
+      padding-top: 1rem;
+      display: flex;
+      flex-direction: row;
       align-items: stretch;
+      gap: 0.5rem;
     }
     .product-card .card-actions button {
       min-height: 2.85rem;
       height: 2.85rem;
       flex: 1 1 0;
+      width: auto;
+      box-sizing: border-box;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+    .product-card .card-title {
+      min-height: 2.5rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .product-card .card-desc {
+      min-height: 2.25rem;
     }
 
     .product-image-container {
@@ -452,27 +499,31 @@
 
     /*
      * Liquid glass — Details buttons
-     * Stronger frost + lavender edge so it stays visible on white/cream cards.
+     * Lavender frost + edge so it reads clearly on white/cream product cards.
      */
     .btn-liquid-glass {
+      position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      isolation: isolate;
+      overflow: hidden;
       background:
         linear-gradient(
-          160deg,
-          rgba(255, 255, 255, 0.95) 0%,
-          rgba(245, 238, 252, 0.88) 45%,
-          rgba(232, 217, 245, 0.72) 100%
+          155deg,
+          rgba(255, 255, 255, 0.98) 0%,
+          rgba(245, 236, 252, 0.92) 38%,
+          rgba(224, 204, 245, 0.78) 72%,
+          rgba(201, 169, 232, 0.55) 100%
         );
-      backdrop-filter: blur(18px) saturate(1.4);
-      -webkit-backdrop-filter: blur(18px) saturate(1.4);
-      border: 1.5px solid rgba(201, 169, 232, 0.55);
+      backdrop-filter: blur(20px) saturate(1.55);
+      -webkit-backdrop-filter: blur(20px) saturate(1.55);
+      border: 1.5px solid rgba(168, 122, 214, 0.62);
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 1),
-        inset 0 -1px 0 rgba(201, 169, 232, 0.2),
-        0 3px 12px rgba(155, 111, 212, 0.1),
-        0 0 0 1px rgba(201, 169, 232, 0.12);
+        inset 0 1.5px 0 rgba(255, 255, 255, 1),
+        inset 0 -10px 18px rgba(201, 169, 232, 0.16),
+        0 4px 14px rgba(140, 96, 196, 0.14),
+        0 0 0 1px rgba(201, 169, 232, 0.2);
       color: #3F2A2B;
       font-weight: 600;
       letter-spacing: -0.01em;
@@ -482,20 +533,40 @@
         border-color 0.18s ease,
         transform 0.1s ease;
     }
+    /* Soft specular highlight for glass depth */
+    .btn-liquid-glass::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.55) 0%,
+        rgba(255, 255, 255, 0.08) 42%,
+        transparent 68%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+    .btn-liquid-glass > * {
+      position: relative;
+      z-index: 1;
+    }
     .btn-liquid-glass:hover {
       background:
         linear-gradient(
-          160deg,
+          155deg,
           rgba(255, 255, 255, 1) 0%,
-          rgba(245, 238, 252, 0.95) 50%,
-          rgba(232, 217, 245, 0.85) 100%
+          rgba(247, 240, 253, 0.98) 40%,
+          rgba(224, 204, 245, 0.9) 75%,
+          rgba(201, 169, 232, 0.7) 100%
         );
-      border-color: rgba(180, 138, 224, 0.7);
+      border-color: rgba(155, 111, 212, 0.78);
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 1),
-        inset 0 -1px 0 rgba(201, 169, 232, 0.25),
-        0 5px 16px rgba(155, 111, 212, 0.14),
-        0 0 0 1px rgba(201, 169, 232, 0.22);
+        inset 0 1.5px 0 rgba(255, 255, 255, 1),
+        inset 0 -10px 20px rgba(201, 169, 232, 0.2),
+        0 6px 18px rgba(140, 96, 196, 0.18),
+        0 0 0 1px rgba(201, 169, 232, 0.28);
     }
     .btn-liquid-glass:active {
       transform: scale(0.985);
@@ -514,7 +585,10 @@
       animation: slideIn 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
-    /* High-quality product photos from assets/images/ — light polish only */
+    /*
+     * Product photos: always use high-quality files in assets/images/
+     * (not assets/images/opt/). Swap photos by replacing those files only.
+     */
     .product-img {
       filter: none;
       image-rendering: auto;
@@ -671,11 +745,40 @@
     }
 
     #cart-submit-modal .cart-submit-panel {
-      max-height: min(92vh, 900px);
+      max-height: min(94vh, 900px);
+      max-height: min(94dvh, 900px);
     }
     #cart-submit-modal .cart-submit-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #cart-submit-modal .cart-submit-footer {
+      flex: 0 0 auto;
+      padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Mobile quick-order sheet: scroll body + sticky add bar */
+    #mobile-quick-order .mqo-panel {
+      max-height: 90vh;
+      max-height: 90dvh;
+      display: flex;
+      flex-direction: column;
+    }
+    #mobile-quick-order #mobile-scroll-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    #mobile-quick-order .mqo-footer {
+      flex: 0 0 auto;
+      padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
     }
 
     @keyframes submitSpin {
@@ -691,12 +794,17 @@
         padding-left: 1.15rem !important;
         padding-right: 1.15rem !important;
       }
+      /* Keep Details + Select side-by-side and equal height on mobile */
       .product-card .card-actions {
-        flex-direction: column;
+        flex-direction: row;
       }
       .product-card .card-actions button {
         min-height: 2.85rem;
-        width: 100%;
+        height: 2.85rem;
+        flex: 1 1 0;
+        font-size: 0.8125rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
       }
 
       /* Major section breathing room */
@@ -746,18 +854,15 @@
         height: 2.35rem !important;
       }
 
-      /* Reviews modal: prioritize list */
-      #reviews-modal .modal {
+      /* Reviews modal: full-height sheet, scrollable body */
+      #reviews-modal .reviews-modal-panel {
         max-height: 94vh !important;
         max-height: 94dvh !important;
       }
       #reviews-list {
-        min-height: 48vh;
-        padding-top: 1.1rem !important;
-        padding-bottom: 1.1rem !important;
-      }
-      #review-form-shell {
-        max-height: none;
+        min-height: 0;
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
       }
       #review-form-panel.mobile-collapsed {
         display: none !important;
@@ -773,6 +878,14 @@
       }
       #product-modal .product-modal-footer button {
         min-height: 3.25rem !important;
+      }
+
+      #cart-submit-modal .cart-submit-panel {
+        max-height: 94vh !important;
+        max-height: 94dvh !important;
+      }
+      #cart-submit-modal .cart-submit-footer button {
+        min-height: 3.15rem !important;
       }
 
       /* Tappable targets */
@@ -1006,7 +1119,7 @@
     </div>
 
     <!-- Products Grid -->
-    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5">
+    <div id="products-grid" class="products-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-5 items-stretch">
       <!-- Populated by JavaScript -->
     </div>
 
@@ -1342,7 +1455,7 @@
       </div>
 
       <!-- Sticky action footer — always visible / tappable -->
-      <div class="product-modal-footer shrink-0 border-t border-[#EDE4DC] bg-white px-4 sm:px-7 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(63,42,43,0.06)]">
+      <div class="product-modal-footer shrink-0 border-t border-[#EDE4DC] bg-white px-4 sm:px-7 pt-3 shadow-[0_-8px_24px_rgba(63,42,43,0.06)]">
         <!-- Select mode: Add to Order -->
         <div id="modal-order-footer" class="flex gap-x-2.5 sm:gap-x-3">
           <button type="button" onclick="addCurrentToCart()" 
@@ -1429,9 +1542,9 @@
     </div>
   </div>
 
-  <!-- REVIEWS MODAL — reviews first; leave-a-review compact on mobile -->
+  <!-- REVIEWS MODAL — fully scrollable body on mobile; forms never cut off -->
   <div id="reviews-modal" onclick="if (event.target.id === 'reviews-modal') closeReviewsModal()" class="hidden fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl max-h-[94vh] md:max-h-[90vh] flex flex-col overflow-hidden">
+    <div onclick="event.stopImmediatePropagation()" class="modal reviews-modal-panel bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col overflow-hidden">
       <div class="md:hidden flex justify-center pt-2.5 pb-1 bg-white shrink-0">
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
@@ -1450,78 +1563,79 @@
         <button type="button" onclick="closeReviewsModal()" class="w-10 h-10 flex items-center justify-center rounded-full text-[#8B6F6F] hover:text-[#3F2A2B] hover:bg-[#FDF8F5] shrink-0 text-2xl leading-none" aria-label="Close">×</button>
       </div>
 
-      <!-- Public cake reviews (primary space) -->
-      <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-3.5 bg-[#FDF8F5]">
-        <p class="text-center text-[#8B6F6F] text-sm py-8">Loading reviews…</p>
-      </div>
-
-      <!-- Leave a cake review — compact; collapsible on mobile -->
-      <div id="review-form-shell" class="border-t border-[#EDE4DC] bg-white shrink-0">
-        <div class="px-4 sm:px-6 pt-2.5 sm:pt-3.5 pb-2 sm:pb-3">
-          <button type="button" id="review-form-toggle" onclick="toggleReviewFormPanel()"
-                  class="w-full flex items-center justify-between text-left min-h-[2.75rem] sm:min-h-0 sm:pointer-events-none">
-            <span class="text-sm font-semibold text-[#3F2A2B]">
-              <i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review
-            </span>
-            <i id="review-form-chevron" class="fa-solid fa-chevron-up text-[#C9A9E8] text-xs sm:hidden transition"></i>
-          </button>
-          <div id="review-form-panel" class="pt-1">
-            <form id="review-form" onsubmit="submitReview(event)" class="space-y-2 sm:space-y-2.5">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                <div>
-                  <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-name">NAME</label>
-                  <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-10 text-sm" placeholder="Your name" autocomplete="name">
-                </div>
-                <div>
-                  <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5">RATING</label>
-                  <div id="star-rating" class="flex gap-x-1 text-2xl text-[#EDE4DC] cursor-pointer h-10 items-center" role="group" aria-label="Star rating">
-                    <span data-rating="1" class="min-w-[1.75rem] text-center">★</span>
-                    <span data-rating="2" class="min-w-[1.75rem] text-center">★</span>
-                    <span data-rating="3" class="min-w-[1.75rem] text-center">★</span>
-                    <span data-rating="4" class="min-w-[1.75rem] text-center">★</span>
-                    <span data-rating="5" class="min-w-[1.75rem] text-center">★</span>
-                  </div>
-                  <input type="hidden" id="review-rating" value="5">
-                </div>
-              </div>
-              <div>
-                <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">YOUR REVIEW</label>
-                <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none" placeholder="Tell others about the cakes and treats…"></textarea>
-              </div>
-              <button type="submit" id="review-submit-btn"
-                      class="w-full h-11 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm active:scale-[0.99]">
-                Submit Review
-              </button>
-              <p id="review-status" class="hidden text-[11px] text-center leading-snug"></p>
-            </form>
-          </div>
+      <!-- Single scroll region: reviews + leave review + website feedback -->
+      <div class="reviews-modal-scroll bg-[#FDF8F5]">
+        <div id="reviews-list" class="px-3.5 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-3.5">
+          <p class="text-center text-[#8B6F6F] text-sm py-8">Loading reviews…</p>
         </div>
 
-        <!-- Website feedback: small button, expands only when needed -->
-        <div class="px-4 sm:px-6 pb-3.5 sm:pb-4 pt-0.5">
-          <button type="button" id="website-feedback-toggle" onclick="toggleWebsiteFeedbackPanel()"
-                  class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8B6F6F] hover:text-[#C9A9E8] transition min-h-[2.25rem] py-1">
-            <i class="fa-solid fa-lightbulb text-[#C9A9E8]"></i>
-            Website Feedback
-            <i id="website-feedback-chevron" class="fa-solid fa-chevron-down text-[9px] ml-0.5"></i>
-          </button>
-          <div id="website-feedback-panel" class="hidden mt-1.5 rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
-            <p class="text-[11px] text-[#6B5B5F] leading-snug mb-2">
-              Suggestions about the website only — private to Sweet Tooth Cravings, not a public cake review.
-            </p>
-            <form id="website-feedback-form" onsubmit="submitWebsiteFeedback(event)" class="space-y-2">
-              <input type="text" id="feedback-name" autocomplete="name"
-                     class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-9 text-sm bg-white"
-                     placeholder="Name (optional)">
-              <textarea id="feedback-text" rows="2" required
-                        class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none bg-white"
-                        placeholder="Your suggestion…"></textarea>
-              <button type="submit" id="feedback-submit-btn"
-                      class="w-full h-9 bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/50 text-[#3F2A2B] rounded-xl font-semibold text-xs transition">
-                Submit feedback
-              </button>
-              <p id="feedback-status" class="hidden text-[11px] text-center leading-snug"></p>
-            </form>
+        <div id="review-form-shell" class="border-t border-[#EDE4DC] bg-white">
+          <div class="px-4 sm:px-6 pt-2.5 sm:pt-3.5 pb-2 sm:pb-3">
+            <button type="button" id="review-form-toggle" onclick="toggleReviewFormPanel()"
+                    class="w-full flex items-center justify-between text-left min-h-[2.75rem] sm:min-h-0 sm:pointer-events-none">
+              <span class="text-sm font-semibold text-[#3F2A2B]">
+                <i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review
+              </span>
+              <i id="review-form-chevron" class="fa-solid fa-chevron-up text-[#C9A9E8] text-xs sm:hidden transition"></i>
+            </button>
+            <div id="review-form-panel" class="pt-1">
+              <form id="review-form" onsubmit="submitReview(event)" class="space-y-2 sm:space-y-2.5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                  <div>
+                    <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-name">NAME</label>
+                    <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-10 text-sm" placeholder="Your name" autocomplete="name">
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5">RATING</label>
+                    <div id="star-rating" class="flex gap-x-1 text-2xl text-[#EDE4DC] cursor-pointer h-10 items-center" role="group" aria-label="Star rating">
+                      <span data-rating="1" class="min-w-[1.75rem] text-center">★</span>
+                      <span data-rating="2" class="min-w-[1.75rem] text-center">★</span>
+                      <span data-rating="3" class="min-w-[1.75rem] text-center">★</span>
+                      <span data-rating="4" class="min-w-[1.75rem] text-center">★</span>
+                      <span data-rating="5" class="min-w-[1.75rem] text-center">★</span>
+                    </div>
+                    <input type="hidden" id="review-rating" value="5">
+                  </div>
+                </div>
+                <div>
+                  <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">YOUR REVIEW</label>
+                  <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none" placeholder="Tell others about the cakes and treats…"></textarea>
+                </div>
+                <button type="submit" id="review-submit-btn"
+                        class="w-full min-h-[2.85rem] h-11 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm active:scale-[0.99]">
+                  Submit Review
+                </button>
+                <p id="review-status" class="hidden text-[11px] text-center leading-snug"></p>
+              </form>
+            </div>
+          </div>
+
+          <!-- Website feedback: expands inside the scroll region -->
+          <div class="px-4 sm:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5 pt-0.5">
+            <button type="button" id="website-feedback-toggle" onclick="toggleWebsiteFeedbackPanel()"
+                    class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8B6F6F] hover:text-[#C9A9E8] transition min-h-[2.25rem] py-1">
+              <i class="fa-solid fa-lightbulb text-[#C9A9E8]"></i>
+              Website Feedback
+              <i id="website-feedback-chevron" class="fa-solid fa-chevron-down text-[9px] ml-0.5"></i>
+            </button>
+            <div id="website-feedback-panel" class="hidden mt-1.5 rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
+              <p class="text-[11px] text-[#6B5B5F] leading-snug mb-2">
+                Suggestions about the website only — private to Sweet Tooth Cravings, not a public cake review.
+              </p>
+              <form id="website-feedback-form" onsubmit="submitWebsiteFeedback(event)" class="space-y-2">
+                <input type="text" id="feedback-name" autocomplete="name"
+                       class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-9 text-sm bg-white"
+                       placeholder="Name (optional)">
+                <textarea id="feedback-text" rows="2" required
+                          class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none bg-white"
+                          placeholder="Your suggestion…"></textarea>
+                <button type="submit" id="feedback-submit-btn"
+                        class="w-full min-h-[2.5rem] h-10 bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/50 text-[#3F2A2B] rounded-xl font-semibold text-xs transition">
+                  Submit feedback
+                </button>
+                <p id="feedback-status" class="hidden text-[11px] text-center leading-snug"></p>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -1629,7 +1743,7 @@
           </div>
         </div>
 
-        <div class="shrink-0 border-t border-[#EDE4DC] bg-[#FDF8F5] px-5 sm:px-8 py-4 sm:py-5">
+        <div class="cart-submit-footer shrink-0 border-t border-[#EDE4DC] bg-[#FDF8F5] px-5 sm:px-8 pt-4 sm:pt-5">
           <div id="cart-submit-error" class="hidden mb-4 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-left">
             <div class="flex gap-3">
               <div class="w-9 h-9 shrink-0 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
@@ -1879,7 +1993,7 @@
         const fetchPriorityAttr = isHighPriority ? 'high' : 'auto'
         const decodingAttr = isHighPriority ? 'async' : 'async'
         const selectBtn = `<button type="button" onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+                      class="btn-card-select flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985] px-3 sm:px-4">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>`
@@ -1905,14 +2019,14 @@
           </div>
           
           <div class="card-body p-4 sm:p-5">
-            <div class="font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px] leading-snug">${product.name}</div>
+            <div class="card-title font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px] leading-snug">${product.name}</div>
             ${product.seasonal && product.seasonalNote ? `<p class="text-[11px] font-semibold text-[#7B4DB8] mt-1.5 leading-snug">${product.seasonalNote}</p>` : ''}
-            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed min-h-[2.25rem]">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
+            <p class="card-desc text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
             
-            <div class="card-actions flex flex-row gap-2 mt-4 sm:mt-5">
+            <div class="card-actions">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
                       class="btn-liquid-glass flex-1 text-sm rounded-full px-3 sm:px-4">
-                Details
+                <span>Details</span>
               </button>
               ${selectBtn}
             </div>
@@ -1956,15 +2070,15 @@
           </div>
           
           <div class="card-body p-5">
-            <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
+            <div class="card-title font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
             
-            <div class="card-actions flex flex-row gap-2 mt-5">
+            <div class="card-actions">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
                       class="btn-liquid-glass flex-1 text-sm rounded-full px-4">
-                View Details
+                <span>View Details</span>
               </button>
               <button type="button" onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+                      class="btn-card-select flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985] px-4">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>
@@ -2134,6 +2248,7 @@
 
       document.getElementById('product-modal').classList.remove('hidden')
       document.getElementById('product-modal').classList.add('flex')
+      document.body.style.overflow = 'hidden'
     }
 
     function configureModalView(mode) {
@@ -2222,6 +2337,7 @@
       const modal = document.getElementById('product-modal')
       modal.classList.add('hidden')
       modal.classList.remove('flex')
+      document.body.style.overflow = ''
 
       // Reset any compact styling
       const modalContent = modal.querySelector('.modal');
@@ -3871,6 +3987,13 @@
         chevron.classList.toggle('fa-chevron-down', collapsed)
         chevron.classList.toggle('fa-chevron-up', !collapsed)
       }
+      // Scroll submit into view when opening so nothing is cut off
+      if (!collapsed) {
+        setTimeout(function () {
+          const btn = document.getElementById('review-submit-btn')
+          if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }, 50)
+      }
     }
     window.toggleReviewFormPanel = toggleReviewFormPanel
 
@@ -3998,6 +4121,7 @@
       const modal = document.getElementById('reviews-modal');
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
       // Keep website feedback collapsed by default
       const fbPanel = document.getElementById('website-feedback-panel');
       const fbChev = document.getElementById('website-feedback-chevron');
@@ -4030,6 +4154,7 @@
       const modal = document.getElementById('reviews-modal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      document.body.style.overflow = '';
     }
 
     function renderReviews() {
@@ -4176,6 +4301,12 @@
       if (chevron) {
         chevron.classList.toggle('fa-chevron-up', open);
         chevron.classList.toggle('fa-chevron-down', !open);
+      }
+      // Keep submit reachable on mobile after expand
+      if (open) {
+        setTimeout(function () {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 50);
       }
     }
     window.toggleWebsiteFeedbackPanel = toggleWebsiteFeedbackPanel;
@@ -4418,23 +4549,23 @@
       // New structure: everything scrollable except sticky Add bar at bottom
       let html = `
         <div id="mobile-quick-order" class="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-end md:hidden">
-          <div class="w-full bg-white rounded-t-3xl max-h-[88vh] flex flex-col shadow-2xl" style="transform: translateY(0); transition: transform 0.3s ease;">
+          <div class="mqo-panel w-full bg-white rounded-t-3xl flex flex-col shadow-2xl" style="transform: translateY(0); transition: transform 0.3s ease;">
             
             <!-- Header -->
             <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
-              <div class="flex items-center gap-x-3">
-                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" loading="eager" decoding="sync" alt="">
-                <div>
-                  <div class="font-semibold text-lg leading-tight">${product.name}</div>
+              <div class="flex items-center gap-x-3 min-w-0">
+                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border shrink-0" loading="eager" decoding="sync" alt="">
+                <div class="min-w-0">
+                  <div class="font-semibold text-lg leading-tight truncate">${product.name}</div>
                   <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>
                   ${product.seasonal ? `<div class="text-[11px] font-semibold text-[#7B4DB8] mt-0.5">Seasonal — Thanksgiving &amp; Christmas</div>` : ''}
                 </div>
               </div>
-              <button onclick="closeMobileQuickOrder()" class="text-3xl text-[#8B6F6F] px-2 leading-none">×</button>
+              <button type="button" onclick="closeMobileQuickOrder()" class="text-3xl text-[#8B6F6F] px-2 leading-none shrink-0" aria-label="Close">×</button>
             </div>
 
             <!-- Scrollable: tiers + options + notes -->
-            <div class="flex-1 overflow-y-auto p-5 space-y-4" id="mobile-scroll-area">
+            <div class="p-5 space-y-4" id="mobile-scroll-area">
               ${product.seasonal && product.seasonalNote ? `<div class="rounded-2xl border border-[#E8D9F5] bg-[#F5EEFC] px-3.5 py-2.5 text-xs text-[#5C3D7A] leading-snug"><i class="fa-solid fa-snowflake text-[#C9A9E8] mr-1"></i>${product.seasonalNote}</div>` : ''}
               <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1 px-1">Choose your option</div>
               <div id="mobile-tiers-list" class="space-y-2"></div>
@@ -4443,7 +4574,7 @@
               <div id="mobile-options-container" class="pt-1"></div>
 
               <!-- Quick Notes -->
-              <div class="pt-2">
+              <div class="pt-2 pb-1">
                 <div class="text-xs text-[#6B5B5F] mb-1.5">Quick note (optional)</div>
                 <input id="mobile-quick-notes" type="text" 
                        class="w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm" 
@@ -4452,10 +4583,10 @@
             </div>
 
             <!-- Sticky Add / Update bar -->
-            <div class="border-t p-4 bg-white flex-shrink-0">
-              <button id="mobile-add-btn"
+            <div class="mqo-footer border-t px-4 pt-3 bg-white flex-shrink-0">
+              <button type="button" id="mobile-add-btn"
                       onclick="addFromMobileQuickOrder()"
-                      class="w-full h-12 rounded-2xl bg-[#C9A9E8] text-white font-semibold text-base active:bg-[#B48AE0] transition disabled:opacity-50 disabled:cursor-not-allowed">
+                      class="w-full min-h-[3.15rem] h-12 rounded-2xl bg-[#C9A9E8] text-white font-semibold text-base active:bg-[#B48AE0] transition disabled:opacity-50 disabled:cursor-not-allowed">
                 Add to Order
               </button>
               <div id="mobile-add-hint" class="text-[10px] text-center text-[#8B6F6F] mt-1.5 min-h-[14px]"></div>
@@ -4466,6 +4597,7 @@
       `;
 
       document.body.insertAdjacentHTML('beforeend', html);
+      document.body.style.overflow = 'hidden';
 
       // Wire the dynamic tier rows (highlight + state)
       const tiersList = document.getElementById('mobile-tiers-list');
@@ -4682,7 +4814,7 @@
     function closeMobileQuickOrder() {
       const sheet = document.getElementById('mobile-quick-order');
       if (sheet) {
-        const content = sheet.querySelector('.w-full.bg-white');
+        const content = sheet.querySelector('.mqo-panel') || sheet.querySelector('.w-full.bg-white');
         if (content) {
           content.style.transition = 'transform 0.25s ease';
           content.style.transform = 'translateY(100%)';
@@ -4691,6 +4823,7 @@
           if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
         }, 250);
       }
+      document.body.style.overflow = '';
       // Clean up
       window.mobileSelectedFlavor = null;
       window.mobileSelectedFillings = [];
