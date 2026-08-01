@@ -715,16 +715,19 @@
         </div>
       </div>
 
-      <!-- Website feedback panel (admin-only, private — not cake reviews) -->
+      <!-- Website feedback panel (admin-only, private — not cake reviews / orders) -->
       <div id="feedback-panel" class="hidden mt-3 mb-1 rounded-2xl border border-[#EDE4DC] bg-white overflow-hidden">
         <div class="px-4 py-3 flex items-center justify-between gap-2 border-b border-[#EDE4DC] bg-[#FDF8F5]">
           <div>
             <div class="font-semibold text-sm text-[#3F2A2B]"><i class="fa-solid fa-lightbulb text-[#C9A9E8] mr-1"></i>Website Feedback</div>
-            <div class="text-[11px] text-[#8B6F6F]">Private site suggestions — never shown as public reviews</div>
+            <div class="text-[11px] text-[#8B6F6F]">Private site suggestions — separate from cake reviews &amp; orders</div>
           </div>
-          <button type="button" id="feedback-close-btn" class="toolbar-btn text-xs" aria-label="Close feedback">Close</button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" id="feedback-clear-all-btn" class="toolbar-btn text-xs text-red-700 hidden" title="Remove all feedback">Clear all</button>
+            <button type="button" id="feedback-close-btn" class="toolbar-btn text-xs" aria-label="Close feedback">Close</button>
+          </div>
         </div>
-        <div id="feedback-list" class="max-h-[40vh] overflow-y-auto px-3 py-3 space-y-2 text-sm">
+        <div id="feedback-list" class="max-h-[45vh] overflow-y-auto px-3 py-3 space-y-2 text-sm">
           <p class="text-[#8B6F6F] text-center py-4 text-xs">Loading…</p>
         </div>
       </div>
@@ -1410,6 +1413,8 @@
         }
       }
 
+      var feedbackClearAllBtn = document.getElementById('feedback-clear-all-btn');
+
       async function loadFeedback(opts) {
         opts = opts || {};
         if (!feedbackList) return;
@@ -1427,24 +1432,41 @@
               feedbackBadge.classList.add('hidden');
             }
           }
+          if (feedbackClearAllBtn) {
+            if (items.length > 0) feedbackClearAllBtn.classList.remove('hidden');
+            else feedbackClearAllBtn.classList.add('hidden');
+          }
           if (!items.length) {
             feedbackList.innerHTML =
               '<p class="text-[#8B6F6F] text-center py-6 text-xs">No website feedback yet.</p>';
             return;
           }
           feedbackList.innerHTML = items.map(function (f) {
+            var id = escapeHtml(f.id || '');
             return (
               '<div class="rounded-xl border border-[#EDE4DC] bg-[#FDF8F5] px-3 py-2.5">' +
                 '<div class="flex items-start justify-between gap-2">' +
-                  '<div class="font-semibold text-[#3F2A2B] text-[13px]">' + escapeHtml(f.name || 'Anonymous') + '</div>' +
-                  '<div class="text-[10px] text-[#8B6F6F] shrink-0">' + escapeHtml(formatFeedbackDate(f.createdAt)) + '</div>' +
+                  '<div class="min-w-0">' +
+                    '<div class="font-semibold text-[#3F2A2B] text-[13px]">' + escapeHtml(f.name || 'Anonymous') + '</div>' +
+                    '<div class="text-[10px] text-[#8B6F6F] mt-0.5">' + escapeHtml(formatFeedbackDate(f.createdAt)) + '</div>' +
+                  '</div>' +
+                  '<button type="button" class="toolbar-btn text-[11px] text-red-700 shrink-0 fb-delete" data-id="' + id + '" title="Remove this feedback">Delete</button>' +
                 '</div>' +
-                '<p class="mt-1 text-[13px] text-[#5C4A4B] leading-snug whitespace-pre-wrap">' +
+                '<p class="mt-1.5 text-[13px] text-[#5C4A4B] leading-snug whitespace-pre-wrap">' +
                   escapeHtml(f.message || '') +
                 '</p>' +
               '</div>'
             );
           }).join('');
+
+          feedbackList.querySelectorAll('.fb-delete').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var fid = btn.getAttribute('data-id');
+              if (!fid) return;
+              if (!confirm('Delete this website feedback?')) return;
+              deleteFeedback(fid);
+            });
+          });
         } catch (e) {
           if (e.status === 401) {
             showLogin();
@@ -1457,11 +1479,33 @@
         }
       }
 
+      async function deleteFeedback(id) {
+        try {
+          await api('/api/admin/feedback?id=' + encodeURIComponent(id), { method: 'DELETE' });
+          showToast('Feedback deleted', true);
+          loadFeedback({ showLoading: true });
+        } catch (e) {
+          showToast(e.message || 'Delete failed', false);
+        }
+      }
+
+      async function clearAllFeedback() {
+        if (!confirm('Delete ALL website feedback? This cannot be undone.')) return;
+        try {
+          await api('/api/admin/feedback?all=1', { method: 'DELETE' });
+          showToast('All feedback cleared', true);
+          loadFeedback({ showLoading: true });
+        } catch (e) {
+          showToast(e.message || 'Clear failed', false);
+        }
+      }
+
       if (feedbackBtn) {
         feedbackBtn.addEventListener('click', function () {
           if (!feedbackPanel) return;
           var open = feedbackPanel.classList.contains('hidden');
           if (open) {
+            if (reviewsAdminPanel) reviewsAdminPanel.classList.add('hidden');
             feedbackPanel.classList.remove('hidden');
             loadFeedback();
           } else {
@@ -1472,6 +1516,11 @@
       if (feedbackCloseBtn) {
         feedbackCloseBtn.addEventListener('click', function () {
           if (feedbackPanel) feedbackPanel.classList.add('hidden');
+        });
+      }
+      if (feedbackClearAllBtn) {
+        feedbackClearAllBtn.addEventListener('click', function () {
+          clearAllFeedback();
         });
       }
 

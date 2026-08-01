@@ -31,7 +31,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-08-01-reviews-moderation-v1";
+const DEPLOY_BUILD = "2026-08-01-feedback-delete-v1";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -1482,6 +1482,8 @@ async function api(req, res, pathname, baseUrl) {
   /**
    * Admin-only: list website feedback (newest first).
    * GET /api/admin/feedback
+   * DELETE /api/admin/feedback?id=…  — remove one entry
+   * DELETE /api/admin/feedback?all=1 — clear all (test cleanup)
    */
   if (method === "GET" && pathname === "/api/admin/feedback") {
     if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
@@ -1489,6 +1491,30 @@ async function api(req, res, pathname, baseUrl) {
     }
     const list = loadFeedback();
     return json(res, 200, { ok: true, count: list.length, feedback: list });
+  }
+
+  if (method === "DELETE" && pathname === "/api/admin/feedback") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    const urlObj = new URL(req.url, "http://localhost");
+    const clearAll =
+      urlObj.searchParams.get("all") === "1" ||
+      urlObj.searchParams.get("all") === "true";
+    if (clearAll) {
+      const before = loadFeedback().length;
+      saveFeedback([]);
+      console.log("[feedback] admin cleared all", before);
+      return json(res, 200, { ok: true, deleted: before, cleared: true });
+    }
+    const id = String(urlObj.searchParams.get("id") || "").trim();
+    if (!id) return json(res, 400, { error: "Feedback id required (or all=1 to clear)." });
+    const list = loadFeedback();
+    const next = list.filter((f) => String(f.id) !== id);
+    if (next.length === list.length) return json(res, 404, { error: "Feedback not found." });
+    saveFeedback(next);
+    console.log("[feedback] admin delete", id);
+    return json(res, 200, { ok: true, deleted: id });
   }
 
   /**
