@@ -30,20 +30,20 @@
   <meta property="og:title" content="Sweet Tooth Cravings • Miami, FL">
   <meta property="og:description" content="Handcrafted cakes, flan, tres leches &amp; desserts made with love in Miami.">
   <meta property="og:url" content="https://sweettoothcravings.shop/">
-  <meta property="og:image" content="https://sweettoothcravings.shop/assets/images/opt/hero.jpg">
+  <meta property="og:image" content="https://sweettoothcravings.shop/assets/images/hero.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192">
-  <link rel="icon" href="assets/images/opt/logo.png" type="image/png">
+  <link rel="icon" href="assets/images/logo.png" type="image/png">
   <!-- Above-the-fold image preloads (hero + first menu products) -->
-  <link rel="preload" as="image" href="assets/images/opt/hero.jpg" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/images/opt/logo.png" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/images/opt/custom-cakes.jpg" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/images/opt/tres-leches-9x13.jpg">
-  <link rel="preload" as="image" href="assets/images/opt/chocoflan.jpg">
-  <link rel="preload" as="image" href="assets/images/opt/breakable-heart.jpg">
-  <link rel="preload" as="image" href="assets/images/opt/churro-cheesecake.jpg">
-  <link rel="preload" as="image" href="assets/images/opt/cupcakes.jpg">
-  <link rel="preload" as="image" href="assets/images/opt/2-tier-cakes.jpg">
+  <link rel="preload" as="image" href="assets/images/hero.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/logo.png" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/custom-cakes.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/tres-leches-9x13.jpg">
+  <link rel="preload" as="image" href="assets/images/chocoflan.jpg">
+  <link rel="preload" as="image" href="assets/images/breakable-heart.jpg">
+  <link rel="preload" as="image" href="assets/images/churro-cheesecake.jpg">
+  <link rel="preload" as="image" href="assets/images/cupcakes.jpg">
+  <link rel="preload" as="image" href="assets/images/2-tier-cakes.jpg">
   <!-- cache-bust: force browsers off stale order form / config after deploy -->
   <script src="config.js?v=20260728-site-polish-v1"></script>
   <script>
@@ -175,6 +175,30 @@
       display: none;
     }
 
+    /* Product modal: sticky footer + independent scroll body */
+    #product-modal .product-modal-panel {
+      display: flex;
+      flex-direction: column;
+      max-height: min(92vh, 900px);
+    }
+    #product-modal .product-modal-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    #product-modal .product-modal-footer {
+      flex: 0 0 auto;
+      background: #fff;
+    }
+    @media (max-width: 767px) {
+      #product-modal .product-modal-panel {
+        max-height: 92vh;
+        max-height: 92dvh;
+      }
+    }
+
     .section-title {
       font-size: clamp(1.75rem, 4.5vw, 2.35rem);
       line-height: 1.12;
@@ -277,7 +301,7 @@
       background-color: #3F2A2B;
       background-image:
         linear-gradient(105deg, rgba(20,12,14,0.55) 0%, rgba(20,12,14,0.22) 48%, rgba(20,12,14,0.18) 100%),
-        url('assets/images/opt/hero.jpg');
+        url('assets/images/hero.jpg');
       background-size: cover;
       background-position: center center;
       background-repeat: no-repeat;
@@ -597,7 +621,7 @@
         <!-- Logo -->
         <a href="index.html" onclick="if (location.pathname.endsWith('index.html') || location.pathname.endsWith('/')) { window.scrollTo({top: 0, behavior: 'smooth'}); return false; }" 
            class="flex items-center gap-x-2 sm:gap-x-3 cursor-pointer hover:opacity-90 transition-opacity min-w-0">
-          <img src="assets/images/opt/logo.png" alt="Sweet Tooth Cravings" class="h-9 sm:h-11 md:h-12 lg:h-14 w-auto shrink-0" width="128" height="128" loading="eager" fetchpriority="high" decoding="async" onerror="this.style.display='none'">
+          <img src="assets/images/logo.png" alt="Sweet Tooth Cravings" class="h-9 sm:h-11 md:h-12 lg:h-14 w-auto shrink-0" width="128" height="128" loading="eager" fetchpriority="high" decoding="async" onerror="this.style.display='none'">
           <span class="font-semibold text-[12px] xs:text-[13px] sm:text-base md:text-lg tracking-[-0.3px] leading-none whitespace-nowrap truncate max-w-[9.5rem] sm:max-w-none">Sweettoothcravings</span>
         </a>
 
@@ -703,15 +727,15 @@
           <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-3 sm:gap-x-4 mt-8 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group min-h-[2.75rem] -ml-1 pl-1 pr-2 py-1 rounded-2xl active:bg-white/10" aria-label="Read customer reviews — 5.0 stars">
             <div class="flex items-center -space-x-1.5">
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/opt/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CUPCAKES</div>
               </div>
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/opt/flan.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">FLAN</div>
               </div>
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/opt/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CAKES</div>
               </div>
             </div>
@@ -1014,7 +1038,7 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-y-6 gap-x-8">
         <div class="min-w-0">
           <div class="flex items-center gap-x-2.5">
-            <img src="assets/images/opt/logo.png" alt="Sweet Tooth Cravings" class="h-9 w-auto" onerror="this.style.display='none'">
+            <img src="assets/images/logo.png" alt="Sweet Tooth Cravings" class="h-9 w-auto" onerror="this.style.display='none'">
           </div>
           <div class="text-[#8B6F6F] text-xs mt-1">Miami, Florida • Est. 2022</div>
         </div>
@@ -1036,110 +1060,116 @@
     </div>
   </footer>
 
-  <!-- PRODUCT DETAIL / CUSTOMIZE MODAL -->
+  <!-- PRODUCT DETAIL / CUSTOMIZE MODAL — scrollable body + sticky action footer -->
   <div id="product-modal" onclick="if (event.target.id === 'product-modal') closeProductModal()" class="hidden fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-lg md:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl max-h-[92vh] md:max-h-[85vh]">
+    <div onclick="event.stopImmediatePropagation()" class="modal product-modal-panel bg-white w-full max-w-lg md:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl max-h-[92vh] md:max-h-[85vh] flex flex-col">
       <!-- Mobile drag handle -->
-      <div class="md:hidden flex justify-center pt-2 pb-1">
+      <div class="md:hidden flex justify-center pt-2 pb-1 shrink-0 bg-white">
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
-      <!-- Image -->
-      <div id="modal-image" class="w-full bg-[#FDF8F5] relative flex items-center justify-center overflow-hidden"
-           style="max-height: 320px;">
-        <img id="modal-image-element" class="max-h-[320px] w-full object-contain" style="filter: contrast(1.1) brightness(0.97) saturate(1.08); image-rendering: crisp-edges; pointer-events: none; user-select: none; -webkit-touch-callout: none;" alt="">
-        <div id="modal-image-fallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-[#6b5b5f]">
-          <i class="fa-solid fa-image text-3xl mb-2 text-[#c9a9e8]"></i>
-          <span class="text-sm font-medium">Photo not available</span>
+
+      <!-- Scrollable content (image + details + options) -->
+      <div class="product-modal-scroll flex-1 min-h-0 overflow-y-auto overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+        <!-- Image -->
+        <div id="modal-image" class="w-full bg-[#FDF8F5] relative flex items-center justify-center overflow-hidden shrink-0"
+             style="max-height: min(280px, 38vh);">
+          <img id="modal-image-element" class="max-h-[min(280px,38vh)] w-full object-contain" style="filter: contrast(1.1) brightness(0.97) saturate(1.08); image-rendering: crisp-edges; pointer-events: none; user-select: none; -webkit-touch-callout: none;" alt="">
+          <div id="modal-image-fallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-[#6b5b5f]">
+            <i class="fa-solid fa-image text-3xl mb-2 text-[#c9a9e8]"></i>
+            <span class="text-sm font-medium">Photo not available</span>
+          </div>
+        </div>
+        
+        <div class="p-5 sm:p-7 pb-6">
+          <div class="flex justify-between items-start gap-x-4">
+            <div class="min-w-0">
+              <div id="modal-name" class="heading-serif text-2xl sm:text-3xl tracking-tight"></div>
+              <div id="modal-price" class="mt-1 text-[#C9A9E8] font-semibold text-lg sm:text-xl"></div>
+            </div>
+            <button type="button" onclick="closeProductModal()" class="text-[#8B6F6F] hover:text-[#3F2A2B] p-1 shrink-0 w-10 h-10 flex items-center justify-center" aria-label="Close">
+              <i class="fa-solid fa-times text-2xl"></i>
+            </button>
+          </div>
+
+          <div id="modal-description" class="text-[#5C4A4B] mt-4 leading-relaxed"></div>
+
+          <div id="modal-info-box" class="mt-5 sm:mt-6 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl p-4 sm:p-5 text-xs space-y-1 text-[#6B5B5F]">
+            <div class="flex justify-between"><span>Customization available</span> <span class="font-medium text-[#3F2A2B]">✓</span></div>
+            <div class="flex justify-between"><span>Lead time</span> <span class="font-medium text-[#3F2A2B]">3–5 days (most orders)</span></div>
+            <div class="flex justify-between"><span>Allergens</span> <span class="font-medium text-[#3F2A2B]">Please note in order</span></div>
+          </div>
+
+          <!-- ORDERING SECTION - Only shown in "Select" mode (options scroll; button is sticky below) -->
+          <div id="modal-ordering-section" class="mt-5 sm:mt-6">
+            <div>
+              <label id="modal-tiers-label" class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2 block">Choose an option</label>
+              
+              <div id="modal-tiers" class="space-y-2">
+                <!-- Dynamically populated by JS with tier buttons -->
+              </div>
+
+              <!-- Flavor / Filling / Chocolate Type selectors (shown only for products that support them) -->
+              <div id="modal-flavor-fillings" class="hidden mt-5 pt-4 border-t border-[#EDE4DC]">
+                <div id="flavor-prompt" class="text-xs text-[#8B6F6F] mb-2">
+                  Choose a size above to select your options
+                </div>
+
+                <div id="flavor-content" class="hidden">
+                  <div id="flavor-group" class="mb-3">
+                    <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Flavor</div>
+                    <div id="modal-flavors" class="flex flex-wrap gap-2">
+                      <!-- Populated by JS as selectable pills -->
+                    </div>
+                  </div>
+
+                  <div id="filling-group">
+                    <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Filling</div>
+                    <div id="modal-fillings" class="flex flex-wrap gap-2">
+                      <!-- Populated by JS as selectable pills -->
+                    </div>
+                  </div>
+
+                  <!-- Toppings section (for Tres Leches etc.) -->
+                  <div id="toppings-group" class="mt-3 pt-3 border-t border-[#EDE4DC]">
+                    <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Toppings (optional)</div>
+                    <div id="modal-toppings" class="flex flex-wrap gap-2">
+                      <!-- Populated by JS as multi-select pills -->
+                    </div>
+                    <div class="text-[10px] text-[#8B6F6F] mt-1">Tres Leches comes topped with whipped cream.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <label class="text-xs text-[#6B5B5F]" for="modal-notes">Special requests or notes (optional)</label>
+                <textarea id="modal-notes" rows="2" placeholder="Example: pink and gold theme, name on top, no nuts..." 
+                          class="form-input mt-1 w-full resize-y border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div class="p-7">
-        <div class="flex justify-between items-start gap-x-4">
-          <div>
-            <div id="modal-name" class="heading-serif text-3xl tracking-tight"></div>
-            <div id="modal-price" class="mt-1 text-[#C9A9E8] font-semibold text-xl"></div>
-          </div>
-          <button onclick="closeProductModal()" class="text-[#8B6F6F] hover:text-[#3F2A2B] p-1">
-            <i class="fa-solid fa-times text-2xl"></i>
+
+      <!-- Sticky action footer — always visible / tappable -->
+      <div class="product-modal-footer shrink-0 border-t border-[#EDE4DC] bg-white px-4 sm:px-7 pt-3 pb-[max(0.85rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(63,42,43,0.06)]">
+        <!-- Select mode: Add to Order -->
+        <div id="modal-order-footer" class="flex gap-x-2.5 sm:gap-x-3">
+          <button type="button" onclick="addCurrentToCart()" 
+                  class="flex-1 min-h-[3.15rem] h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 active:scale-[0.99]">
+            <i class="fa-solid fa-plus"></i>
+            <span id="modal-add-btn-text">Add to Order</span>
           </button>
+          <button type="button" onclick="closeProductModal()" 
+                  class="min-h-[3.15rem] px-5 sm:px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium active:scale-[0.99]">Cancel</button>
         </div>
-
-        <div id="modal-description" class="text-[#5C4A4B] mt-4 leading-relaxed"></div>
-
-        <div id="modal-info-box" class="mt-6 bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl p-5 text-xs space-y-1 text-[#6B5B5F]">
-          <div class="flex justify-between"><span>Customization available</span> <span class="font-medium text-[#3F2A2B]">✓</span></div>
-          <div class="flex justify-between"><span>Lead time</span> <span class="font-medium text-[#3F2A2B]">3–5 days (most orders)</span></div>
-          <div class="flex justify-between"><span>Allergens</span> <span class="font-medium text-[#3F2A2B]">Please note in order</span></div>
-        </div>
-
-        <!-- ORDERING SECTION - Only shown in "Select" mode -->
-        <div id="modal-ordering-section" class="mt-6">
-          <!-- Clear Pricing Tiers -->
-          <div>
-            <label id="modal-tiers-label" class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2 block">Choose an option</label>
-            
-            <div id="modal-tiers" class="space-y-2">
-              <!-- Dynamically populated by JS with tier buttons -->
-            </div>
-
-            <!-- Flavor / Filling / Chocolate Type selectors (shown only for products that support them) -->
-            <div id="modal-flavor-fillings" class="hidden mt-5 pt-4 border-t border-[#EDE4DC]">
-              <div id="flavor-prompt" class="text-xs text-[#8B6F6F] mb-2">
-                Choose a size above to select your options
-              </div>
-
-              <div id="flavor-content" class="hidden">
-                <div id="flavor-group" class="mb-3">
-                  <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Flavor</div>
-                  <div id="modal-flavors" class="flex flex-wrap gap-2">
-                    <!-- Populated by JS as selectable pills -->
-                  </div>
-                </div>
-
-                <div id="filling-group">
-                  <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Filling</div>
-                  <div id="modal-fillings" class="flex flex-wrap gap-2">
-                    <!-- Populated by JS as selectable pills -->
-                  </div>
-                </div>
-
-                <!-- Toppings section (for Tres Leches etc.) -->
-                <div id="toppings-group" class="mt-3 pt-3 border-t border-[#EDE4DC]">
-                  <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-2">Toppings (optional)</div>
-                  <div id="modal-toppings" class="flex flex-wrap gap-2">
-                    <!-- Populated by JS as multi-select pills -->
-                  </div>
-                  <div class="text-[10px] text-[#8B6F6F] mt-1">Tres Leches comes topped with whipped cream.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-4">
-              <label class="text-xs text-[#6B5B5F]">Special requests or notes (optional)</label>
-              <textarea id="modal-notes" rows="2" placeholder="Example: pink and gold theme, name on top, no nuts..." 
-                        class="form-input mt-1 w-full resize-y border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
-            </div>
-          </div>
-
-          <div class="mt-7 flex gap-x-3">
-            <button onclick="addCurrentToCart()" 
-                    class="flex-1 h-13 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2">
-              <i class="fa-solid fa-plus"></i>
-              <span id="modal-add-btn-text">Add to Order</span>
-            </button>
-            <button onclick="closeProductModal()" 
-                    class="px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium">Cancel</button>
-          </div>
-        </div>
-
-        <!-- DETAILS MODE FOOTER - Only shown in "View Details" mode -->
-        <div id="modal-details-footer" class="mt-7 flex gap-x-3 hidden">
-          <button onclick="switchToSelectMode()" 
-                  class="flex-1 h-13 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2">
+        <!-- Details mode: Select & Add -->
+        <div id="modal-details-footer" class="hidden flex gap-x-2.5 sm:gap-x-3">
+          <button type="button" onclick="switchToSelectMode()" 
+                  class="flex-1 min-h-[3.15rem] h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 active:scale-[0.99]">
             <span>Select &amp; Add to Order</span>
           </button>
-          <button onclick="closeProductModal()" 
-                  class="px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium">Close</button>
+          <button type="button" onclick="closeProductModal()" 
+                  class="min-h-[3.15rem] px-5 sm:px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium active:scale-[0.99]">Close</button>
         </div>
       </div>
     </div>
@@ -1480,7 +1510,7 @@
 
     const products = [
       { 
-        id: 1, name: "2 Tier Cakes", price: 100, startingAt: true, category: "cakes", img: "assets/images/opt/2-tier-cakes.jpg",
+        id: 1, name: "2 Tier Cakes", price: 100, startingAt: true, category: "cakes", img: "assets/images/2-tier-cakes.jpg",
         shortDesc: "Two-tier celebration cakes. Choose your size.",
         description: "Beautiful two-tier cakes perfect for birthdays, weddings, and special celebrations. Fresh, moist, and customizable with your choice of flavors and fillings.",
         flavors: CAKE_FLAVORS,
@@ -1491,7 +1521,7 @@
         ]
       },
       { 
-        id: 2, name: "Chocolate Covered Strawberries", price: 15, startingAt: true, category: "desserts", img: "assets/images/opt/chocolate-strawberries.jpg",
+        id: 2, name: "Chocolate Covered Strawberries", price: 15, startingAt: true, category: "desserts", img: "assets/images/chocolate-strawberries.jpg",
         shortDesc: "Milk, white, or dark chocolate. Perfect for gifts or parties.",
         description: "Fresh strawberries dipped in premium chocolate. Great for events, gifts, or as a sweet treat.",
         flavors: ["White Chocolate", "Milk Chocolate", "Dark Chocolate"],
@@ -1502,7 +1532,7 @@
         ]
       },
       { 
-        id: 4, name: "Breakable Hearts", price: 35, startingAt: true, category: "desserts", img: "assets/images/opt/breakable-heart.jpg",
+        id: 4, name: "Breakable Hearts", price: 35, startingAt: true, category: "desserts", img: "assets/images/breakable-heart.jpg",
         shortDesc: "Comes with 5 chocolate strawberries. Fillable! Includes hammer.",
         description: "Chocolate breakable heart filled with your choice of treats, money, or a small gift. Comes with 5 chocolate-covered strawberries and a mini hammer for the fun reveal.",
         tiers: [
@@ -1510,7 +1540,7 @@
         ]
       },
       { 
-        id: 5, name: "Sheet Cakes / Rectangle Cakes", price: 90, startingAt: true, category: "cakes", img: "assets/images/opt/sheet-cake.jpg",
+        id: 5, name: "Sheet Cakes / Rectangle Cakes", price: 90, startingAt: true, category: "cakes", img: "assets/images/sheet-cake.jpg",
         shortDesc: "9x13 sheet cakes. Edible images available (+$5).",
         description: "Classic 9x13 sheet cakes. Ideal for larger gatherings. Custom edible images available for an additional $5. Choose your flavor and filling.",
         flavors: CAKE_FLAVORS,
@@ -1520,7 +1550,7 @@
         ]
       },
       { 
-        id: 6, name: "Churro Cheesecake", price: 30, startingAt: true, category: "desserts", img: "assets/images/opt/churro-cheesecake.jpg",
+        id: 6, name: "Churro Cheesecake", price: 30, startingAt: true, category: "desserts", img: "assets/images/churro-cheesecake.jpg",
         shortDesc: "Cinnamon churro cheesecake. A customer favorite.",
         description: "Creamy cheesecake with a crunchy cinnamon churro crust and topping. Available in two sizes — perfect for sharing or smaller gatherings.",
         tiers: [
@@ -1529,7 +1559,7 @@
         ]
       },
       { 
-        id: 7, name: "Cupcakes", price: 25, startingAt: true, category: "desserts", img: "assets/images/opt/cupcakes.jpg",
+        id: 7, name: "Cupcakes", price: 25, startingAt: true, category: "desserts", img: "assets/images/cupcakes.jpg",
         shortDesc: "Beautifully decorated. Price varies by theme and design.",
         description: "Moist cupcakes with delicious buttercream or filling. Decorated to match your theme — perfect for parties, weddings, or corporate events.",
         flavors: CAKE_FLAVORS,
@@ -1540,7 +1570,7 @@
         ]
       },
       { 
-        id: 8, name: "Bento Cake Box", price: 50, startingAt: true, category: "cakes", img: "assets/images/opt/bento-cake.jpg",
+        id: 8, name: "Bento Cake Box", price: 50, startingAt: true, category: "cakes", img: "assets/images/bento-cake.jpg",
         shortDesc: "4\" cake + 5 cupcakes. Perfect for small groups or celebrations.",
         description: "Adorable single-serve bento box: one 4-inch personal cake plus five matching cupcakes. Great for intimate celebrations or as a gift set.",
         flavors: CAKE_FLAVORS,
@@ -1550,7 +1580,7 @@
         ]
       },
       { 
-        id: 10, name: "6 Inch Flan", price: 20, startingAt: true, category: "desserts", img: "assets/images/opt/flan.jpg",
+        id: 10, name: "6 Inch Flan", price: 20, startingAt: true, category: "desserts", img: "assets/images/flan.jpg",
         shortDesc: "Silky 6 inch flan in round or heart shape.",
         description: "Traditional creamy flan with caramel sauce. Baked fresh in a 6-inch round or heart mold. A classic crowd-pleaser.",
         tiers: [
@@ -1558,7 +1588,7 @@
         ]
       },
       { 
-        id: 11, name: "Coquito", price: 25, startingAt: true, category: "desserts", img: "assets/images/opt/coquito.jpg",
+        id: 11, name: "Coquito", price: 25, startingAt: true, category: "desserts", img: "assets/images/coquito.jpg",
         seasonal: true,
         seasonalNote: "Seasonal item – Available only around Thanksgiving and Christmas.",
         shortDesc: "Seasonal item – Available only around Thanksgiving and Christmas. Creamy coconut drink. Choose from Pistachio, Almond, or Regular.",
@@ -1570,7 +1600,7 @@
         ]
       },
       { 
-        id: 12, name: "Tres Leches", price: 30, startingAt: true, category: "desserts", img: "assets/images/opt/tres-leches-9x13.jpg",
+        id: 12, name: "Tres Leches", price: 30, startingAt: true, category: "desserts", img: "assets/images/tres-leches-9x13.jpg",
         // IMPORTANT: Using the good 9x13 image only. The tres-leches-8x8.jpg file is corrupted (HTML, not image) — do not reference it.
         shortDesc: "Moist tres leches tray. Topped with whipped cream + your choice of almonds, coconut, or strawberries.",
         description: "Classic tres leches cake soaked in three milks. Topped with whipped cream and your choice of shredded almonds, coconut flakes, or strawberries. Available in two sizes.",
@@ -1581,7 +1611,7 @@
         ]
       },
       { 
-        id: 13, name: "Custom Cakes", price: 65, startingAt: true, category: "cakes", img: "assets/images/opt/custom-cakes.jpg",
+        id: 13, name: "Custom Cakes", price: 65, startingAt: true, category: "cakes", img: "assets/images/custom-cakes.jpg",
         shortDesc: "Fully personalized 6/8/10 inch cakes. Many fillings available.",
         description: "Completely custom cakes made to your vision. Popular fillings: dulce de leche, guava, Nutella, strawberry, chocolate, and more. Edible images available for +$5.",
         flavors: CAKE_FLAVORS,
@@ -1593,7 +1623,7 @@
         ]
       },
       { 
-        id: 15, name: "Mini Cakes", price: 40, startingAt: true, category: "cakes", img: "assets/images/opt/mini-cakes.jpg",
+        id: 15, name: "Mini Cakes", price: 40, startingAt: true, category: "cakes", img: "assets/images/mini-cakes.jpg",
         shortDesc: "5 inch cakes. Perfect for 7 people or small celebrations.",
         description: "Adorable 5-inch personal cakes. Great for intimate birthdays, anniversaries, or as individual dessert options at events. Customizable flavors.",
         flavors: CAKE_FLAVORS,
@@ -1603,7 +1633,7 @@
         ]
       },
       { 
-        id: 16, name: "Chocoflan", price: 35, startingAt: true, category: "desserts", img: "assets/images/opt/chocoflan.jpg",
+        id: 16, name: "Chocoflan", price: 35, startingAt: true, category: "desserts", img: "assets/images/chocoflan.jpg",
         shortDesc: "Flan layered over rich chocolate cake. A classic favorite.",
         description: "The best of both worlds: creamy flan on top of moist chocolate cake. Baked in round or heart molds. Available in two popular sizes.",
         // No flavors or fillings for Chocoflan (per user request)
@@ -1613,7 +1643,7 @@
         ]
       },
       { 
-        id: 18, name: "Party Packages", price: 180, startingAt: true, category: "party", img: "assets/images/opt/party-packages.jpg",
+        id: 18, name: "Party Packages", price: 180, startingAt: true, category: "party", img: "assets/images/party-packages.jpg",
         shortDesc: "Pre-designed packages with cake + treats for any celebration.",
         description: "Choose from our curated party packages or let us know if you'd like a custom assortment. All packages include a cake and a variety of fresh treats. 1-week notice preferred.",
         tiers: [
@@ -1920,7 +1950,9 @@
       const description = document.getElementById('modal-description');
       const infoBox = document.getElementById('modal-info-box');
       const orderingSection = document.getElementById('modal-ordering-section');
+      const orderFooter = document.getElementById('modal-order-footer');
       const detailsFooter = document.getElementById('modal-details-footer');
+      const scrollEl = document.querySelector('#product-modal .product-modal-scroll');
 
       if (mode === 'select') {
         // SELECT MODE — Buying / Choosing options
@@ -1929,7 +1961,14 @@
         if (infoBox) infoBox.style.display = 'none';
 
         if (orderingSection) orderingSection.style.display = 'block';
-        if (detailsFooter) detailsFooter.style.display = 'none';
+        if (orderFooter) {
+          orderFooter.classList.remove('hidden');
+          orderFooter.style.display = 'flex';
+        }
+        if (detailsFooter) {
+          detailsFooter.classList.add('hidden');
+          detailsFooter.style.display = 'none';
+        }
 
         const tiersLabel = document.getElementById('modal-tiers-label');
         if (tiersLabel) tiersLabel.textContent = 'Select an option';
@@ -1949,7 +1988,14 @@
         if (infoBox) infoBox.style.display = 'block';
 
         if (orderingSection) orderingSection.style.display = 'none';
-        if (detailsFooter) detailsFooter.style.display = 'flex';
+        if (orderFooter) {
+          orderFooter.classList.add('hidden');
+          orderFooter.style.display = 'none';
+        }
+        if (detailsFooter) {
+          detailsFooter.classList.remove('hidden');
+          detailsFooter.style.display = 'flex';
+        }
 
         const modalContent = document.querySelector('#product-modal .modal');
         if (modalContent) modalContent.classList.remove('!max-w-md');
@@ -1958,6 +2004,9 @@
         const ff = document.getElementById('modal-flavor-fillings');
         if (ff) ff.classList.add('hidden');
       }
+
+      // Reset scroll so content starts at top when opening / switching modes
+      if (scrollEl) scrollEl.scrollTop = 0;
     }
 
     // Called from the Details view when user wants to actually buy
@@ -1989,9 +2038,17 @@
 
       // Reset visibility of sections
       const orderingSection = document.getElementById('modal-ordering-section');
+      const orderFooter = document.getElementById('modal-order-footer');
       const detailsFooter = document.getElementById('modal-details-footer');
       if (orderingSection) orderingSection.style.display = 'block';
-      if (detailsFooter) detailsFooter.style.display = 'none';
+      if (orderFooter) {
+        orderFooter.classList.remove('hidden');
+        orderFooter.style.display = 'flex';
+      }
+      if (detailsFooter) {
+        detailsFooter.classList.add('hidden');
+        detailsFooter.style.display = 'none';
+      }
 
       currentProduct = null
       currentModalMode = 'details';
