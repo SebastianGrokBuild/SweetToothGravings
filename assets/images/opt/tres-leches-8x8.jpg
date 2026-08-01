@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script
+      async
+      type="text/javascript"
+      src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+    ></script>
+    <title>Bakesy</title>
+  <link rel="icon" href="/favicon.ico"><script defer src="/static/js/lib-react.dbb9538e.js"></script><script defer src="/static/js/lib-router.23b5cef4.js"></script><script defer src="/static/js/lib-polyfill.0c581236.js"></script><script defer src="/static/js/368.682f3682.js"></script><script defer src="/static/js/index.4ab7e7f2.js"></script><link href="/static/css/index.a8b557f0.css" rel="stylesheet"></head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="app"></div>
+  
+<script async id="netlify-rum-container" src="/.netlify/scripts/rum" data-netlify-rum-site-id="41036679-abc2-4979-8941-8460b9424385" data-netlify-deploy-branch="production" data-netlify-deploy-context="production" data-netlify-cwv-token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzaXRlX2lkIjoiNDEwMzY2NzktYWJjMi00OTc5LTg5NDEtODQ2MGI5NDI0Mzg1IiwiYWNjb3VudF9pZCI6IjVmYmM0OTEzZWZiZTFkNmRhYzAxZmVmMSIsImRlcGxveV9pZCI6IjZhMGNmMDU3MDAzZjJlMDAwODE2NTNkOSIsImlzc3VlciI6Im5mc2VydmVyIn0.4IdxxcrdCuw-Y1vnNqucstAGr2KvWJmw53SiVWgRH7s"></script></body>
+</html>
