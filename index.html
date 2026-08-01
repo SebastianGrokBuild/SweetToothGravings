@@ -488,47 +488,111 @@
     }
 
     @media (max-width: 640px) {
+      /*
+       * Mobile hero — open & premium, not a stacked info wall.
+       * Keep: location, title, short line, primary CTA, light social proof, one trust line.
+       */
       .dessert-bg {
-        background-position: center 28%;
+        background-position: center 30%;
         min-height: auto !important;
         height: auto !important;
-        border-radius: 0 0 1.75rem 1.75rem !important;
-        margin-left: 0.75rem !important;
-        margin-right: 0.75rem !important;
-        /* Stack hero content + trust box (no absolute overlay) */
+        border-radius: 0 0 1.65rem 1.65rem !important;
+        margin-left: 0.65rem !important;
+        margin-right: 0.65rem !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: stretch !important;
         justify-content: flex-start !important;
-        padding-bottom: 1rem !important;
+        padding-bottom: 0.85rem !important;
+        box-shadow: 0 12px 32px rgba(63, 42, 43, 0.12) !important;
       }
       .hero-inner {
-        padding-top: 1.85rem !important;
-        padding-bottom: 1rem !important;
+        padding: 1.65rem 1.25rem 1.15rem !important;
         max-width: none !important;
       }
+      .hero-location {
+        margin-bottom: 0.85rem !important;
+        height: 1.75rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        font-size: 0.625rem !important;
+        letter-spacing: 0.14em !important;
+      }
       .hero-title {
-        font-size: 2.45rem !important;
-        line-height: 1.06 !important;
-        margin-bottom: 0.65rem !important;
+        font-size: 2.35rem !important;
+        line-height: 1.05 !important;
+        margin-bottom: 0.55rem !important;
+        letter-spacing: -0.03em !important;
       }
-      .hero-reviews-chip {
-        margin-top: 1.15rem;
+      .hero-sub {
+        font-size: 0.9375rem !important;
+        line-height: 1.45 !important;
+        margin-bottom: 1.15rem !important;
+        max-width: 18.5rem !important;
+        color: rgba(255, 255, 255, 0.88) !important;
+      }
+      /* Primary CTA only — secondary lives in nav / How section */
+      .hero-ctas {
+        gap: 0 !important;
+      }
+      .hero-cta-secondary {
+        display: none !important;
+      }
+      .hero-cta-primary {
         width: 100%;
-        max-width: 20rem;
+        max-width: 17rem;
+        min-height: 3rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
       }
-      /* Lead time / deposit: in-flow under reviews on mobile — solid white, dark text */
+      /* Slim social proof — no avatar stack */
+      .hero-reviews-chip {
+        margin-top: 1rem !important;
+        width: auto !important;
+        max-width: none !important;
+        min-height: 2.4rem !important;
+        padding: 0.4rem 0.75rem 0.4rem 0.7rem !important;
+        gap: 0.45rem !important;
+        background: rgba(255, 255, 255, 0.14) !important;
+      }
+      .hero-chip-avatars {
+        display: none !important;
+      }
+      .hero-reviews-chip .chip-meta-extra {
+        display: none !important;
+      }
+      .hero-reviews-chip .chip-chevron {
+        display: none !important;
+      }
+      .hero-reviews-chip .chip-label {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+      }
+      .hero-reviews-chip .chip-label .chip-sub {
+        display: inline !important;
+        margin-top: 0 !important;
+        font-size: 0.75rem !important;
+        color: rgba(255, 255, 255, 0.78) !important;
+      }
+      .hero-reviews-chip .chip-label .chip-sub .chip-sub-prefix {
+        display: none !important;
+      }
+      /* One compact trust line under the photo content */
       .hero-trust-badge {
         position: relative !important;
         left: auto !important;
         right: auto !important;
         bottom: auto !important;
-        margin: 0.65rem 1rem 0.15rem !important;
+        margin: 0.35rem 1rem 0.1rem !important;
         max-width: none !important;
         width: auto !important;
-        background: #ffffff !important;
-        border: 1px solid #EDE4DC !important;
-        box-shadow: 0 8px 28px rgba(63, 42, 43, 0.1) !important;
+        padding: 0.65rem 0.9rem !important;
+        border-radius: 1rem !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        border: 1px solid rgba(237, 228, 220, 0.95) !important;
+        box-shadow: 0 6px 20px rgba(63, 42, 43, 0.08) !important;
       }
       .hero-trust-badge,
       .hero-trust-badge span,
@@ -544,6 +608,17 @@
       .hero-trust-badge i {
         color: #9B6FD4 !important;
       }
+      /* Deposit detail is covered in cart/checkout — keep lead time only */
+      .hero-trust-full {
+        display: none !important;
+      }
+      .hero-trust-compact {
+        display: flex !important;
+      }
+    }
+    /* Desktop: full trust card; compact line hidden */
+    .hero-trust-compact {
+      display: none;
     }
 
     /* Desktop / tablet: float solid white badge bottom-right (classic placement) */
@@ -1098,14 +1173,14 @@
     </div>
   </nav>
 
-  <!-- HERO — premium, calm hierarchy -->
+  <!-- HERO — premium, calm hierarchy (mobile stays light) -->
   <header class="pt-[4.75rem] sm:pt-24">
     <div class="max-w-screen-2xl mx-auto">
       <div class="dessert-bg h-[min(86vh,720px)] min-h-[500px] sm:min-h-[580px] flex items-center relative rounded-b-[2.5rem] sm:rounded-b-[3.5rem] mx-3 sm:mx-4 shadow-xl overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none"></div>
         
         <div class="hero-inner relative z-10 max-w-2xl px-5 sm:px-8 md:px-16 text-white py-10 sm:py-14 pb-6 sm:pb-14">
-          <div class="inline-flex items-center gap-x-2 bg-white/90 text-[#3F2A2B] px-3.5 h-8 rounded-full text-[11px] sm:text-xs font-semibold tracking-[0.16em] mb-4 sm:mb-6 shadow-sm">
+          <div class="hero-location inline-flex items-center gap-x-2 bg-white/90 text-[#3F2A2B] px-3.5 h-8 rounded-full text-[11px] sm:text-xs font-semibold tracking-[0.16em] mb-4 sm:mb-6 shadow-sm">
             <div class="w-1.5 h-1.5 bg-[#C9A9E8] rounded-full"></div>
             MIAMI, FLORIDA
           </div>
@@ -1113,25 +1188,25 @@
           <h1 class="hero-title heading-serif text-4xl sm:text-6xl md:text-7xl leading-[1.05] tracking-tighter mb-3 sm:mb-5">
             Daily sweetness,<br>delivered.
           </h1>
-          <p class="max-w-md text-[15px] sm:text-lg text-white/90 mb-5 sm:mb-8 leading-relaxed">
+          <p class="hero-sub max-w-md text-[15px] sm:text-lg text-white/90 mb-5 sm:mb-8 leading-relaxed">
             Handcrafted cakes, flan, tres leches &amp; more — made with love in Miami.
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
+          <div class="hero-ctas flex flex-col sm:flex-row gap-2.5 sm:gap-3">
             <a href="#menu" 
-               class="inline-flex items-center justify-center gap-x-2.5 bg-white hover:bg-[#FDF8F5] active:bg-white text-[#3F2A2B] font-semibold px-7 min-h-[3.15rem] sm:min-h-[3.4rem] rounded-full shadow-lg transition-all text-[15px] sm:text-base">
+               class="hero-cta-primary inline-flex items-center justify-center gap-x-2.5 bg-white hover:bg-[#FDF8F5] active:bg-white text-[#3F2A2B] font-semibold px-7 min-h-[3.15rem] sm:min-h-[3.4rem] rounded-full shadow-lg transition-all text-[15px] sm:text-base">
               Browse Menu
               <i class="fa-solid fa-arrow-right text-sm"></i>
             </a>
             <a href="#how"
-               class="inline-flex items-center justify-center gap-x-2 bg-white/12 hover:bg-white/20 border border-white/25 text-white font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base backdrop-blur-sm">
+               class="hero-cta-secondary inline-flex items-center justify-center gap-x-2 bg-white/12 hover:bg-white/20 border border-white/25 text-white font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base backdrop-blur-sm">
               How it works
             </a>
           </div>
 
-          <!-- Social proof chip — clearly tappable -->
+          <!-- Social proof chip — avatars on desktop; slim stars-only on mobile -->
           <button type="button" onclick="openReviewsModal()" class="hero-reviews-chip group" aria-label="Read customer reviews — 5.0 stars from 23 reviews">
-            <span class="flex items-center -space-x-1.5 shrink-0">
+            <span class="hero-chip-avatars flex items-center -space-x-1.5 shrink-0">
               <span class="w-8 h-8 rounded-full ring-2 ring-white/50 overflow-hidden bg-white shadow-sm">
                 <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="">
               </span>
@@ -1142,30 +1217,37 @@
                 <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="">
               </span>
             </span>
-            <span class="leading-tight min-w-0">
+            <span class="chip-label leading-tight min-w-0">
               <span class="flex items-center gap-1.5 text-[13px] sm:text-sm font-semibold tracking-tight">
                 <span class="chip-stars" aria-hidden="true">★★★★★</span>
                 <span>5.0</span>
               </span>
-              <span class="block text-[11px] sm:text-xs text-white/80 mt-0.5">
+              <span class="chip-sub block text-[11px] sm:text-xs text-white/80 mt-0.5">
+                <span class="chip-sub-prefix">· </span>
                 <span class="underline decoration-white/40 underline-offset-2 group-hover:decoration-white">23 reviews</span>
-                <span class="text-white/55"> · read them</span>
+                <span class="chip-meta-extra text-white/55"> · read them</span>
               </span>
             </span>
-            <i class="fa-solid fa-chevron-right text-white/50 text-[10px] ml-auto shrink-0 sm:mr-0.5" aria-hidden="true"></i>
+            <i class="chip-chevron fa-solid fa-chevron-right text-white/50 text-[10px] ml-auto shrink-0 sm:mr-0.5" aria-hidden="true"></i>
           </button>
         </div>
 
-        <!-- Lead time + deposit: white card — stacks in flow on mobile; absolute bottom-right on desktop -->
+        <!-- Trust: full card on desktop; compact lead-time line on mobile -->
         <div class="hero-trust-badge z-20 bg-white px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-[#EDE4DC]">
-          <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
-            <i class="fa-solid fa-clock text-[#9B6FD4] mt-0.5 shrink-0"></i>
-            <span class="font-semibold text-[#3F2A2B]">Most orders need <strong class="font-bold">3–5 days</strong> notice. Party packages need at least <strong class="font-bold">1 week</strong>.</span>
+          <div class="hero-trust-compact items-center gap-x-2 text-[11px] leading-snug">
+            <i class="fa-solid fa-clock text-[#9B6FD4] shrink-0"></i>
+            <span class="font-semibold text-[#3F2A2B]"><strong class="font-bold">3–5 days</strong> notice · Party packages <strong class="font-bold">1 week</strong></span>
           </div>
-          <div class="h-px bg-[#EDE4DC] my-2.5"></div>
-          <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
-            <i class="fa-solid fa-wallet text-[#9B6FD4] mt-0.5 shrink-0"></i>
-            <span class="trust-muted font-medium text-[#3F2A2B]">A <strong class="trust-accent font-bold text-[#9B6FD4]">50% non-refundable deposit</strong> is required after we send your quote to confirm the order.</span>
+          <div class="hero-trust-full">
+            <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
+              <i class="fa-solid fa-clock text-[#9B6FD4] mt-0.5 shrink-0"></i>
+              <span class="font-semibold text-[#3F2A2B]">Most orders need <strong class="font-bold">3–5 days</strong> notice. Party packages need at least <strong class="font-bold">1 week</strong>.</span>
+            </div>
+            <div class="h-px bg-[#EDE4DC] my-2.5"></div>
+            <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
+              <i class="fa-solid fa-wallet text-[#9B6FD4] mt-0.5 shrink-0"></i>
+              <span class="trust-muted font-medium text-[#3F2A2B]">A <strong class="trust-accent font-bold text-[#9B6FD4]">50% non-refundable deposit</strong> is required after we send your quote to confirm the order.</span>
+            </div>
           </div>
         </div>
       </div>
