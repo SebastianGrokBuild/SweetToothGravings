@@ -311,19 +311,36 @@
     @media (max-width: 640px) {
       .dessert-bg {
         background-position: center 28%;
-        min-height: min(72vh, 560px) !important;
+        min-height: auto !important;
         height: auto !important;
         border-radius: 0 0 1.75rem 1.75rem !important;
         margin-left: 0.75rem !important;
         margin-right: 0.75rem !important;
+        /* Stack hero content + trust box (no absolute overlay) */
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        padding-bottom: 1rem !important;
       }
       .hero-inner {
-        padding-top: 2.25rem !important;
-        padding-bottom: 2.5rem !important;
+        padding-top: 2rem !important;
+        padding-bottom: 1.25rem !important;
+        max-width: none !important;
       }
       .hero-title {
         font-size: 2.55rem !important;
         line-height: 1.05 !important;
+      }
+      /* Lead time / deposit: in-flow under reviews on mobile */
+      .hero-trust-badge {
+        position: relative !important;
+        left: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        margin: 0.25rem 1rem 0.25rem !important;
+        max-width: none !important;
+        width: auto !important;
       }
     }
 
@@ -698,7 +715,7 @@
       <div class="dessert-bg h-[min(88vh,760px)] min-h-[520px] sm:min-h-[600px] flex items-center relative rounded-b-[2.5rem] sm:rounded-b-[3.5rem] mx-3 sm:mx-4 shadow-xl overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/35 pointer-events-none"></div>
         
-        <div class="hero-inner relative z-10 max-w-2xl px-5 sm:px-8 md:px-16 text-white py-10 sm:py-12 pb-36 sm:pb-12">
+        <div class="hero-inner relative z-10 max-w-2xl px-5 sm:px-8 md:px-16 text-white py-10 sm:py-12 pb-6 sm:pb-12">
           <div class="inline-flex items-center gap-x-2 bg-white/92 text-[#3F2A2B] px-3.5 h-8 rounded-full text-[11px] sm:text-xs font-semibold tracking-[0.14em] mb-5 sm:mb-6 shadow-sm">
             <div class="w-2 h-2 bg-[#C9A9E8] rounded-full animate-pulse"></div>
             MIAMI, FLORIDA
@@ -724,7 +741,7 @@
             </a>
           </div>
 
-          <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-3 sm:gap-x-4 mt-8 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group min-h-[2.75rem] -ml-1 pl-1 pr-2 py-1 rounded-2xl active:bg-white/10" aria-label="Read customer reviews — 5.0 stars">
+          <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-3 sm:gap-x-4 mt-6 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group min-h-[2.75rem] -ml-1 pl-1 pr-2 py-1 rounded-2xl active:bg-white/10" aria-label="Read customer reviews — 5.0 stars">
             <div class="flex items-center -space-x-1.5">
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
                 <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -746,8 +763,8 @@
           </button>
         </div>
 
-        <!-- Trust badges floating — lead time + deposit -->
-        <div class="absolute bottom-4 right-4 left-4 sm:left-auto sm:bottom-9 sm:right-9 bg-white/95 backdrop-blur px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-white max-w-md sm:max-w-sm">
+        <!-- Lead time + deposit: stacks under reviews on mobile; floats bottom-right on larger screens -->
+        <div class="hero-trust-badge relative z-10 absolute bottom-4 right-4 left-4 sm:left-auto sm:bottom-9 sm:right-9 bg-white/95 backdrop-blur px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-white max-w-md sm:max-w-sm">
           <div class="flex items-start gap-x-2 text-[#3F2A2B] text-[11px] sm:text-xs leading-snug">
             <i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5 shrink-0"></i>
             <span class="font-medium">Most orders need <strong class="text-[#3F2A2B]">3–5 days</strong> notice. Party packages need at least <strong class="text-[#3F2A2B]">1 week</strong>.</span>
