@@ -649,8 +649,8 @@
     }
 
     /*
-     * Liquid glass — Details buttons
-     * Solid frost tint (not just blur) so it stays visible on white/cream cards.
+     * Liquid glass — clean, light frost (Details, How it works)
+     * No heavy bottom shade — soft highlight + thin edge only.
      */
     .btn-liquid-glass {
       position: relative;
@@ -659,26 +659,21 @@
       justify-content: center;
       isolation: isolate;
       overflow: hidden;
-      /* Opaque-enough lavender glass — reads without needing content behind it */
       background:
         linear-gradient(
-          148deg,
-          #ffffff 0%,
-          #f8f1fd 28%,
-          #ead9f8 58%,
-          #d9c0f0 82%,
-          #c9a9e8 100%
+          165deg,
+          rgba(255, 255, 255, 0.96) 0%,
+          rgba(250, 245, 253, 0.9) 45%,
+          rgba(240, 228, 250, 0.82) 100%
         );
-      backdrop-filter: blur(14px) saturate(1.45);
-      -webkit-backdrop-filter: blur(14px) saturate(1.45);
-      border: 1.5px solid rgba(155, 111, 212, 0.72);
+      backdrop-filter: blur(16px) saturate(1.25);
+      -webkit-backdrop-filter: blur(16px) saturate(1.25);
+      border: 1px solid rgba(201, 169, 232, 0.45);
+      /* Soft top edge only — no dark underside shadow */
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        inset 0 -12px 22px rgba(168, 122, 214, 0.18),
-        inset 1px 0 0 rgba(255, 255, 255, 0.55),
-        0 4px 14px rgba(130, 88, 186, 0.16),
-        0 0 0 1px rgba(201, 169, 232, 0.28);
-      color: #3a2438;
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 1px 2px rgba(155, 111, 212, 0.06);
+      color: #3F2A2B;
       font-weight: 600;
       letter-spacing: -0.01em;
       transition:
@@ -687,34 +682,26 @@
         border-color 0.18s ease,
         transform 0.1s ease;
     }
-    /* Specular top sheen */
+    /* Soft top sheen — light, even glass */
     .btn-liquid-glass::before {
       content: '';
       position: absolute;
-      left: 8%;
-      right: 8%;
-      top: 2px;
-      height: 46%;
+      left: 12%;
+      right: 12%;
+      top: 3px;
+      height: 42%;
       border-radius: 9999px;
       background: linear-gradient(
         180deg,
-        rgba(255, 255, 255, 0.78) 0%,
-        rgba(255, 255, 255, 0.18) 55%,
+        rgba(255, 255, 255, 0.65) 0%,
+        rgba(255, 255, 255, 0.12) 70%,
         transparent 100%
       );
       pointer-events: none;
       z-index: 0;
     }
-    /* Soft bottom refraction edge */
     .btn-liquid-glass::after {
-      content: '';
-      position: absolute;
-      inset: auto 10% 3px 10%;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.55);
-      border-radius: 9999px;
-      pointer-events: none;
-      z-index: 0;
+      display: none;
     }
     .btn-liquid-glass > * {
       position: relative;
@@ -723,22 +710,55 @@
     .btn-liquid-glass:hover {
       background:
         linear-gradient(
-          148deg,
-          #ffffff 0%,
-          #faf4fe 26%,
-          #eedefb 55%,
-          #dcc6f4 80%,
-          #c9a9e8 100%
+          165deg,
+          rgba(255, 255, 255, 1) 0%,
+          rgba(252, 248, 255, 0.95) 50%,
+          rgba(244, 234, 252, 0.88) 100%
         );
-      border-color: rgba(140, 96, 196, 0.85);
+      border-color: rgba(201, 169, 232, 0.58);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 1),
-        inset 0 -12px 24px rgba(168, 122, 214, 0.22),
-        0 6px 18px rgba(130, 88, 186, 0.2),
-        0 0 0 1px rgba(201, 169, 232, 0.35);
+        0 2px 6px rgba(155, 111, 212, 0.08);
     }
     .btn-liquid-glass:active {
       transform: scale(0.985);
+    }
+
+    /* Hero “How it works” — same clean glass on dark photo */
+    .btn-liquid-glass--on-dark,
+    a.hero-cta-secondary.btn-liquid-glass {
+      background:
+        linear-gradient(
+          165deg,
+          rgba(255, 255, 255, 0.28) 0%,
+          rgba(255, 255, 255, 0.14) 55%,
+          rgba(255, 255, 255, 0.1) 100%
+        );
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      color: #fff;
+      backdrop-filter: blur(14px) saturate(1.2);
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    }
+    .btn-liquid-glass--on-dark:hover,
+    a.hero-cta-secondary.btn-liquid-glass:hover {
+      background:
+        linear-gradient(
+          165deg,
+          rgba(255, 255, 255, 0.36) 0%,
+          rgba(255, 255, 255, 0.2) 100%
+        );
+      border-color: rgba(255, 255, 255, 0.5);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      color: #fff;
+    }
+    .btn-liquid-glass--on-dark::before,
+    a.hero-cta-secondary.btn-liquid-glass::before {
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.4) 0%,
+        transparent 100%
+      );
     }
 
     .modal {
@@ -1199,8 +1219,8 @@
               <i class="fa-solid fa-arrow-right text-sm"></i>
             </a>
             <a href="#how"
-               class="hero-cta-secondary inline-flex items-center justify-center gap-x-2 bg-white/12 hover:bg-white/20 border border-white/25 text-white font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base backdrop-blur-sm">
-              How it works
+               class="hero-cta-secondary btn-liquid-glass btn-liquid-glass--on-dark inline-flex items-center justify-center gap-x-2 font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base">
+              <span>How it works</span>
             </a>
           </div>
 
