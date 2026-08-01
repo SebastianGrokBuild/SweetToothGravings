@@ -235,9 +235,27 @@
       border: 1px solid var(--border);
       border-radius: 1.35rem;
       overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                   box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 4px 14px rgba(63, 42, 43, 0.03);
+    }
+    .product-card .card-body {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .product-card .card-actions {
+      margin-top: auto;
+      align-items: stretch;
+    }
+    .product-card .card-actions button {
+      min-height: 2.85rem;
+      height: 2.85rem;
+      flex: 1 1 0;
     }
 
     .product-image-container {
@@ -434,8 +452,7 @@
 
     /*
      * Liquid glass — Details buttons
-     * Soft frosted glass inspired by hero “How it works” (white/12 + blur + border),
-     * adapted for cream product cards so text stays readable.
+     * Stronger frost + lavender edge so it stays visible on white/cream cards.
      */
     .btn-liquid-glass {
       display: inline-flex;
@@ -443,19 +460,19 @@
       justify-content: center;
       background:
         linear-gradient(
-          155deg,
-          rgba(255, 255, 255, 0.78) 0%,
-          rgba(253, 248, 245, 0.42) 48%,
-          rgba(245, 238, 252, 0.38) 100%
+          160deg,
+          rgba(255, 255, 255, 0.95) 0%,
+          rgba(245, 238, 252, 0.88) 45%,
+          rgba(232, 217, 245, 0.72) 100%
         );
-      backdrop-filter: blur(16px) saturate(1.35);
-      -webkit-backdrop-filter: blur(16px) saturate(1.35);
-      border: 1px solid rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(18px) saturate(1.4);
+      -webkit-backdrop-filter: blur(18px) saturate(1.4);
+      border: 1.5px solid rgba(201, 169, 232, 0.55);
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        inset 0 -1px 0 rgba(201, 169, 232, 0.12),
-        0 2px 10px rgba(63, 42, 43, 0.05),
-        0 0 0 1px rgba(201, 169, 232, 0.18);
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -1px 0 rgba(201, 169, 232, 0.2),
+        0 3px 12px rgba(155, 111, 212, 0.1),
+        0 0 0 1px rgba(201, 169, 232, 0.12);
       color: #3F2A2B;
       font-weight: 600;
       letter-spacing: -0.01em;
@@ -468,25 +485,20 @@
     .btn-liquid-glass:hover {
       background:
         linear-gradient(
-          155deg,
-          rgba(255, 255, 255, 0.92) 0%,
-          rgba(253, 248, 245, 0.62) 50%,
-          rgba(245, 238, 252, 0.55) 100%
+          160deg,
+          rgba(255, 255, 255, 1) 0%,
+          rgba(245, 238, 252, 0.95) 50%,
+          rgba(232, 217, 245, 0.85) 100%
         );
-      border-color: rgba(255, 255, 255, 0.85);
+      border-color: rgba(180, 138, 224, 0.7);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 1),
-        inset 0 -1px 0 rgba(201, 169, 232, 0.18),
-        0 4px 16px rgba(63, 42, 43, 0.07),
-        0 0 0 1px rgba(201, 169, 232, 0.32);
+        inset 0 -1px 0 rgba(201, 169, 232, 0.25),
+        0 5px 16px rgba(155, 111, 212, 0.14),
+        0 0 0 1px rgba(201, 169, 232, 0.22);
     }
     .btn-liquid-glass:active {
       transform: scale(0.985);
-    }
-    @media (max-width: 640px) {
-      .btn-liquid-glass {
-        min-height: 2.85rem;
-      }
     }
 
     .modal {
@@ -1866,8 +1878,8 @@
         const loadingAttr = isFirstBatch ? 'eager' : 'lazy'
         const fetchPriorityAttr = isHighPriority ? 'high' : 'auto'
         const decodingAttr = isHighPriority ? 'async' : 'async'
-        const selectBtn = `<button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="flex-1 min-h-[2.85rem] text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+        const selectBtn = `<button type="button" onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
+                      class="flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>`
@@ -1892,14 +1904,14 @@
             </div>
           </div>
           
-          <div class="p-4 sm:p-5 flex-1 flex flex-col">
+          <div class="card-body p-4 sm:p-5">
             <div class="font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px] leading-snug">${product.name}</div>
             ${product.seasonal && product.seasonalNote ? `<p class="text-[11px] font-semibold text-[#7B4DB8] mt-1.5 leading-snug">${product.seasonalNote}</p>` : ''}
-            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
+            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed min-h-[2.25rem]">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
             
-            <div class="card-actions flex flex-col sm:flex-row gap-2 mt-4 sm:mt-5">
+            <div class="card-actions flex flex-row gap-2 mt-4 sm:mt-5">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="btn-liquid-glass flex-1 min-h-[2.85rem] text-sm rounded-full px-4">
+                      class="btn-liquid-glass flex-1 text-sm rounded-full px-3 sm:px-4">
                 Details
               </button>
               ${selectBtn}
@@ -1943,16 +1955,16 @@
             </div>
           </div>
           
-          <div class="p-5 flex-1 flex flex-col">
+          <div class="card-body p-5">
             <div class="font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
             
-            <div class="flex flex-col sm:flex-row gap-2 mt-5">
+            <div class="card-actions flex flex-row gap-2 mt-5">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="btn-liquid-glass flex-1 min-h-[2.85rem] h-11 text-sm rounded-full px-4">
+                      class="btn-liquid-glass flex-1 text-sm rounded-full px-4">
                 View Details
               </button>
-              <button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="flex-1 min-h-[2.85rem] h-11 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+              <button type="button" onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
+                      class="flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>
