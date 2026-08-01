@@ -1559,8 +1559,10 @@
       },
       { 
         id: 11, name: "Coquito", price: 25, startingAt: true, category: "desserts", img: "assets/images/opt/coquito.jpg",
-        shortDesc: "Creamy coconut drink. Choose from Pistachio, Almond, or Regular.",
-        description: "Homemade Puerto Rican coquito (coconut eggnog). Available with or without alcohol. Bottled for easy serving.",
+        seasonal: true,
+        seasonalNote: "Seasonal item – Available only around Thanksgiving and Christmas.",
+        shortDesc: "Seasonal item – Available only around Thanksgiving and Christmas. Creamy coconut drink. Choose from Pistachio, Almond, or Regular.",
+        description: "Homemade Puerto Rican coquito (coconut eggnog). Available with or without alcohol. Bottled for easy serving. Seasonal item – Available only around Thanksgiving and Christmas.",
         flavors: ["Pistachio", "Almond", "Regular"],
         tiers: [
           { label: "17 oz bottle", price: 25, serves: "With or without alcohol" },
@@ -1673,6 +1675,7 @@
                  decoding="${decodingAttr}"
                  onerror="this.style.display='none'; this.parentElement.querySelector('.product-image-fallback').style.display='flex';">
             <div class="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-sm text-[#3F2A2B]">${priceLabel}</div>
+            ${product.seasonal ? '<div class="absolute top-2.5 left-2.5 bg-[#F5EEFC]/95 backdrop-blur px-2.5 py-1 rounded-full text-[10px] font-semibold shadow-sm text-[#7B4DB8] tracking-wide">Seasonal</div>' : ''}
             <div class="product-image-fallback absolute inset-0 text-sm font-medium flex-col">
               <i class="fa-solid fa-image"></i>
               <span>${product.name}</span>
@@ -1682,7 +1685,8 @@
           
           <div class="p-4 sm:p-5 flex-1 flex flex-col">
             <div class="font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px] leading-snug">${product.name}</div>
-            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc || ''}</p>
+            ${product.seasonal && product.seasonalNote ? `<p class="text-[11px] font-semibold text-[#7B4DB8] mt-1.5 leading-snug">${product.seasonalNote}</p>` : ''}
+            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
             
             <div class="card-actions flex flex-col sm:flex-row gap-2 mt-4 sm:mt-5">
               <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
@@ -1835,6 +1839,12 @@
       
       // Use full description in details mode, shortDesc in select/quick view
       const descEl = document.getElementById('modal-description')
+      const seasonalBanner = currentProduct.seasonal && currentProduct.seasonalNote
+        ? `<div class="mb-3 rounded-2xl border border-[#E8D9F5] bg-[#F5EEFC] px-3.5 py-2.5 text-sm text-[#5C3D7A] leading-snug">
+             <i class="fa-solid fa-snowflake text-[#C9A9E8] mr-1.5"></i>
+             <strong class="font-semibold">Seasonal:</strong> ${String(currentProduct.seasonalNote).replace(/^Seasonal item\s*[–-]\s*/i, '')}
+           </div>`
+        : ''
 
       if (currentProduct.name === "Party Packages" && mode === 'details') {
         // Special view showing the three packages when viewing details for Party Packages
@@ -1858,9 +1868,32 @@
           </div>
         `
       } else if (mode === 'details' && currentProduct.description) {
-        descEl.textContent = currentProduct.description
+        const body = currentProduct.description
+          .replace(/\s*Seasonal item\s*[–-]\s*Available only around Thanksgiving and Christmas\.?/i, '')
+          .trim()
+        descEl.innerHTML = seasonalBanner + `<p class="text-[#5C4A4B] leading-relaxed">${body}</p>`
       } else {
-        descEl.textContent = currentProduct.shortDesc || ''
+        const short = (currentProduct.shortDesc || '')
+          .replace(/^Seasonal item\s*[–-]\s*Available only around Thanksgiving and Christmas\.\s*/i, '')
+          .trim()
+        descEl.innerHTML = seasonalBanner + (short ? `<p class="text-[#5C4A4B] leading-relaxed">${short}</p>` : '')
+      }
+
+      // Seasonal row in info box
+      const infoBox = document.getElementById('modal-info-box')
+      if (infoBox) {
+        let seasonalRow = infoBox.querySelector('[data-seasonal-row]')
+        if (currentProduct.seasonal && currentProduct.seasonalNote) {
+          if (!seasonalRow) {
+            seasonalRow = document.createElement('div')
+            seasonalRow.setAttribute('data-seasonal-row', '1')
+            seasonalRow.className = 'flex justify-between gap-3'
+            infoBox.insertBefore(seasonalRow, infoBox.firstChild)
+          }
+          seasonalRow.innerHTML = `<span>Availability</span> <span class="font-medium text-[#7B4DB8] text-right">Seasonal — Thanksgiving &amp; Christmas</span>`
+        } else if (seasonalRow) {
+          seasonalRow.remove()
+        }
       }
       
       // Clear notes
@@ -4146,6 +4179,7 @@
                 <div>
                   <div class="font-semibold text-lg leading-tight">${product.name}</div>
                   <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>
+                  ${product.seasonal ? `<div class="text-[11px] font-semibold text-[#7B4DB8] mt-0.5">Seasonal — Thanksgiving &amp; Christmas</div>` : ''}
                 </div>
               </div>
               <button onclick="closeMobileQuickOrder()" class="text-3xl text-[#8B6F6F] px-2 leading-none">×</button>
@@ -4153,6 +4187,7 @@
 
             <!-- Scrollable: tiers + options + notes -->
             <div class="flex-1 overflow-y-auto p-5 space-y-4" id="mobile-scroll-area">
+              ${product.seasonal && product.seasonalNote ? `<div class="rounded-2xl border border-[#E8D9F5] bg-[#F5EEFC] px-3.5 py-2.5 text-xs text-[#5C3D7A] leading-snug"><i class="fa-solid fa-snowflake text-[#C9A9E8] mr-1"></i>${product.seasonalNote}</div>` : ''}
               <div class="text-xs uppercase tracking-widest font-semibold text-[#8B6F6F] mb-1 px-1">Choose your option</div>
               <div id="mobile-tiers-list" class="space-y-2"></div>
 
