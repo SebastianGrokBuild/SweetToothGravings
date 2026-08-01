@@ -15,7 +15,16 @@ The `SweetToothCravings/` folder contents were processed.
 Use **only** high-quality files in `assets/images/` (e.g. `assets/images/cupcakes.jpg`).  
 Do **not** use or maintain an `opt/` subfolder — the site loads HQ paths directly so updates are fast and consistent on every device.
 
-Replace a product photo by overwriting the same filename in `assets/images/`, then hard-refresh the site.
+### How to update a photo (so it shows on every phone & computer)
+
+1. Replace the file in `assets/images/` using the **same filename** (e.g. keep `coquito.jpg`).
+2. Bump the asset version so caches refresh:
+   - Open `config.js`
+   - Change `STC_ASSET_VERSION` to today’s date (example: `"2026-08-15-coquito"`)
+3. Commit & push the new image + `config.js`.
+4. Wait a minute for the live site to deploy, then open the shop (or refresh once).
+
+The site adds `?v=…` to every image URL and the service worker loads photos from the network first, so desktop and mobile stay in sync.
 
 ---
 

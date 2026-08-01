@@ -34,4 +34,11 @@
   global.STC_DEPLOY_BUILD = "2026-07-27-insert-top-v5";
   global.STC_EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
   global.STC_EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
+
+  /**
+   * Bump this string whenever you replace photos in assets/images/
+   * so every device loads the new files (not a cached copy).
+   * Example: "2026-08-15-coquito" or just today's date.
+   */
+  global.STC_ASSET_VERSION = global.STC_ASSET_VERSION || "2026-08-01-img-v2";
 })(typeof window !== "undefined" ? window : globalThis);

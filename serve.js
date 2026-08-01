@@ -772,11 +772,28 @@ function sendFile(res, filePath) {
   if (ext === ".html") {
     headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
   }
-  // Service worker + manifest must revalidate so PWA updates install cleanly
+  // Service worker + manifest + config must revalidate so updates install cleanly
   const base = path.basename(filePath);
-  if (base === "sw.js" || base === "manifest.json" || ext === ".webmanifest") {
+  if (
+    base === "sw.js" ||
+    base === "manifest.json" ||
+    base === "config.js" ||
+    ext === ".webmanifest"
+  ) {
     headers["Cache-Control"] = "no-cache, must-revalidate";
-    headers["Service-Worker-Allowed"] = "/";
+    if (base === "sw.js") headers["Service-Worker-Allowed"] = "/";
+  }
+  // Images: revalidate so file replacements (same name) show without long stale cache
+  if (
+    ext === ".jpg" ||
+    ext === ".jpeg" ||
+    ext === ".png" ||
+    ext === ".webp" ||
+    ext === ".gif" ||
+    ext === ".svg" ||
+    ext === ".avif"
+  ) {
+    headers["Cache-Control"] = "public, max-age=0, must-revalidate";
   }
   res.writeHead(200, headers);
   res.end(buf);

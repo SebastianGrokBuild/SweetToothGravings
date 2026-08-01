@@ -34,18 +34,18 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="icon" href="assets/images/logo.png" type="image/png">
-  <!-- Above-the-fold image preloads (hero + first menu products) -->
-  <link rel="preload" as="image" href="assets/images/hero.jpg" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/images/logo.png" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/images/custom-cakes.jpg" fetchpriority="high">
-  <link rel="preload" as="image" href="assets/images/tres-leches-9x13.jpg">
-  <link rel="preload" as="image" href="assets/images/chocoflan.jpg">
-  <link rel="preload" as="image" href="assets/images/breakable-heart.jpg">
-  <link rel="preload" as="image" href="assets/images/churro-cheesecake.jpg">
-  <link rel="preload" as="image" href="assets/images/cupcakes.jpg">
-  <link rel="preload" as="image" href="assets/images/2-tier-cakes.jpg">
-  <!-- cache-bust: force browsers off stale order form / config after deploy -->
-  <script src="config.js?v=20260801-hq-images-v1"></script>
+  <!-- Above-the-fold image preloads (hero + first menu products); ?v= applied below -->
+  <link rel="preload" as="image" href="assets/images/hero.jpg" fetchpriority="high" data-asset>
+  <link rel="preload" as="image" href="assets/images/logo.png" fetchpriority="high" data-asset>
+  <link rel="preload" as="image" href="assets/images/custom-cakes.jpg" fetchpriority="high" data-asset>
+  <link rel="preload" as="image" href="assets/images/tres-leches-9x13.jpg" data-asset>
+  <link rel="preload" as="image" href="assets/images/chocoflan.jpg" data-asset>
+  <link rel="preload" as="image" href="assets/images/breakable-heart.jpg" data-asset>
+  <link rel="preload" as="image" href="assets/images/churro-cheesecake.jpg" data-asset>
+  <link rel="preload" as="image" href="assets/images/cupcakes.jpg" data-asset>
+  <link rel="preload" as="image" href="assets/images/2-tier-cakes.jpg" data-asset>
+  <!-- cache-bust: bump STC_ASSET_VERSION in config.js when replacing photos -->
+  <script src="config.js?v=20260801-img-v2"></script>
   <script>
     (function () {
       var host = location.hostname;
@@ -54,7 +54,44 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       // Live shop always uses the production order API (Order Log + Drive forced server-side).
-      window.STC_DEPLOY_BUILD = '2026-08-01-hq-polish-v1';
+      window.STC_DEPLOY_BUILD = '2026-08-01-img-cache-v2';
+      // Asset version: bump this (or config.js STC_ASSET_VERSION) after replacing images
+      if (!window.STC_ASSET_VERSION) window.STC_ASSET_VERSION = '2026-08-01-img-v2';
+
+      /** Append ?v= so browsers/SW treat replaced files as new URLs. */
+      window.assetUrl = function assetUrl(path) {
+        if (!path) return path;
+        var s = String(path);
+        if (/^https?:\/\//i.test(s) || s.indexOf('data:') === 0 || s.indexOf('blob:') === 0) {
+          return s;
+        }
+        if (/[?&]v=/.test(s)) return s;
+        var v = String(window.STC_ASSET_VERSION || '1');
+        return s + (s.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(v);
+      };
+
+      function versionDomAssets() {
+        var withV = window.assetUrl;
+        document.querySelectorAll('link[rel="preload"][as="image"]').forEach(function (el) {
+          var href = el.getAttribute('href');
+          if (href) el.setAttribute('href', withV(href));
+        });
+        document.querySelectorAll('img[src*="assets/"]').forEach(function (el) {
+          var src = el.getAttribute('src');
+          if (src) el.setAttribute('src', withV(src));
+        });
+        // Hero background (CSS variable)
+        document.documentElement.style.setProperty(
+          '--hero-image',
+          'url("' + withV('assets/images/hero.jpg') + '")'
+        );
+      }
+      // Run ASAP for preloads + again when body is ready for imgs
+      versionDomAssets();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', versionDomAssets);
+      }
+
       if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
@@ -449,9 +486,10 @@
 
     .dessert-bg {
       background-color: #3F2A2B;
+      /* --hero-image set by assetUrl() so replacements bust cache */
       background-image:
         linear-gradient(115deg, rgba(18,10,12,0.62) 0%, rgba(18,10,12,0.28) 42%, rgba(18,10,12,0.12) 72%, rgba(18,10,12,0.35) 100%),
-        url('assets/images/hero.jpg');
+        var(--hero-image, url('assets/images/hero.jpg'));
       background-size: cover;
       background-position: center center;
       background-repeat: no-repeat;
@@ -785,7 +823,8 @@
 
     /*
      * Product photos: always use high-quality files in assets/images/
-     * (not assets/images/opt/). Swap photos by replacing those files only.
+     * (not assets/images/opt/). Replace files in place, then bump
+     * STC_ASSET_VERSION in config.js so all devices load the new photo.
      */
     .product-img {
       filter: none;
@@ -2216,9 +2255,10 @@
                 <span>Select</span>
               </button>`
         
+        const imgSrc = (typeof assetUrl === 'function' ? assetUrl(product.img) : product.img)
         card.innerHTML = `
           <div class="relative overflow-hidden bg-[#F9F1EB] product-image-container">
-            <img src="${product.img}" 
+            <img src="${imgSrc}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="${product.name}"
                  width="480"
@@ -2271,9 +2311,10 @@
         const priceLabel = product.startingAt ? `Starting at $${product.price}` : `$${product.price}`
 
         // Party section is further down the page — lazy-load to keep hero/menu fast
+        const imgSrc = (typeof assetUrl === 'function' ? assetUrl(product.img) : product.img)
         card.innerHTML = `
           <div class="relative overflow-hidden aspect-[16/9] bg-[#F9F1EB] product-image-container">
-            <img src="${product.img}" 
+            <img src="${imgSrc}" 
                  class="product-img absolute inset-0 w-full h-full object-cover" 
                  alt="${product.name}"
                  width="640"
@@ -2365,7 +2406,7 @@
       const modalImgEl = document.getElementById('modal-image-element')
       const modalImgFallback = document.getElementById('modal-image-fallback')
 
-      modalImgEl.src = currentProduct.img
+      modalImgEl.src = (typeof assetUrl === 'function' ? assetUrl(currentProduct.img) : currentProduct.img)
       modalImgEl.alt = currentProduct.name || ''
       modalImgEl.loading = 'eager'
       modalImgEl.decoding = 'sync'
@@ -4773,7 +4814,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
               <div class="flex items-center gap-x-3 min-w-0">
-                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border shrink-0" loading="eager" decoding="sync" alt="">
+                <img src="${typeof assetUrl === 'function' ? assetUrl(product.img) : product.img}" class="w-12 h-12 rounded-2xl object-cover border shrink-0" loading="eager" decoding="sync" alt="">
                 <div class="min-w-0">
                   <div class="font-semibold text-lg leading-tight truncate">${product.name}</div>
                   <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>

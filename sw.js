@@ -1,11 +1,13 @@
 /* Sweet Tooth Cravings — Service Worker
- * Caches shell + key assets for offline browse; always prefers network for API.
- * Bump CACHE_VERSION when shipping client changes so devices refresh.
+ * Shell can offline-cache lightly; product photos always prefer the network
+ * so replacing a file in assets/images/ shows up on every device.
+ * Bump CACHE_VERSION when shipping SW logic changes.
  */
-const CACHE_VERSION = "stc-pwa-v3-20260728-polish";
+const CACHE_VERSION = "stc-pwa-v4-20260801-img-network";
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 
+/** App shell only — do NOT precache product photos (they change often). */
 const PRECACHE_URLS = [
   "/",
   "/index.html",
@@ -16,22 +18,6 @@ const PRECACHE_URLS = [
   "/assets/icons/icon-192.png",
   "/assets/icons/icon-512.png",
   "/assets/icons/apple-touch-icon.png",
-  "/assets/images/logo.png",
-  "/assets/images/hero.jpg",
-  "/assets/images/custom-cakes.jpg",
-  "/assets/images/tres-leches-9x13.jpg",
-  "/assets/images/chocoflan.jpg",
-  "/assets/images/breakable-heart.jpg",
-  "/assets/images/churro-cheesecake.jpg",
-  "/assets/images/cupcakes.jpg",
-  "/assets/images/2-tier-cakes.jpg",
-  "/assets/images/flan.jpg",
-  "/assets/images/bento-cake.jpg",
-  "/assets/images/mini-cakes.jpg",
-  "/assets/images/coquito.jpg",
-  "/assets/images/sheet-cake.jpg",
-  "/assets/images/chocolate-strawberries.jpg",
-  "/assets/images/party-packages.jpg",
 ];
 
 function isApiRequest(url) {
@@ -50,6 +36,12 @@ function isCdnRequest(url) {
     url.hostname.includes("fonts.googleapis.com") ||
     url.hostname.includes("fonts.gstatic.com")
   );
+}
+
+function isImageAsset(url) {
+  if (url.origin !== self.location.origin) return false;
+  if (url.pathname.startsWith("/assets/images/")) return true;
+  return /\.(jpe?g|png|webp|gif|svg|avif)$/i.test(url.pathname);
 }
 
 self.addEventListener("install", (event) => {
@@ -84,7 +76,6 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Allow page to ask SW to activate immediately after update
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
@@ -102,22 +93,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Never cache order API / Stripe / auth traffic
   if (isApiRequest(url)) return;
 
-  // Navigation: network first, fall back to cached shell
-  if (req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html")) {
+  // HTML navigations: network first
+  if (
+    req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html")
+  ) {
     event.respondWith(networkFirstHtml(req));
     return;
   }
 
-  // Same-origin static assets: cache first, update in background
-  if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirst(req));
+  // Product / site images: always try network first so file replacements win
+  if (isImageAsset(url)) {
+    event.respondWith(networkFirstImage(req));
     return;
   }
 
-  // CDNs: stale-while-revalidate when available
+  // Same-origin non-image static (JS/CSS/icons shell): stale-while-revalidate
+  if (url.origin === self.location.origin) {
+    event.respondWith(staleWhileRevalidate(req));
+    return;
+  }
+
   if (isCdnRequest(url)) {
     event.respondWith(staleWhileRevalidate(req));
   }
@@ -146,28 +144,25 @@ async function networkFirstHtml(request) {
   }
 }
 
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
-  if (cached) {
-    // Refresh cache in background
-    fetch(request)
-      .then((res) => {
-        if (res && res.ok) {
-          caches.open(RUNTIME).then((c) => c.put(request, res)).catch(() => {});
-        }
-      })
-      .catch(() => {});
-    return cached;
-  }
+/** Images: network first, ignore HTTP cache when possible, cache as offline fallback only. */
+async function networkFirstImage(request) {
   try {
-    const fresh = await fetch(request);
+    const fresh = await fetch(request, { cache: "no-cache" });
     if (fresh && fresh.ok) {
       const cache = await caches.open(RUNTIME);
       cache.put(request, fresh.clone()).catch(() => {});
+      return fresh;
     }
-    return fresh;
   } catch {
-    return caches.match("/index.html");
+    /* fall through to cache */
+  }
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  // Last resort: try normal fetch without no-cache
+  try {
+    return await fetch(request);
+  } catch {
+    return new Response("", { status: 504, statusText: "Image offline" });
   }
 }
 
@@ -198,8 +193,8 @@ function offlineHtml() {
 </style></head><body>
 <div class="card">
   <h1>You're offline</h1>
-  <p>Sweet Tooth Cravings needs a connection to load the latest menu. Check your signal and try again.</p>
-  <button onclick="location.reload()">Retry</button>
+  <p>Reconnect to browse the full menu and place an order.</p>
+  <button type="button" onclick="location.reload()">Try again</button>
 </div>
 </body></html>`;
 }
