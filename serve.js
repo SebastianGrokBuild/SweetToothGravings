@@ -31,7 +31,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-08-01-feedback-delete-v1";
+const DEPLOY_BUILD = "2026-08-01-admin-delete-orders-v1";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -1881,6 +1881,150 @@ async function api(req, res, pathname, baseUrl) {
       });
     } catch (e) {
       console.error("[admin/pending-orders]", e);
+      return json(res, 500, { error: e.message || String(e) });
+    }
+  }
+
+  /**
+   * Delete order(s) — Admin cleanup for test orders.
+   * DELETE /api/admin/orders?orderNumber=ST-…&row=12
+   * DELETE /api/admin/orders?pending=1  — remove all Pending Review orders
+   */
+  if (method === "DELETE" && pathname === "/api/admin/orders") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    const urlObj = new URL(req.url, "http://localhost");
+    const clearPending =
+      urlObj.searchParams.get("pending") === "1" ||
+      urlObj.searchParams.get("pending") === "true" ||
+      urlObj.searchParams.get("allPending") === "1";
+    const orderNumber = String(
+      urlObj.searchParams.get("orderNumber") ||
+        urlObj.searchParams.get("orderId") ||
+        urlObj.searchParams.get("id") ||
+        "",
+    ).trim();
+    const sheetRowRaw = urlObj.searchParams.get("row") || urlObj.searchParams.get("sheetRow");
+    const sheetRow =
+      sheetRowRaw != null && sheetRowRaw !== "" ? Number(sheetRowRaw) : null;
+
+    try {
+      google.forceProductionTargets();
+
+      if (clearPending) {
+        // Build list of pending orders (sheet + local)
+        let sheetOrders = [];
+        try {
+          if (typeof google.listRecentOrdersFromSheet === "function") {
+            const listed = await google.listRecentOrdersFromSheet({ limit: 200 });
+            if (listed.ok) sheetOrders = listed.orders || [];
+          }
+        } catch (e) {
+          console.warn("[admin/delete-orders] sheet list failed:", e.message);
+        }
+        const local = loadOrders();
+        const pendingSheet = sheetOrders.filter((o) =>
+          isPendingReviewStatus(o.status),
+        );
+        // Delete sheet rows bottom-up so indexes stay valid
+        const rows = pendingSheet
+          .map((o) => ({
+            orderNumber: o.orderNumber || o.id,
+            sheetRow: o.sheetRow != null ? Number(o.sheetRow) : null,
+          }))
+          .filter((r) => r.orderNumber || (r.sheetRow && r.sheetRow >= 2))
+          .sort((a, b) => (b.sheetRow || 0) - (a.sheetRow || 0));
+
+        const deleted = [];
+        const errors = [];
+        for (const r of rows) {
+          try {
+            if (typeof google.deleteOrderFromSheet === "function") {
+              await google.deleteOrderFromSheet({
+                orderNumber: r.orderNumber,
+                sheetRow: r.sheetRow,
+              });
+            }
+            deleted.push(r.orderNumber || `row:${r.sheetRow}`);
+          } catch (e) {
+            errors.push({
+              order: r.orderNumber,
+              error: e.message || String(e),
+            });
+            console.warn("[admin/delete-orders] sheet delete failed:", e.message);
+          }
+        }
+
+        // Remove pending from local file
+        const localBefore = local.length;
+        const localNext = local.filter((o) => !isPendingReviewStatus(o.status));
+        saveOrders(localNext);
+        const localRemoved = localBefore - localNext.length;
+
+        console.log(
+          "[admin/delete-orders] cleared pending sheet=",
+          deleted.length,
+          "local=",
+          localRemoved,
+          "errors=",
+          errors.length,
+        );
+        return json(res, 200, {
+          ok: true,
+          clearedPending: true,
+          deletedSheet: deleted,
+          deletedLocal: localRemoved,
+          errors,
+        });
+      }
+
+      if (!orderNumber && !(sheetRow >= 2)) {
+        return json(res, 400, {
+          error: "Provide orderNumber (and optional row) or pending=1 to clear all pending.",
+        });
+      }
+
+      let sheetDeleted = false;
+      let sheetError = null;
+      try {
+        if (typeof google.deleteOrderFromSheet === "function") {
+          await google.deleteOrderFromSheet({
+            orderNumber: orderNumber || undefined,
+            sheetRow: sheetRow >= 2 ? sheetRow : undefined,
+          });
+          sheetDeleted = true;
+        }
+      } catch (e) {
+        sheetError = e.message || String(e);
+        // Still try local delete — order may be local-only
+        console.warn("[admin/delete-orders] sheet:", sheetError);
+      }
+
+      const local = loadOrders();
+      const want = String(orderNumber || "").trim().toLowerCase();
+      const localNext = local.filter((o) => {
+        const id = String(o.id || o.orderId || "").trim().toLowerCase();
+        return !want || id !== want;
+      });
+      const localDeleted = local.length - localNext.length;
+      if (localDeleted > 0) saveOrders(localNext);
+
+      if (!sheetDeleted && localDeleted === 0) {
+        return json(res, 404, {
+          error: sheetError || "Order not found in sheet or local store.",
+        });
+      }
+
+      return json(res, 200, {
+        ok: true,
+        orderNumber: orderNumber || null,
+        sheetDeleted,
+        localDeleted,
+        sheetError,
+      });
+    } catch (e) {
+      console.error("[admin/delete-orders]", e);
       return json(res, 500, { error: e.message || String(e) });
     }
   }

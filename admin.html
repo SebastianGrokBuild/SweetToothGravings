@@ -767,7 +767,12 @@
           <h3 class="heading-serif text-lg leading-tight" id="list-heading">Pending Review</h3>
           <div id="active-filter-chip" class="hidden filter-chip mt-1"></div>
         </div>
-        <button type="button" id="show-all-btn" class="show-all-btn hidden">Show All</button>
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+          <button type="button" id="clear-pending-btn" class="toolbar-btn text-xs text-red-700" title="Delete all Pending Review orders (tests)">
+            <i class="fa-solid fa-trash-can"></i> Clear pending
+          </button>
+          <button type="button" id="show-all-btn" class="show-all-btn hidden">Show All</button>
+        </div>
       </div>
     </div>
 
@@ -2217,11 +2222,25 @@
                 '</div>' +
               '</div>' +
               renderRequestReviewBtn(o) +
+              '<div class="mt-3 pt-2 border-t border-[#EDE4DC] flex justify-end">' +
+                '<button type="button" class="toolbar-btn text-[11px] text-red-700 delete-order-btn"' +
+                  ' data-order="' + escapeHtml(orderNumber) + '"' +
+                  ' data-row="' + escapeHtml(String(row)) + '"' +
+                  ' data-name="' + escapeHtml(name) + '"' +
+                  ' title="Remove this order (use for test orders)">' +
+                  '<i class="fa-solid fa-trash-can"></i> Delete order' +
+                '</button>' +
+              '</div>' +
               '<p class="send-status mt-2 text-xs text-center text-[#6B5B5F] min-h-[1rem]"></p>' +
             '</article>'
           );
         }).join('');
 
+        ordersList.querySelectorAll('.delete-order-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            deleteOrder(btn);
+          });
+        });
         ordersList.querySelectorAll('.send-invoice-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
             sendInvoice(btn);
@@ -2301,6 +2320,83 @@
               } catch (e2) { done(false); }
             }
           });
+        });
+      }
+
+      async function deleteOrder(btn) {
+        if (!btn) return;
+        var orderNumber = btn.getAttribute('data-order') || '';
+        var row = btn.getAttribute('data-row') || '';
+        var name = btn.getAttribute('data-name') || '';
+        var label = orderNumber || ('row ' + row);
+        if (name) label += ' (' + name + ')';
+        if (!confirm('Delete order ' + label + '?\n\nThis removes it from the Order Log and admin list. Use for test orders only.')) {
+          return;
+        }
+        btn.disabled = true;
+        var original = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting…';
+        try {
+          var q = '/api/admin/orders?';
+          if (orderNumber) q += 'orderNumber=' + encodeURIComponent(orderNumber) + '&';
+          if (row) q += 'row=' + encodeURIComponent(row);
+          await api(q.replace(/&$/, ''), { method: 'DELETE' });
+          showToast('Order deleted: ' + (orderNumber || row), true);
+          await loadOrders();
+        } catch (e) {
+          showToast(e.message || 'Could not delete order', false);
+          btn.disabled = false;
+          btn.innerHTML = original;
+        }
+      }
+
+      async function clearAllPendingOrders() {
+        var pendingCount = allOrders.filter(function (o) {
+          return statusBucket(o.status) === 'pending';
+        }).length;
+        if (!pendingCount) {
+          showToast('No pending orders to clear', true);
+          return;
+        }
+        if (!confirm(
+          'Delete ALL ' + pendingCount + ' Pending Review order(s)?\n\n' +
+          'This permanently removes them from Google Sheets and the admin list.\n' +
+          'Paid / Invoice Sent orders are kept. Use this to wipe old test orders.'
+        )) {
+          return;
+        }
+        var btn = document.getElementById('clear-pending-btn');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Clearing…';
+        }
+        try {
+          var data = await api('/api/admin/orders?pending=1', { method: 'DELETE' });
+          var n = (data.deletedSheet && data.deletedSheet.length) || 0;
+          var local = data.deletedLocal || 0;
+          showToast(
+            'Cleared pending: ' + n + ' from sheet' + (local ? ', ' + local + ' local' : ''),
+            true
+          );
+          if (data.errors && data.errors.length) {
+            console.warn('Some deletes failed', data.errors);
+            showToast('Some rows could not be deleted — check console', false);
+          }
+          await loadOrders();
+        } catch (e) {
+          showToast(e.message || 'Could not clear pending orders', false);
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Clear pending';
+          }
+        }
+      }
+
+      var clearPendingBtn = document.getElementById('clear-pending-btn');
+      if (clearPendingBtn) {
+        clearPendingBtn.addEventListener('click', function () {
+          clearAllPendingOrders();
         });
       }
 
