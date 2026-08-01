@@ -326,6 +326,75 @@
       line-height: 1.25;
     }
     .sales-card.revenue .sales-num { color: #2E7D32; font-size: 0.95rem; }
+    /* Clickable period filters (This Week / This Month) */
+    .sales-card[data-filter] {
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      user-select: none;
+      width: 100%;
+    }
+    .sales-card[data-filter]:active { transform: scale(0.98); }
+    .sales-card[data-filter].is-active {
+      border-color: #C9A9E8;
+      box-shadow: 0 0 0 2px rgba(201, 169, 232, 0.35), 0 6px 16px rgba(63, 42, 43, 0.06);
+      background: #FBF7FF;
+    }
+    /* Clear red delete control on every order card */
+    .delete-order-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      min-height: 2.35rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 0.85rem;
+      border: 1px solid #f1c0c0;
+      background: #fff5f5;
+      color: #b71c1c !important;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .delete-order-btn i { color: #c62828 !important; }
+    .delete-order-btn:hover,
+    .delete-order-btn:focus-visible {
+      background: #ffe8e8;
+      border-color: #e57373;
+      outline: none;
+    }
+    .delete-order-btn:active { background: #ffcdd2; }
+    .delete-order-btn:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+    .order-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .order-card-header-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.4rem;
+      flex-shrink: 0;
+    }
+    .order-card-delete-row {
+      margin-top: 0.75rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: stretch;
+    }
+    .order-card-delete-row .delete-order-btn {
+      width: 100%;
+      min-height: 2.65rem;
+      font-size: 0.8rem;
+    }
     .toolbar-actions {
       display: flex;
       align-items: center;
@@ -767,16 +836,16 @@
         </button>
       </div>
 
-      <div id="sales-stats" class="sales-grid" aria-label="Sales snapshot">
-        <div class="sales-card">
+      <div id="sales-stats" class="sales-grid" aria-label="Sales snapshot and period filters">
+        <button type="button" class="sales-card" data-filter="week" id="filter-card-week" aria-pressed="false" title="Show orders from this week">
           <div class="sales-num" id="sales-week">—</div>
           <div class="sales-label">Orders<br>this week</div>
-        </div>
-        <div class="sales-card">
+        </button>
+        <button type="button" class="sales-card" data-filter="month" id="filter-card-month" aria-pressed="false" title="Show orders from this month">
           <div class="sales-num" id="sales-month">—</div>
           <div class="sales-label">Orders<br>this month</div>
-        </div>
-        <div class="sales-card revenue">
+        </button>
+        <div class="sales-card revenue" aria-label="Revenue paid or completed">
           <div class="sales-num" id="sales-revenue">—</div>
           <div class="sales-label">Revenue<br>paid / done</div>
         </div>
@@ -1203,11 +1272,42 @@
         if (key === 'pending') return 'Pending Review';
         if (key === 'invoice') return 'Invoice Sent';
         if (key === 'paid') return 'Paid / Completed';
+        if (key === 'week') return 'This Week';
+        if (key === 'month') return 'This Month';
         return 'All orders';
+      }
+
+      function isValidFilter(key) {
+        return (
+          key === 'pending' ||
+          key === 'invoice' ||
+          key === 'paid' ||
+          key === 'week' ||
+          key === 'month' ||
+          key === 'all'
+        );
+      }
+
+      function orderInThisWeek(o) {
+        var d = parseOrderDate(o);
+        if (!d) return false;
+        return d >= startOfLocalWeek(new Date());
+      }
+
+      function orderInThisMonth(o) {
+        var d = parseOrderDate(o);
+        if (!d) return false;
+        return d >= startOfLocalMonth(new Date());
       }
 
       function getFilteredOrders() {
         if (activeFilter === 'all') return allOrders.slice();
+        if (activeFilter === 'week') {
+          return allOrders.filter(orderInThisWeek);
+        }
+        if (activeFilter === 'month') {
+          return allOrders.filter(orderInThisMonth);
+        }
         return allOrders.filter(function (o) {
           var b = statusBucket(o.status);
           return b === activeFilter;
@@ -1215,7 +1315,7 @@
       }
 
       function updateFilterUI() {
-        ['pending', 'invoice', 'paid'].forEach(function (key) {
+        ['pending', 'invoice', 'paid', 'week', 'month'].forEach(function (key) {
           var el = document.getElementById('filter-card-' + key);
           if (!el) return;
           var on = activeFilter === key;
@@ -1252,7 +1352,7 @@
         // Toggle off if same card clicked again
         if (key && key === activeFilter) {
           activeFilter = 'all';
-        } else if (key === 'pending' || key === 'invoice' || key === 'paid' || key === 'all') {
+        } else if (isValidFilter(key)) {
           activeFilter = key;
         } else {
           activeFilter = 'all';
@@ -1439,8 +1539,8 @@
         showToast('Exported ' + list.length + ' order' + (list.length === 1 ? '' : 's'), true);
       }
 
-      // Dashboard card filters
-      document.querySelectorAll('.stat-card[data-filter]').forEach(function (card) {
+      // Dashboard card filters (status + this week / this month)
+      document.querySelectorAll('[data-filter]').forEach(function (card) {
         card.addEventListener('click', function () {
           setFilter(card.getAttribute('data-filter'));
         });
@@ -2125,9 +2225,13 @@
               ? 'No Invoice Sent orders yet.'
               : activeFilter === 'paid'
                 ? 'No Paid / Completed orders yet.'
-                : activeFilter === 'all'
-                  ? 'No orders found.'
-                  : 'No Pending Review orders right now.';
+                : activeFilter === 'week'
+                  ? 'No orders this week yet.'
+                  : activeFilter === 'month'
+                    ? 'No orders this month yet.'
+                    : activeFilter === 'all'
+                      ? 'No orders found.'
+                      : 'No Pending Review orders right now.';
           ordersList.innerHTML =
             '<div class="order-card text-center py-10">' +
             '<div class="text-3xl text-[#C9A9E8] mb-3"><i class="fa-solid fa-inbox"></i></div>' +
@@ -2184,14 +2288,26 @@
           // Show copy next to deposit send, or alone once invoice exists
           var showCopyLink = showDepositSend || hasPaymentLink || bucket === 'invoice' || isBalanceInvoiceStatus(o.status);
 
+          var deleteBtnAttrs =
+            ' data-order="' + escapeHtml(orderNumber) + '"' +
+            ' data-row="' + escapeHtml(String(row)) + '"' +
+            ' data-name="' + escapeHtml(name) + '"' +
+            ' title="Delete this order (you can Undo right after)"';
+
           return (
             '<article class="order-card" data-idx="' + i + '" data-order-id="' + escapeHtml(orderNumber) + '">' +
-              '<div class="flex items-start justify-between gap-2">' +
-                '<div>' +
+              '<div class="order-card-header">' +
+                '<div class="min-w-0">' +
                   '<div class="text-[10px] uppercase tracking-wider font-semibold text-[#C9A9E8]">Order</div>' +
                   '<div class="font-semibold text-base leading-tight">' + escapeHtml(orderNumber) + '</div>' +
                 '</div>' +
-                statusBadgeHtml(o.status) +
+                '<div class="order-card-header-actions">' +
+                  statusBadgeHtml(o.status) +
+                  '<button type="button" class="delete-order-btn delete-order-btn--header"' +
+                    deleteBtnAttrs + '>' +
+                    '<i class="fa-solid fa-trash-can"></i> Delete' +
+                  '</button>' +
+                '</div>' +
               '</div>' +
               '<div class="mt-3 grid grid-cols-1 gap-1.5 text-sm">' +
                 '<div class="flex gap-2"><span class="text-[#8B6F6F] w-24 shrink-0">Customer</span><span class="font-medium break-words">' + escapeHtml(name) + '</span></div>' +
@@ -2284,12 +2400,9 @@
                 '</div>' +
               '</div>' +
               renderRequestReviewBtn(o) +
-              '<div class="mt-3 pt-2 border-t border-[#EDE4DC] flex justify-end">' +
-                '<button type="button" class="toolbar-btn text-[11px] text-red-700 delete-order-btn"' +
-                  ' data-order="' + escapeHtml(orderNumber) + '"' +
-                  ' data-row="' + escapeHtml(String(row)) + '"' +
-                  ' data-name="' + escapeHtml(name) + '"' +
-                  ' title="Remove this order (use for test orders)">' +
+              '<div class="order-card-delete-row">' +
+                '<button type="button" class="delete-order-btn"' +
+                  deleteBtnAttrs + '>' +
                   '<i class="fa-solid fa-trash-can"></i> Delete order' +
                 '</button>' +
               '</div>' +
@@ -2392,28 +2505,56 @@
         var name = btn.getAttribute('data-name') || '';
         var label = orderNumber || ('row ' + row);
         if (name) label += ' (' + name + ')';
-        if (!confirm('Delete order ' + label + '?\n\nYou can Undo right after if this was a mistake.')) {
+        if (!confirm('Delete order ' + label + '?\n\nYou can tap Undo right after if this was a mistake.')) {
           return;
         }
-        btn.disabled = true;
-        var original = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting…';
+        // Disable all delete controls for this order while request runs
+        var card = btn.closest('.order-card');
+        var siblingBtns = card
+          ? card.querySelectorAll('.delete-order-btn')
+          : [btn];
+        siblingBtns.forEach(function (b) {
+          b.disabled = true;
+          b.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Deleting…';
+        });
         try {
           var q = '/api/admin/orders?';
           if (orderNumber) q += 'orderNumber=' + encodeURIComponent(orderNumber) + '&';
           if (row) q += 'row=' + encodeURIComponent(row);
           var data = await api(q.replace(/&$/, ''), { method: 'DELETE' });
           var trashId = data && data.trashId ? data.trashId : null;
+          // Drop from local list immediately so This Week / This Month update fast
+          if (orderNumber) {
+            var want = String(orderNumber).trim().toLowerCase();
+            allOrders = allOrders.filter(function (o) {
+              var id = String(o.orderNumber || o.id || '').trim().toLowerCase();
+              return id !== want;
+            });
+            renderSummary({
+              pendingReview: allOrders.filter(function (o) { return statusBucket(o.status) === 'pending'; }).length,
+              invoiceSent: allOrders.filter(function (o) { return statusBucket(o.status) === 'invoice'; }).length,
+              paidCompleted: allOrders.filter(function (o) { return statusBucket(o.status) === 'paid'; }).length,
+            });
+            renderSalesMetrics(allOrders);
+            updateFilterUI();
+            renderOrders(getFilteredOrders());
+          }
           showToast(
-            'Order deleted: ' + (orderNumber || row),
+            'Deleted ' + (orderNumber || row) + ' — tap Undo if needed',
             true,
             trashId ? { undoTrashId: trashId } : null
           );
-          await loadOrders();
+          // Refresh from sheet in background to stay in sync
+          loadOrders().catch(function () {});
         } catch (e) {
           showToast(e.message || 'Could not delete order', false);
-          btn.disabled = false;
-          btn.innerHTML = original;
+          siblingBtns.forEach(function (b) {
+            b.disabled = false;
+            b.innerHTML =
+              b.classList.contains('delete-order-btn--header')
+                ? '<i class="fa-solid fa-trash-can"></i> Delete'
+                : '<i class="fa-solid fa-trash-can"></i> Delete order';
+          });
         }
       }
 
