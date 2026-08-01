@@ -45,7 +45,7 @@
   <link rel="preload" as="image" href="assets/images/cupcakes.jpg">
   <link rel="preload" as="image" href="assets/images/2-tier-cakes.jpg">
   <!-- cache-bust: force browsers off stale order form / config after deploy -->
-  <script src="config.js?v=20260728-site-polish-v1"></script>
+  <script src="config.js?v=20260801-hq-images-v1"></script>
   <script>
     (function () {
       var host = location.hostname;
@@ -54,7 +54,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       // Live shop always uses the production order API (Order Log + Drive forced server-side).
-      window.STC_DEPLOY_BUILD = '2026-08-01-website-feedback-v1';
+      window.STC_DEPLOY_BUILD = '2026-08-01-hq-polish-v1';
       if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
@@ -300,12 +300,50 @@
     .dessert-bg {
       background-color: #3F2A2B;
       background-image:
-        linear-gradient(105deg, rgba(20,12,14,0.55) 0%, rgba(20,12,14,0.22) 48%, rgba(20,12,14,0.18) 100%),
+        linear-gradient(115deg, rgba(18,10,12,0.62) 0%, rgba(18,10,12,0.28) 42%, rgba(18,10,12,0.12) 72%, rgba(18,10,12,0.35) 100%),
         url('assets/images/hero.jpg');
       background-size: cover;
       background-position: center center;
       background-repeat: no-repeat;
       background-attachment: scroll;
+    }
+
+    .hero-reviews-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 1.5rem;
+      padding: 0.55rem 0.85rem 0.55rem 0.55rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #fff;
+      text-align: left;
+      transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+      min-height: 3rem;
+    }
+    .hero-reviews-chip:hover,
+    .hero-reviews-chip:focus-visible {
+      background: rgba(255, 255, 255, 0.24);
+      border-color: rgba(255, 255, 255, 0.4);
+      outline: none;
+    }
+    .hero-reviews-chip:active {
+      transform: scale(0.98);
+    }
+    .hero-reviews-chip .chip-stars {
+      color: #f5d0a9;
+      letter-spacing: 0.04em;
+      font-size: 0.8rem;
+    }
+
+    .stat-reviews-card {
+      transition: background 0.15s ease, box-shadow 0.15s ease;
+    }
+    .stat-reviews-card:hover {
+      box-shadow: inset 0 0 0 1px rgba(201, 169, 232, 0.35);
     }
 
     @media (max-width: 640px) {
@@ -324,13 +362,19 @@
         padding-bottom: 1rem !important;
       }
       .hero-inner {
-        padding-top: 2rem !important;
-        padding-bottom: 1.25rem !important;
+        padding-top: 1.85rem !important;
+        padding-bottom: 1rem !important;
         max-width: none !important;
       }
       .hero-title {
-        font-size: 2.55rem !important;
-        line-height: 1.05 !important;
+        font-size: 2.45rem !important;
+        line-height: 1.06 !important;
+        margin-bottom: 0.65rem !important;
+      }
+      .hero-reviews-chip {
+        margin-top: 1.15rem;
+        width: 100%;
+        max-width: 20rem;
       }
       /* Lead time / deposit: in-flow under reviews on mobile */
       .hero-trust-badge {
@@ -338,7 +382,7 @@
         left: auto !important;
         right: auto !important;
         bottom: auto !important;
-        margin: 0.25rem 1rem 0.25rem !important;
+        margin: 0.65rem 1rem 0.15rem !important;
         max-width: none !important;
         width: auto !important;
       }
@@ -363,8 +407,9 @@
       animation: slideIn 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     }
 
+    /* High-quality product photos from assets/images/ — light polish only */
     .product-img {
-      filter: contrast(1.08) brightness(0.98) saturate(1.06);
+      filter: none;
       image-rendering: auto;
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
@@ -377,6 +422,10 @@
       object-position: center;
       width: 100%;
       height: 100%;
+    }
+    #modal-image-element {
+      filter: none !important;
+      image-rendering: auto !important;
     }
 
     .product-image-container {
@@ -593,11 +642,12 @@
       /* Reviews modal: prioritize list */
       #reviews-modal .modal {
         max-height: 94vh !important;
+        max-height: 94dvh !important;
       }
       #reviews-list {
-        min-height: 42vh;
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
+        min-height: 48vh;
+        padding-top: 1.1rem !important;
+        padding-bottom: 1.1rem !important;
       }
       #review-form-shell {
         max-height: none;
@@ -606,8 +656,20 @@
         display: none !important;
       }
 
+      /* Product modal sticky footer always clear of home indicator */
+      #product-modal .product-modal-panel {
+        max-height: 93vh !important;
+        max-height: 93dvh !important;
+      }
+      #product-modal .product-modal-footer {
+        padding-bottom: max(0.9rem, env(safe-area-inset-bottom, 0px)) !important;
+      }
+      #product-modal .product-modal-footer button {
+        min-height: 3.25rem !important;
+      }
+
       /* Tappable targets */
-      button, a.mobile-nav-link, .menu-tab {
+      button, a.mobile-nav-link, .menu-tab, .hero-reviews-chip {
         touch-action: manipulation;
       }
     }
@@ -709,24 +771,23 @@
     </div>
   </nav>
 
-  <!-- HERO -->
+  <!-- HERO — premium, calm hierarchy -->
   <header class="pt-[4.75rem] sm:pt-24">
     <div class="max-w-screen-2xl mx-auto">
-      <div class="dessert-bg h-[min(88vh,760px)] min-h-[520px] sm:min-h-[600px] flex items-center relative rounded-b-[2.5rem] sm:rounded-b-[3.5rem] mx-3 sm:mx-4 shadow-xl overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/35 pointer-events-none"></div>
+      <div class="dessert-bg h-[min(86vh,720px)] min-h-[500px] sm:min-h-[580px] flex items-center relative rounded-b-[2.5rem] sm:rounded-b-[3.5rem] mx-3 sm:mx-4 shadow-xl overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none"></div>
         
-        <div class="hero-inner relative z-10 max-w-2xl px-5 sm:px-8 md:px-16 text-white py-10 sm:py-12 pb-6 sm:pb-12">
-          <div class="inline-flex items-center gap-x-2 bg-white/92 text-[#3F2A2B] px-3.5 h-8 rounded-full text-[11px] sm:text-xs font-semibold tracking-[0.14em] mb-5 sm:mb-6 shadow-sm">
-            <div class="w-2 h-2 bg-[#C9A9E8] rounded-full animate-pulse"></div>
+        <div class="hero-inner relative z-10 max-w-2xl px-5 sm:px-8 md:px-16 text-white py-10 sm:py-14 pb-6 sm:pb-14">
+          <div class="inline-flex items-center gap-x-2 bg-white/90 text-[#3F2A2B] px-3.5 h-8 rounded-full text-[11px] sm:text-xs font-semibold tracking-[0.16em] mb-4 sm:mb-6 shadow-sm">
+            <div class="w-1.5 h-1.5 bg-[#C9A9E8] rounded-full"></div>
             MIAMI, FLORIDA
           </div>
           
-          <h1 class="hero-title heading-serif text-4xl sm:text-6xl md:text-7xl leading-[1.05] tracking-tighter mb-3 sm:mb-4">
+          <h1 class="hero-title heading-serif text-4xl sm:text-6xl md:text-7xl leading-[1.05] tracking-tighter mb-3 sm:mb-5">
             Daily sweetness,<br>delivered.
           </h1>
-          <p class="max-w-md text-[15px] sm:text-lg text-white/92 mb-6 sm:mb-8 leading-relaxed">
-            Handcrafted cakes, flan, tres leches &amp; more.<br class="hidden sm:block">
-            Made with love in Miami.
+          <p class="max-w-md text-[15px] sm:text-lg text-white/90 mb-5 sm:mb-8 leading-relaxed">
+            Handcrafted cakes, flan, tres leches &amp; more — made with love in Miami.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
@@ -736,35 +797,40 @@
               <i class="fa-solid fa-arrow-right text-sm"></i>
             </a>
             <a href="#how"
-               class="inline-flex items-center justify-center gap-x-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base backdrop-blur-sm">
+               class="inline-flex items-center justify-center gap-x-2 bg-white/12 hover:bg-white/20 border border-white/25 text-white font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base backdrop-blur-sm">
               How it works
             </a>
           </div>
 
-          <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-3 sm:gap-x-4 mt-6 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group min-h-[2.75rem] -ml-1 pl-1 pr-2 py-1 rounded-2xl active:bg-white/10" aria-label="Read customer reviews — 5.0 stars">
-            <div class="flex items-center -space-x-1.5">
-              <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CUPCAKES</div>
-              </div>
-              <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">FLAN</div>
-              </div>
-              <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CAKES</div>
-              </div>
-            </div>
-            <div class="leading-tight">
-              <div class="font-semibold tracking-tight group-hover:underline underline-offset-2">5.0 ★ <span class="font-normal text-white/70 text-xs">· tap to read</span></div>
-              <div class="text-white/80 text-xs sm:text-sm group-hover:underline underline-offset-2">23 reviews</div>
-            </div>
+          <!-- Social proof chip — clearly tappable -->
+          <button type="button" onclick="openReviewsModal()" class="hero-reviews-chip group" aria-label="Read customer reviews — 5.0 stars from 23 reviews">
+            <span class="flex items-center -space-x-1.5 shrink-0">
+              <span class="w-8 h-8 rounded-full ring-2 ring-white/50 overflow-hidden bg-white shadow-sm">
+                <img src="assets/images/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="">
+              </span>
+              <span class="w-8 h-8 rounded-full ring-2 ring-white/50 overflow-hidden bg-white shadow-sm">
+                <img src="assets/images/flan.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="">
+              </span>
+              <span class="w-8 h-8 rounded-full ring-2 ring-white/50 overflow-hidden bg-white shadow-sm">
+                <img src="assets/images/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="">
+              </span>
+            </span>
+            <span class="leading-tight min-w-0">
+              <span class="flex items-center gap-1.5 text-[13px] sm:text-sm font-semibold tracking-tight">
+                <span class="chip-stars" aria-hidden="true">★★★★★</span>
+                <span>5.0</span>
+              </span>
+              <span class="block text-[11px] sm:text-xs text-white/80 mt-0.5">
+                <span class="underline decoration-white/40 underline-offset-2 group-hover:decoration-white">23 reviews</span>
+                <span class="text-white/55"> · read them</span>
+              </span>
+            </span>
+            <i class="fa-solid fa-chevron-right text-white/50 text-[10px] ml-auto shrink-0 sm:mr-0.5" aria-hidden="true"></i>
           </button>
         </div>
 
         <!-- Lead time + deposit: stacks under reviews on mobile; floats bottom-right on larger screens -->
-        <div class="hero-trust-badge relative z-10 absolute bottom-4 right-4 left-4 sm:left-auto sm:bottom-9 sm:right-9 bg-white/95 backdrop-blur px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-white max-w-md sm:max-w-sm">
+        <div class="hero-trust-badge relative z-10 absolute bottom-5 right-5 left-5 sm:left-auto sm:bottom-9 sm:right-9 bg-white/96 backdrop-blur-md px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-white/90 max-w-md sm:max-w-sm">
           <div class="flex items-start gap-x-2 text-[#3F2A2B] text-[11px] sm:text-xs leading-snug">
             <i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5 shrink-0"></i>
             <span class="font-medium">Most orders need <strong class="text-[#3F2A2B]">3–5 days</strong> notice. Party packages need at least <strong class="text-[#3F2A2B]">1 week</strong>.</span>
@@ -789,12 +855,13 @@
           <div class="text-[#8B6F6F]">Miami &amp; beyond</div>
         </div>
       </div>
-      <button type="button" onclick="openReviewsModal()" class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4 text-left w-full hover:bg-[#FDF8F5] active:bg-[#FDF8F5] transition cursor-pointer min-h-[4.5rem]" aria-label="Read customer reviews — 5.0 average">
+      <button type="button" onclick="openReviewsModal()" class="stat-reviews-card bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4 text-left w-full hover:bg-[#FDF8F5] active:bg-[#FDF8F5] transition cursor-pointer min-h-[4.5rem]" aria-label="Read customer reviews — 5.0 average from 23 reviews">
         <div>
-          <div class="flex items-center gap-x-0.5 text-[#C9A9E8] text-sm">
+          <div class="flex items-center gap-x-0.5 text-[#C9A9E8] text-sm" aria-hidden="true">
             <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
           </div>
-          <div class="font-semibold mt-0.5 text-xs sm:text-sm text-[#3F2A2B]">5.0 average · reviews</div>
+          <div class="font-semibold mt-0.5 text-xs sm:text-sm text-[#3F2A2B]">5.0 · 23 reviews</div>
+          <div class="text-[10px] text-[#C9A9E8] font-medium mt-0.5">Tap to read →</div>
         </div>
       </button>
       <div class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4">
@@ -1090,7 +1157,7 @@
         <!-- Image -->
         <div id="modal-image" class="w-full bg-[#FDF8F5] relative flex items-center justify-center overflow-hidden shrink-0"
              style="max-height: min(280px, 38vh);">
-          <img id="modal-image-element" class="max-h-[min(280px,38vh)] w-full object-contain" style="filter: contrast(1.1) brightness(0.97) saturate(1.08); image-rendering: crisp-edges; pointer-events: none; user-select: none; -webkit-touch-callout: none;" alt="">
+          <img id="modal-image-element" class="max-h-[min(280px,38vh)] w-full object-contain" style="image-rendering: auto; pointer-events: none; user-select: none; -webkit-touch-callout: none;" alt="">
           <div id="modal-image-fallback" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center text-[#6b5b5f]">
             <i class="fa-solid fa-image text-3xl mb-2 text-[#c9a9e8]"></i>
             <span class="text-sm font-medium">Photo not available</span>
@@ -1262,23 +1329,23 @@
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
 
-      <div class="px-4 sm:px-7 pt-3 sm:pt-6 pb-3 border-b border-[#EDE4DC] flex items-start justify-between gap-3 bg-white shrink-0">
+      <div class="px-4 sm:px-7 pt-3 sm:pt-6 pb-3.5 border-b border-[#EDE4DC] flex items-start justify-between gap-3 bg-white shrink-0">
         <div class="min-w-0">
-          <div class="heading-serif text-xl sm:text-3xl tracking-tight">Customer Reviews</div>
-          <button type="button" class="mt-1.5 inline-flex items-center gap-2 bg-[#FDF8F5] px-2.5 py-1 rounded-full text-xs sm:text-sm border border-[#EDE4DC] pointer-events-none" aria-hidden="true">
-            <span class="flex text-[#C9A9E8] text-[11px] gap-px">
-              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+          <div class="heading-serif text-xl sm:text-3xl tracking-tight text-[#3F2A2B]">Customer Reviews</div>
+          <div class="mt-2 inline-flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 bg-[#F5EEFC] px-3 py-1.5 rounded-full text-xs sm:text-sm border border-[#E8D9F5]">
+              <span class="text-[#C9A9E8] tracking-wide" aria-hidden="true">★★★★★</span>
+              <span id="reviews-average" class="font-bold text-[#3F2A2B]">5.0</span>
             </span>
-            <span id="reviews-average" class="font-semibold text-[#3F2A2B]">5.0</span>
-          </button>
-          <div id="reviews-count" class="text-[#8B6F6F] text-xs sm:text-sm mt-1">Loading reviews…</div>
+            <span id="reviews-count" class="text-[#6B5B5F] text-xs sm:text-sm font-medium">Loading reviews…</span>
+          </div>
         </div>
         <button type="button" onclick="closeReviewsModal()" class="w-10 h-10 flex items-center justify-center rounded-full text-[#8B6F6F] hover:text-[#3F2A2B] hover:bg-[#FDF8F5] shrink-0 text-2xl leading-none" aria-label="Close">×</button>
       </div>
 
       <!-- Public cake reviews (primary space) -->
-      <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-6 py-3.5 sm:py-4 space-y-2.5 sm:space-y-3 bg-[#FDF8F5]">
-        <p class="text-center text-[#8B6F6F] text-sm py-6">Loading reviews…</p>
+      <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-6 py-4 sm:py-5 space-y-3 sm:space-y-3.5 bg-[#FDF8F5]">
+        <p class="text-center text-[#8B6F6F] text-sm py-8">Loading reviews…</p>
       </div>
 
       <!-- Leave a cake review — compact; collapsible on mobile -->
@@ -3865,7 +3932,7 @@
       const total = allReviews.length;
       const countEl = document.getElementById('reviews-count');
       const avgEl = document.getElementById('reviews-average');
-      if (countEl) countEl.textContent = total ? `Based on ${total}+ reviews` : 'No public reviews yet';
+      if (countEl) countEl.textContent = total ? `${total}+ happy customers` : 'No public reviews yet';
       if (avgEl) avgEl.textContent = (reviewsAverage || 5).toFixed(1);
 
       container.innerHTML = '';
@@ -3881,16 +3948,16 @@
           ? '<span class="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Verified Order</span>'
           : '';
         const card = document.createElement('div');
-        card.className = 'bg-white border border-[#EDE4DC] rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4';
+        card.className = 'bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-4 py-4 sm:px-5 sm:py-5 shadow-sm';
         card.innerHTML =
           '<div class="flex justify-between items-start gap-3">' +
             '<div class="min-w-0">' +
-              '<div class="font-semibold text-[15px] text-[#3F2A2B]">' + escapeReviewHtml(review.name) + '</div>' +
+              '<div class="font-semibold text-[15px] sm:text-base text-[#3F2A2B]">' + escapeReviewHtml(review.name) + '</div>' +
               '<div class="text-[11px] text-[#8B6F6F] mt-0.5">' + escapeReviewHtml(review.date || '') + ' ' + verifiedBadge + '</div>' +
             '</div>' +
-            '<div class="text-[#C9A9E8] text-sm tracking-[-1px] shrink-0">' + stars + '</div>' +
+            '<div class="text-[#C9A9E8] text-sm sm:text-base tracking-wide shrink-0">' + stars + '</div>' +
           '</div>' +
-          '<p class="mt-2 text-sm text-[#3F2A2B] leading-relaxed">' + escapeReviewHtml(review.text) + '</p>';
+          '<p class="mt-2.5 sm:mt-3 text-sm sm:text-[0.95rem] text-[#3F2A2B] leading-relaxed">' + escapeReviewHtml(review.text) + '</p>';
         container.appendChild(card);
       });
     }
@@ -4249,7 +4316,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-5 pt-4 pb-3 border-b flex-shrink-0">
               <div class="flex items-center gap-x-3">
-                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" style="filter: contrast(1.1) brightness(0.97) saturate(1.08);" loading="eager" decoding="sync" alt="">
+                <img src="${product.img}" class="w-12 h-12 rounded-2xl object-cover border" loading="eager" decoding="sync" alt="">
                 <div>
                   <div class="font-semibold text-lg leading-tight">${product.name}</div>
                   <div class="text-xs text-[#8B6F6F]">Starting at $${product.price}</div>
