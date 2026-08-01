@@ -100,19 +100,60 @@
     /* Instagram chat FAB — clear of footer / home-indicator */
     .ig-chat-fab {
       position: fixed;
-      right: 1.25rem;
-      bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+      right: 1rem;
+      bottom: calc(1.15rem + env(safe-area-inset-bottom, 0px));
       z-index: 60;
     }
 
     /* Extra footer space so © / links never sit under the FAB */
     .site-footer {
-      padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(6.25rem + env(safe-area-inset-bottom, 0px));
     }
     @media (min-width: 640px) {
+      .ig-chat-fab {
+        right: 1.25rem;
+        bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+      }
       .site-footer {
         padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
       }
+    }
+
+    /* Mobile hamburger dropdown panel */
+    #mobile-menu {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.28s ease, opacity 0.2s ease;
+      border-top: 0 solid transparent;
+    }
+    #mobile-menu.is-open {
+      max-height: min(70vh, 28rem);
+      opacity: 1;
+      border-top: 1px solid var(--border);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #mobile-menu.hidden {
+      display: none !important;
+    }
+    #mobile-menu.is-open.hidden {
+      display: block !important;
+    }
+    .mobile-nav-link {
+      display: flex;
+      align-items: center;
+      min-height: 3rem;
+      padding: 0.65rem 1rem;
+      border-radius: 0.9rem;
+      color: #5C4A4B;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .mobile-nav-link:active {
+      background: #fff;
+      color: #3F2A2B;
     }
 
     img, video {
@@ -447,11 +488,11 @@
       animation: submitSpin 0.8s linear infinite;
     }
 
-    /* Mobile spacing rhythm */
+    /* Mobile spacing rhythm + open feel */
     @media (max-width: 640px) {
       .section-pad {
-        padding-left: 1.1rem !important;
-        padding-right: 1.1rem !important;
+        padding-left: 1.15rem !important;
+        padding-right: 1.15rem !important;
       }
       .product-card .card-actions {
         flex-direction: column;
@@ -460,12 +501,73 @@
         min-height: 2.85rem;
         width: 100%;
       }
-      #mobile-menu a,
-      #mobile-menu button {
-        min-height: 2.75rem;
-        display: flex;
-        align-items: center;
-        font-size: 1rem;
+
+      /* Major section breathing room */
+      #menu {
+        padding-top: 2.25rem !important;
+        padding-bottom: 3rem !important;
+      }
+      #how {
+        padding-top: 2.75rem !important;
+        padding-bottom: 2.75rem !important;
+      }
+      #size-guide {
+        padding-top: 2.75rem !important;
+        padding-bottom: 3rem !important;
+      }
+      #how .policy-card {
+        padding: 1.25rem 1.2rem !important;
+      }
+      #how .policy-card + .policy-card {
+        margin-top: 0;
+      }
+      #how .grid {
+        gap: 0.85rem !important;
+      }
+      #size-guide table th,
+      #size-guide table td {
+        padding-left: 0.85rem !important;
+        padding-right: 0.85rem !important;
+        padding-top: 0.85rem !important;
+        padding-bottom: 0.85rem !important;
+        font-size: 0.8125rem;
+      }
+      .stat-number {
+        font-size: 1.65rem !important;
+      }
+
+      /* Compact FAB on phones — icon + short label, less overlap */
+      .ig-chat-fab {
+        height: 3.15rem !important;
+        padding-left: 0.55rem !important;
+        padding-right: 0.9rem !important;
+        gap: 0.45rem !important;
+        box-shadow: 0 10px 28px rgba(63, 42, 43, 0.14) !important;
+      }
+      .ig-chat-fab > span:first-child {
+        width: 2.35rem !important;
+        height: 2.35rem !important;
+      }
+
+      /* Reviews modal: prioritize list */
+      #reviews-modal .modal {
+        max-height: 94vh !important;
+      }
+      #reviews-list {
+        min-height: 42vh;
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+      }
+      #review-form-shell {
+        max-height: none;
+      }
+      #review-form-panel.mobile-collapsed {
+        display: none !important;
+      }
+
+      /* Tappable targets */
+      button, a.mobile-nav-link, .menu-tab {
+        touch-action: manipulation;
       }
     }
 
@@ -496,7 +598,7 @@
         <a href="index.html" onclick="if (location.pathname.endsWith('index.html') || location.pathname.endsWith('/')) { window.scrollTo({top: 0, behavior: 'smooth'}); return false; }" 
            class="flex items-center gap-x-2 sm:gap-x-3 cursor-pointer hover:opacity-90 transition-opacity min-w-0">
           <img src="assets/images/opt/logo.png" alt="Sweet Tooth Cravings" class="h-9 sm:h-11 md:h-12 lg:h-14 w-auto shrink-0" width="128" height="128" loading="eager" fetchpriority="high" decoding="async" onerror="this.style.display='none'">
-          <span class="font-semibold text-[13px] sm:text-base md:text-lg tracking-[-0.3px] leading-none whitespace-nowrap truncate">Sweettoothcravings</span>
+          <span class="font-semibold text-[12px] xs:text-[13px] sm:text-base md:text-lg tracking-[-0.3px] leading-none whitespace-nowrap truncate max-w-[9.5rem] sm:max-w-none">Sweettoothcravings</span>
         </a>
 
         <!-- Desktop Nav -->
@@ -512,47 +614,56 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-x-3">
-          <!-- Instagram -->
+        <div class="flex items-center gap-x-2 sm:gap-x-3 shrink-0">
+          <!-- Instagram (tablet+) -->
           <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" 
              class="hidden sm:flex items-center gap-x-2 px-4 py-2 rounded-3xl text-sm font-medium text-[#5C4A4B] hover:bg-white hover:shadow-sm border border-transparent hover:border-[#EDE4DC] transition-all">
             <i class="fa-brands fa-instagram text-lg"></i>
             <span class="hidden lg:inline">@sweettoothcravings__</span>
           </a>
 
-          <!-- Cart Button -->
-          <button onclick="toggleCart()" 
-                  class="flex items-center gap-x-2.5 px-5 h-11 rounded-3xl bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/30 hover:shadow-sm transition-all active:scale-[0.985]">
+          <!-- Order / Cart — always visible & tappable on mobile -->
+          <button type="button" onclick="toggleCart()" 
+                  class="flex items-center gap-x-2 px-3.5 sm:px-5 h-11 rounded-full bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/30 hover:shadow-sm transition-all active:scale-[0.985]"
+                  aria-label="Open order cart">
             <div class="relative">
               <i class="fa-solid fa-shopping-bag text-[#C9A9E8]"></i>
               <span id="cart-count" 
                     class="absolute -top-1.5 -right-1.5 text-[9px] font-bold bg-[#C9A9E8] text-white w-4 h-4 rounded-full flex items-center justify-center">0</span>
             </div>
-            <span class="hidden md:inline text-sm font-semibold text-[#3F2A2B]">Order</span>
+            <span class="text-sm font-semibold text-[#3F2A2B]">Order</span>
           </button>
 
-          <!-- Mobile Menu -->
-          <button onclick="toggleMobileMenu()" class="md:hidden w-11 h-11 flex items-center justify-center text-[#C9A9E8]">
-            <i class="fa-solid fa-bars text-xl"></i>
+          <!-- Mobile hamburger -->
+          <button type="button" id="mobile-menu-btn" onclick="toggleMobileMenu()"
+                  class="md:hidden w-11 h-11 flex items-center justify-center rounded-full border border-[#EDE4DC] bg-white text-[#C9A9E8] active:scale-[0.97] transition"
+                  aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+            <i id="mobile-menu-icon" class="fa-solid fa-bars text-lg"></i>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Mobile Menu -->
-    <div id="mobile-menu" class="hidden md:hidden border-t border-[#EDE4DC] bg-[#FDF8F5]">
-      <div class="px-8 py-6 flex flex-col gap-y-4 text-sm font-medium">
-        <a href="#menu" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Menu</a>
-        <a href="#how" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">How it Works</a>
-        <a href="policies.html" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Policies</a>
-        <a href="faq.html" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">FAQ</a>
-        <a href="contact.html" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Contact</a>
-        <button type="button" onclick="openReviewsModal(); toggleMobileMenu()" class="py-1 text-left flex items-center gap-x-2 text-[#5C4A4B]">
-          <i class="fa-solid fa-star text-[#C9A9E8]"></i> <span>Reviews</span>
+    <!-- Mobile hamburger dropdown -->
+    <div id="mobile-menu" class="hidden md:hidden bg-[#FDF8F5]/98 backdrop-blur-md" role="navigation" aria-label="Mobile">
+      <div class="px-4 sm:px-5 py-3 pb-4 flex flex-col gap-1">
+        <a href="#menu" onclick="toggleMobileMenu()" class="mobile-nav-link"><i class="fa-solid fa-utensils text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>Menu</a>
+        <a href="#how" onclick="toggleMobileMenu()" class="mobile-nav-link"><i class="fa-solid fa-circle-info text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>How it Works</a>
+        <a href="#size-guide" onclick="toggleMobileMenu()" class="mobile-nav-link"><i class="fa-solid fa-ruler-combined text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>Cake Size Guide</a>
+        <a href="policies.html" onclick="toggleMobileMenu()" class="mobile-nav-link"><i class="fa-solid fa-file-lines text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>Policies</a>
+        <a href="faq.html" onclick="toggleMobileMenu()" class="mobile-nav-link"><i class="fa-solid fa-circle-question text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>FAQ</a>
+        <a href="contact.html" onclick="toggleMobileMenu()" class="mobile-nav-link"><i class="fa-solid fa-envelope text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>Contact</a>
+        <button type="button" onclick="openReviewsModal(); toggleMobileMenu()" class="mobile-nav-link w-full text-left">
+          <i class="fa-solid fa-star text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>Reviews
         </button>
-        <a href="https://ig.me/m/sweettoothcravings__" target="_blank" rel="noopener" class="py-1 flex items-center gap-x-2 text-[#5C4A4B]">
-          <i class="fa-brands fa-instagram text-[#C9A9E8]"></i> <span>Message us</span>
+        <div class="h-px bg-[#EDE4DC] my-1.5"></div>
+        <a href="https://ig.me/m/sweettoothcravings__" target="_blank" rel="noopener" class="mobile-nav-link">
+          <i class="fa-brands fa-instagram text-[#C9A9E8] w-5 mr-2.5 text-sm"></i>Message us
         </a>
+        <button type="button" onclick="toggleCart(); toggleMobileMenu()"
+                class="mt-1 w-full min-h-[3rem] rounded-2xl bg-[#C9A9E8] hover:bg-[#B48AE0] text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition">
+          <i class="fa-solid fa-shopping-bag"></i> Order now
+        </button>
       </div>
     </div>
   </nav>
@@ -589,7 +700,7 @@
             </a>
           </div>
 
-          <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-4 mt-8 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group" aria-label="Read customer reviews">
+          <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-3 sm:gap-x-4 mt-8 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group min-h-[2.75rem] -ml-1 pl-1 pr-2 py-1 rounded-2xl active:bg-white/10" aria-label="Read customer reviews — 5.0 stars">
             <div class="flex items-center -space-x-1.5">
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
                 <img src="assets/images/opt/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
@@ -605,7 +716,7 @@
               </div>
             </div>
             <div class="leading-tight">
-              <div class="font-semibold tracking-tight group-hover:underline underline-offset-2">5.0 ★</div>
+              <div class="font-semibold tracking-tight group-hover:underline underline-offset-2">5.0 ★ <span class="font-normal text-white/70 text-xs">· tap to read</span></div>
               <div class="text-white/80 text-xs sm:text-sm group-hover:underline underline-offset-2">23 reviews</div>
             </div>
           </button>
@@ -628,7 +739,7 @@
   </header>
 
   <!-- TRUST / STATS BAR -->
-  <div class="max-w-screen-2xl mx-auto section-pad px-4 sm:px-8 pt-6 sm:pt-9 pb-3 sm:pb-5">
+  <div class="max-w-screen-2xl mx-auto section-pad px-4 sm:px-8 pt-5 sm:pt-9 pb-4 sm:pb-5">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#EDE4DC] rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm">
       <div class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4">
         <div class="text-3xl sm:text-4xl font-semibold text-[#C9A9E8] stat-number">23</div>
@@ -637,12 +748,12 @@
           <div class="text-[#8B6F6F]">Miami &amp; beyond</div>
         </div>
       </div>
-      <button type="button" onclick="openReviewsModal()" class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4 text-left w-full hover:bg-[#FDF8F5] transition cursor-pointer" aria-label="Read customer reviews">
+      <button type="button" onclick="openReviewsModal()" class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4 text-left w-full hover:bg-[#FDF8F5] active:bg-[#FDF8F5] transition cursor-pointer min-h-[4.5rem]" aria-label="Read customer reviews — 5.0 average">
         <div>
           <div class="flex items-center gap-x-0.5 text-[#C9A9E8] text-sm">
             <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
           </div>
-          <div class="font-semibold mt-0.5 text-xs sm:text-sm text-[#3F2A2B]">5.0 average rating</div>
+          <div class="font-semibold mt-0.5 text-xs sm:text-sm text-[#3F2A2B]">5.0 average · reviews</div>
         </div>
       </button>
       <div class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4">
@@ -715,43 +826,43 @@
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-8">
       <div class="max-w-5xl mx-auto">
         <!-- Story intro -->
-        <div class="max-w-2xl mx-auto text-center mb-10 sm:mb-12">
+        <div class="max-w-2xl mx-auto text-center mb-8 sm:mb-12">
           <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8] mb-2">Our Story &amp; Process</div>
           <h2 class="section-title heading-serif">Daily sweetness, made with care</h2>
-          <p class="text-[#5C4A4B] text-[15px] leading-relaxed mt-3">
+          <p class="text-[#5C4A4B] text-[15px] leading-relaxed mt-3 px-1">
             Satisfy your cravings with handcrafted desserts — flan, tres leches, cakes &amp; more.
             Every order is made with quality ingredients, whether you&apos;re celebrating or just treating yourself.
           </p>
-          <p class="text-[#6B5B5F] text-sm mt-2">
+          <p class="text-[#6B5B5F] text-sm mt-2.5 px-1">
             Ordering is simple: choose treats, request with notice, confirm with a deposit, then pick up or get delivery.
           </p>
         </div>
 
         <!-- Steps -->
-        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
-            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+          <div class="policy-card bg-[#FDF8F5] rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-4 sm:mb-5 text-lg">
               <i class="fa-solid fa-search"></i>
             </div>
             <div class="font-semibold text-[1.05rem] mb-1.5">1. Choose your treats</div>
             <p class="text-sm leading-relaxed text-[#6B5B5F]">Browse the menu and add items. Customize flavors, sizes, and decorations.</p>
           </div>
-          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
-            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+          <div class="policy-card bg-[#FDF8F5] rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-4 sm:mb-5 text-lg">
               <i class="fa-solid fa-calendar"></i>
             </div>
             <div class="font-semibold text-[1.05rem] mb-1.5">2. Request your date</div>
             <p class="text-sm leading-relaxed text-[#6B5B5F]">Submit your request with the date you need and any special details.</p>
           </div>
-          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
-            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+          <div class="policy-card bg-[#FDF8F5] rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-4 sm:mb-5 text-lg">
               <i class="fa-solid fa-credit-card"></i>
             </div>
             <div class="font-semibold text-[1.05rem] mb-1.5">3. Review &amp; secure payment</div>
             <p class="text-sm leading-relaxed text-[#6B5B5F]">We review your request, send your final price, then a secure Stripe link to confirm.</p>
           </div>
-          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
-            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+          <div class="policy-card bg-[#FDF8F5] rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-4 sm:mb-5 text-lg">
               <i class="fa-solid fa-heart"></i>
             </div>
             <div class="font-semibold text-[1.05rem] mb-1.5">4. Pickup or Delivery</div>
@@ -760,8 +871,8 @@
         </div>
 
         <!-- Key info — once, clear, no repeat -->
-        <div class="mt-8 sm:mt-10 max-w-2xl mx-auto">
-          <div class="text-sm sm:text-[15px] bg-[#FDF8F5] border border-[#EDE4DC] rounded-3xl px-5 sm:px-7 py-5 text-[#5C4A4B] space-y-3 shadow-sm">
+        <div class="mt-7 sm:mt-10 max-w-2xl mx-auto">
+          <div class="text-sm sm:text-[15px] bg-[#FDF8F5] border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-4 sm:px-7 py-4 sm:py-5 text-[#5C4A4B] space-y-3 shadow-sm">
             <p class="flex items-start gap-2.5">
               <i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5 shrink-0"></i>
               <span><strong class="text-[#3F2A2B]">Lead time:</strong> Most orders need 3–5 days notice. Party packages need at least 1 week.</span>
@@ -783,10 +894,10 @@
   <!-- CAKE SIZE GUIDE -->
   <section id="size-guide" class="max-w-screen-2xl mx-auto px-4 sm:px-8 py-14 sm:py-16 border-t border-[#EDE4DC] bg-white">
     <div class="max-w-3xl mx-auto">
-      <div class="text-center mb-8">
+      <div class="text-center mb-6 sm:mb-8">
         <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Helpful Reference</div>
         <h2 class="heading-serif section-title mt-1.5">Cake Size Guide</h2>
-        <p class="text-[#6B5B5F] mt-2 text-sm sm:text-base">Approximate servings to help you plan — not a required choice.</p>
+        <p class="text-[#6B5B5F] mt-2 text-sm sm:text-base px-1">Approximate servings to help you plan — not a required choice.</p>
       </div>
 
       <div class="overflow-hidden rounded-2xl sm:rounded-3xl border border-[#EDE4DC] bg-[#FDF8F5] shadow-sm">
@@ -866,15 +977,15 @@
   </section>
 
   <!-- FINAL CTA -->
-  <div class="max-w-screen-2xl mx-auto px-8 pb-14">
-    <div class="bg-gradient-to-br from-[#C9A9E8] to-[#B48AE0] text-white rounded-[3rem] px-10 py-12 flex flex-col md:flex-row items-center gap-y-6 justify-between">
+  <div class="max-w-screen-2xl mx-auto px-4 sm:px-8 pb-16 sm:pb-14">
+    <div class="bg-gradient-to-br from-[#C9A9E8] to-[#B48AE0] text-white rounded-[1.75rem] sm:rounded-[3rem] px-6 sm:px-10 py-9 sm:py-12 flex flex-col md:flex-row items-center gap-y-5 sm:gap-y-6 justify-between text-center md:text-left">
       <div>
-        <div class="font-semibold text-3xl tracking-tight heading-serif">Ready to satisfy your cravings?</div>
-        <div class="text-white/80 mt-1 text-lg">Let’s make something sweet together.</div>
+        <div class="font-semibold text-2xl sm:text-3xl tracking-tight heading-serif">Ready to satisfy your cravings?</div>
+        <div class="text-white/80 mt-1 text-base sm:text-lg">Let’s make something sweet together.</div>
       </div>
       <div>
-        <button onclick="document.getElementById('menu').scrollIntoView({ behavior: 'smooth' })" 
-                class="px-9 h-14 bg-white text-[#C9A9E8] hover:bg-[#FDF8F5] transition font-semibold flex items-center gap-x-2 rounded-3xl">
+        <button type="button" onclick="document.getElementById('menu').scrollIntoView({ behavior: 'smooth' })" 
+                class="px-8 sm:px-9 min-h-[3.25rem] h-12 sm:h-14 bg-white text-[#C9A9E8] hover:bg-[#FDF8F5] transition font-semibold flex items-center gap-x-2 rounded-3xl active:scale-[0.98]">
           <span>Browse Full Menu</span>
         </button>
       </div>
@@ -888,17 +999,17 @@
      target="_blank"
      rel="noopener"
      class="ig-chat-fab flex items-center gap-x-2.5 bg-white/95 backdrop-blur border border-[#EDE4DC] text-[#3F2A2B] pl-3.5 pr-5 h-14 rounded-full shadow-xl font-semibold text-sm hover:border-[#C9A9E8]/50 hover:shadow-2xl active:scale-[0.98] transition"
-     aria-label="Message us on Instagram">
+     aria-label="Chat with us on Instagram">
     <span class="w-9 h-9 rounded-full bg-gradient-to-br from-[#C9A9E8] to-[#B48AE0] text-white flex items-center justify-center shrink-0">
       <i class="fa-brands fa-instagram text-lg"></i>
     </span>
     <span class="hidden sm:inline">Chat with us</span>
-    <span class="sm:hidden">Chat</span>
+    <span class="sm:hidden text-xs">Chat</span>
   </a>
 
   <!-- FOOTER -->
   <footer class="site-footer border-t border-[#EDE4DC] bg-white">
-    <div class="max-w-screen-2xl mx-auto px-8 pt-9 text-sm">
+    <div class="max-w-screen-2xl mx-auto px-5 sm:px-8 pt-8 sm:pt-9 text-sm">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-y-6 gap-x-8">
         <div class="min-w-0">
           <div class="flex items-center gap-x-2.5">
@@ -1096,79 +1207,83 @@
     </div>
   </div>
 
-  <!-- REVIEWS MODAL — reviews + leave-a-review first; website feedback collapsed -->
+  <!-- REVIEWS MODAL — reviews first; leave-a-review compact on mobile -->
   <div id="reviews-modal" onclick="if (event.target.id === 'reviews-modal') closeReviewsModal()" class="hidden fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
-      <div class="md:hidden flex justify-center pt-2 pb-1 bg-white shrink-0">
+    <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl max-h-[94vh] md:max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="md:hidden flex justify-center pt-2.5 pb-1 bg-white shrink-0">
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
 
-      <div class="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 border-b border-[#EDE4DC] flex items-start justify-between gap-3 bg-white shrink-0">
-        <div>
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <div class="heading-serif text-2xl sm:text-3xl tracking-tight">Customer Reviews</div>
-            <div class="flex items-center bg-[#FDF8F5] px-2.5 py-1 rounded-full text-xs sm:text-sm border border-[#EDE4DC]">
-              <div class="flex text-[#C9A9E8] text-[11px] gap-px">
-                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-              </div>
-              <span id="reviews-average" class="ml-1.5 font-semibold text-[#3F2A2B]">5.0</span>
-            </div>
-          </div>
-          <div id="reviews-count" class="text-[#8B6F6F] text-xs sm:text-sm mt-0.5">Loading reviews…</div>
+      <div class="px-4 sm:px-7 pt-3 sm:pt-6 pb-3 border-b border-[#EDE4DC] flex items-start justify-between gap-3 bg-white shrink-0">
+        <div class="min-w-0">
+          <div class="heading-serif text-xl sm:text-3xl tracking-tight">Customer Reviews</div>
+          <button type="button" class="mt-1.5 inline-flex items-center gap-2 bg-[#FDF8F5] px-2.5 py-1 rounded-full text-xs sm:text-sm border border-[#EDE4DC] pointer-events-none" aria-hidden="true">
+            <span class="flex text-[#C9A9E8] text-[11px] gap-px">
+              <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+            </span>
+            <span id="reviews-average" class="font-semibold text-[#3F2A2B]">5.0</span>
+          </button>
+          <div id="reviews-count" class="text-[#8B6F6F] text-xs sm:text-sm mt-1">Loading reviews…</div>
         </div>
-        <button type="button" onclick="closeReviewsModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B] shrink-0" aria-label="Close">×</button>
+        <button type="button" onclick="closeReviewsModal()" class="w-10 h-10 flex items-center justify-center rounded-full text-[#8B6F6F] hover:text-[#3F2A2B] hover:bg-[#FDF8F5] shrink-0 text-2xl leading-none" aria-label="Close">×</button>
       </div>
 
       <!-- Public cake reviews (primary space) -->
-      <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-3 bg-[#FDF8F5]">
+      <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-6 py-3.5 sm:py-4 space-y-2.5 sm:space-y-3 bg-[#FDF8F5]">
         <p class="text-center text-[#8B6F6F] text-sm py-6">Loading reviews…</p>
       </div>
 
-      <!-- Leave a cake review (always visible, comfortable size) -->
-      <div class="border-t border-[#EDE4DC] bg-white shrink-0">
-        <div class="px-4 sm:px-6 pt-3.5 pb-3">
-          <div class="text-sm font-semibold text-[#3F2A2B] mb-2.5">
-            <i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review
-          </div>
-          <form id="review-form" onsubmit="submitReview(event)" class="space-y-2.5">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-name">NAME</label>
-                <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-10 text-sm" placeholder="Your name" autocomplete="name">
-              </div>
-              <div>
-                <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5">RATING</label>
-                <div id="star-rating" class="flex gap-x-0.5 text-2xl text-[#EDE4DC] cursor-pointer h-10 items-center" role="group" aria-label="Star rating">
-                  <span data-rating="1">★</span>
-                  <span data-rating="2">★</span>
-                  <span data-rating="3">★</span>
-                  <span data-rating="4">★</span>
-                  <span data-rating="5">★</span>
+      <!-- Leave a cake review — compact; collapsible on mobile -->
+      <div id="review-form-shell" class="border-t border-[#EDE4DC] bg-white shrink-0">
+        <div class="px-4 sm:px-6 pt-2.5 sm:pt-3.5 pb-2 sm:pb-3">
+          <button type="button" id="review-form-toggle" onclick="toggleReviewFormPanel()"
+                  class="w-full flex items-center justify-between text-left min-h-[2.75rem] sm:min-h-0 sm:pointer-events-none">
+            <span class="text-sm font-semibold text-[#3F2A2B]">
+              <i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review
+            </span>
+            <i id="review-form-chevron" class="fa-solid fa-chevron-up text-[#C9A9E8] text-xs sm:hidden transition"></i>
+          </button>
+          <div id="review-form-panel" class="pt-1">
+            <form id="review-form" onsubmit="submitReview(event)" class="space-y-2 sm:space-y-2.5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                <div>
+                  <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-name">NAME</label>
+                  <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-10 text-sm" placeholder="Your name" autocomplete="name">
                 </div>
-                <input type="hidden" id="review-rating" value="5">
+                <div>
+                  <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5">RATING</label>
+                  <div id="star-rating" class="flex gap-x-1 text-2xl text-[#EDE4DC] cursor-pointer h-10 items-center" role="group" aria-label="Star rating">
+                    <span data-rating="1" class="min-w-[1.75rem] text-center">★</span>
+                    <span data-rating="2" class="min-w-[1.75rem] text-center">★</span>
+                    <span data-rating="3" class="min-w-[1.75rem] text-center">★</span>
+                    <span data-rating="4" class="min-w-[1.75rem] text-center">★</span>
+                    <span data-rating="5" class="min-w-[1.75rem] text-center">★</span>
+                  </div>
+                  <input type="hidden" id="review-rating" value="5">
+                </div>
               </div>
-            </div>
-            <div>
-              <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">YOUR REVIEW</label>
-              <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2.5 text-sm resize-none" placeholder="Tell others about the cakes and treats…"></textarea>
-            </div>
-            <button type="submit" id="review-submit-btn"
-                    class="w-full h-11 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm">
-              Submit Review
-            </button>
-            <p id="review-status" class="hidden text-[11px] text-center leading-snug"></p>
-          </form>
+              <div>
+                <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">YOUR REVIEW</label>
+                <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none" placeholder="Tell others about the cakes and treats…"></textarea>
+              </div>
+              <button type="submit" id="review-submit-btn"
+                      class="w-full h-11 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm active:scale-[0.99]">
+                Submit Review
+              </button>
+              <p id="review-status" class="hidden text-[11px] text-center leading-snug"></p>
+            </form>
+          </div>
         </div>
 
         <!-- Website feedback: small button, expands only when needed -->
-        <div class="px-4 sm:px-6 pb-4 pt-1">
+        <div class="px-4 sm:px-6 pb-3.5 sm:pb-4 pt-0.5">
           <button type="button" id="website-feedback-toggle" onclick="toggleWebsiteFeedbackPanel()"
-                  class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8B6F6F] hover:text-[#C9A9E8] transition py-1">
+                  class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8B6F6F] hover:text-[#C9A9E8] transition min-h-[2.25rem] py-1">
             <i class="fa-solid fa-lightbulb text-[#C9A9E8]"></i>
             Website Feedback
             <i id="website-feedback-chevron" class="fa-solid fa-chevron-down text-[9px] ml-0.5"></i>
           </button>
-          <div id="website-feedback-panel" class="hidden mt-2 rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
+          <div id="website-feedback-panel" class="hidden mt-1.5 rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
             <p class="text-[11px] text-[#6B5B5F] leading-snug mb-2">
               Suggestions about the website only — private to Sweet Tooth Cravings, not a public cake review.
             </p>
@@ -3439,8 +3554,43 @@
 
     function toggleMobileMenu() {
       const menu = document.getElementById('mobile-menu')
-      menu.classList.toggle('hidden')
+      const btn = document.getElementById('mobile-menu-btn')
+      const icon = document.getElementById('mobile-menu-icon')
+      if (!menu) return
+      const willOpen = menu.classList.contains('hidden') || !menu.classList.contains('is-open')
+      if (willOpen) {
+        menu.classList.remove('hidden')
+        // next frame so transition runs
+        requestAnimationFrame(() => {
+          menu.classList.add('is-open')
+        })
+      } else {
+        menu.classList.remove('is-open')
+        window.setTimeout(() => {
+          if (!menu.classList.contains('is-open')) menu.classList.add('hidden')
+        }, 280)
+      }
+      if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false')
+      if (btn) btn.setAttribute('aria-label', willOpen ? 'Close menu' : 'Open menu')
+      if (icon) {
+        icon.classList.toggle('fa-bars', !willOpen)
+        icon.classList.toggle('fa-xmark', willOpen)
+      }
     }
+
+    function toggleReviewFormPanel() {
+      // On mobile, collapse form so reviews get more space; desktop always open
+      if (window.innerWidth >= 640) return
+      const panel = document.getElementById('review-form-panel')
+      const chevron = document.getElementById('review-form-chevron')
+      if (!panel) return
+      const collapsed = panel.classList.toggle('mobile-collapsed')
+      if (chevron) {
+        chevron.classList.toggle('fa-chevron-down', collapsed)
+        chevron.classList.toggle('fa-chevron-up', !collapsed)
+      }
+    }
+    window.toggleReviewFormPanel = toggleReviewFormPanel
 
     // Main initialization
     function removeLegacyCustomCakesCTAs() {
@@ -3574,6 +3724,21 @@
         fbChev.classList.remove('fa-chevron-up');
         fbChev.classList.add('fa-chevron-down');
       }
+      // On mobile, start with leave-a-review collapsed so reviews get the screen
+      const formPanel = document.getElementById('review-form-panel');
+      const formChev = document.getElementById('review-form-chevron');
+      if (formPanel && window.innerWidth < 640) {
+        formPanel.classList.add('mobile-collapsed');
+        if (formChev) {
+          formChev.classList.add('fa-chevron-down');
+          formChev.classList.remove('fa-chevron-up');
+        }
+      } else if (formPanel) {
+        formPanel.classList.remove('mobile-collapsed');
+      }
+      // Close hamburger if open
+      const mobileMenu = document.getElementById('mobile-menu');
+      if (mobileMenu && mobileMenu.classList.contains('is-open')) toggleMobileMenu();
       renderReviews();
       setupStarRating();
       fetchPublishedReviews().then(() => renderReviews());
