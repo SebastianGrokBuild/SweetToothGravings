@@ -175,6 +175,24 @@
       display: none;
     }
 
+    /* Shared mobile sheet pattern: flex column + scroll body + reachable actions */
+    .sheet-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    .sheet-footer {
+      flex: 0 0 auto;
+      position: relative;
+      z-index: 2;
+      background: #fff;
+      padding-bottom: max(0.9rem, env(safe-area-inset-bottom, 0px));
+    }
+
     /* Product modal: sticky footer + independent scroll body */
     #product-modal .product-modal-panel {
       display: flex;
@@ -185,20 +203,30 @@
     #product-modal .product-modal-scroll {
       flex: 1 1 auto;
       min-height: 0;
+      overflow-x: hidden;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       touch-action: pan-y;
+      /* Keep last options clear of sticky footer on short phones */
+      padding-bottom: 0.25rem;
     }
     #product-modal .product-modal-footer {
       flex: 0 0 auto;
+      position: relative;
+      z-index: 3;
       background: #fff;
-      padding-bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+      padding-bottom: max(0.9rem, env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -10px 28px rgba(63, 42, 43, 0.07);
     }
     @media (max-width: 767px) {
+      #product-modal {
+        align-items: flex-end;
+      }
       #product-modal .product-modal-panel {
-        max-height: 93vh;
-        max-height: 93dvh;
+        max-height: 92vh;
+        max-height: 92dvh;
+        width: 100%;
       }
     }
 
@@ -212,6 +240,7 @@
     #reviews-modal .reviews-modal-scroll {
       flex: 1 1 auto;
       min-height: 0;
+      overflow-x: hidden;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
@@ -221,6 +250,26 @@
       flex: 0 0 auto;
       background: #fff;
       padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Success popup: fully scrollable on short screens */
+    #success-modal .modal {
+      max-height: min(90vh, 720px);
+      max-height: min(90dvh, 720px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Cart drawer: sticky checkout actions */
+    #cart-drawer .cart-drawer {
+      max-height: 100vh;
+      max-height: 100dvh;
+    }
+    #cart-drawer .cart-drawer-footer {
+      flex: 0 0 auto;
+      padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
     }
 
     .section-title {
@@ -275,34 +324,61 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
+      /* Shared vertical rhythm so action rows share one baseline */
+      padding-bottom: 1rem;
     }
-    /* Pin action row to card bottom so Details / Select line up across the grid */
-    .product-card .card-actions {
-      margin-top: auto !important;
-      padding-top: 1rem;
-      display: flex;
-      flex-direction: row;
-      align-items: stretch;
-      gap: 0.5rem;
-    }
-    .product-card .card-actions button {
-      min-height: 2.85rem;
-      height: 2.85rem;
-      flex: 1 1 0;
-      width: auto;
-      box-sizing: border-box;
-      line-height: 1.15;
-      white-space: nowrap;
-    }
+    /* Reserved slots keep every card’s action row at the same height */
     .product-card .card-title {
-      min-height: 2.5rem;
+      min-height: 2.6rem;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+    .product-card .card-seasonal {
+      min-height: 1.15rem;
+      margin-top: 0.35rem;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      line-height: 1.25;
+      color: #7B4DB8;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
     .product-card .card-desc {
-      min-height: 2.25rem;
+      min-height: 2.35rem;
+      margin-top: 0.35rem;
+      flex: 0 0 auto;
+    }
+    /* Pin action row to card bottom so Details / Select line up across the grid */
+    .product-card .card-actions {
+      margin-top: auto !important;
+      padding-top: 0.9rem;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .product-card .card-actions button {
+      min-height: 2.9rem;
+      height: 2.9rem;
+      flex: 1 1 0;
+      width: 0; /* equal columns with flex */
+      max-width: 100%;
+      box-sizing: border-box;
+      line-height: 1.1;
+      white-space: nowrap;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      padding-left: 0.65rem;
+      padding-right: 0.65rem;
+    }
+    .product-card .btn-card-select {
+      box-shadow: 0 3px 10px rgba(155, 111, 212, 0.22);
     }
 
     .product-image-container {
@@ -499,7 +575,7 @@
 
     /*
      * Liquid glass — Details buttons
-     * Lavender frost + edge so it reads clearly on white/cream product cards.
+     * Solid frost tint (not just blur) so it stays visible on white/cream cards.
      */
     .btn-liquid-glass {
       position: relative;
@@ -508,23 +584,26 @@
       justify-content: center;
       isolation: isolate;
       overflow: hidden;
+      /* Opaque-enough lavender glass — reads without needing content behind it */
       background:
         linear-gradient(
-          155deg,
-          rgba(255, 255, 255, 0.98) 0%,
-          rgba(245, 236, 252, 0.92) 38%,
-          rgba(224, 204, 245, 0.78) 72%,
-          rgba(201, 169, 232, 0.55) 100%
+          148deg,
+          #ffffff 0%,
+          #f8f1fd 28%,
+          #ead9f8 58%,
+          #d9c0f0 82%,
+          #c9a9e8 100%
         );
-      backdrop-filter: blur(20px) saturate(1.55);
-      -webkit-backdrop-filter: blur(20px) saturate(1.55);
-      border: 1.5px solid rgba(168, 122, 214, 0.62);
+      backdrop-filter: blur(14px) saturate(1.45);
+      -webkit-backdrop-filter: blur(14px) saturate(1.45);
+      border: 1.5px solid rgba(155, 111, 212, 0.72);
       box-shadow:
-        inset 0 1.5px 0 rgba(255, 255, 255, 1),
-        inset 0 -10px 18px rgba(201, 169, 232, 0.16),
-        0 4px 14px rgba(140, 96, 196, 0.14),
-        0 0 0 1px rgba(201, 169, 232, 0.2);
-      color: #3F2A2B;
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -12px 22px rgba(168, 122, 214, 0.18),
+        inset 1px 0 0 rgba(255, 255, 255, 0.55),
+        0 4px 14px rgba(130, 88, 186, 0.16),
+        0 0 0 1px rgba(201, 169, 232, 0.28);
+      color: #3a2438;
       font-weight: 600;
       letter-spacing: -0.01em;
       transition:
@@ -533,18 +612,32 @@
         border-color 0.18s ease,
         transform 0.1s ease;
     }
-    /* Soft specular highlight for glass depth */
+    /* Specular top sheen */
     .btn-liquid-glass::before {
       content: '';
       position: absolute;
-      inset: 0;
-      border-radius: inherit;
+      left: 8%;
+      right: 8%;
+      top: 2px;
+      height: 46%;
+      border-radius: 9999px;
       background: linear-gradient(
         180deg,
-        rgba(255, 255, 255, 0.55) 0%,
-        rgba(255, 255, 255, 0.08) 42%,
-        transparent 68%
+        rgba(255, 255, 255, 0.78) 0%,
+        rgba(255, 255, 255, 0.18) 55%,
+        transparent 100%
       );
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Soft bottom refraction edge */
+    .btn-liquid-glass::after {
+      content: '';
+      position: absolute;
+      inset: auto 10% 3px 10%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 9999px;
       pointer-events: none;
       z-index: 0;
     }
@@ -555,18 +648,19 @@
     .btn-liquid-glass:hover {
       background:
         linear-gradient(
-          155deg,
-          rgba(255, 255, 255, 1) 0%,
-          rgba(247, 240, 253, 0.98) 40%,
-          rgba(224, 204, 245, 0.9) 75%,
-          rgba(201, 169, 232, 0.7) 100%
+          148deg,
+          #ffffff 0%,
+          #faf4fe 26%,
+          #eedefb 55%,
+          #dcc6f4 80%,
+          #c9a9e8 100%
         );
-      border-color: rgba(155, 111, 212, 0.78);
+      border-color: rgba(140, 96, 196, 0.85);
       box-shadow:
-        inset 0 1.5px 0 rgba(255, 255, 255, 1),
-        inset 0 -10px 20px rgba(201, 169, 232, 0.2),
-        0 6px 18px rgba(140, 96, 196, 0.18),
-        0 0 0 1px rgba(201, 169, 232, 0.28);
+        inset 0 1px 0 rgba(255, 255, 255, 1),
+        inset 0 -12px 24px rgba(168, 122, 214, 0.22),
+        0 6px 18px rgba(130, 88, 186, 0.2),
+        0 0 0 1px rgba(201, 169, 232, 0.35);
     }
     .btn-liquid-glass:active {
       transform: scale(0.985);
@@ -799,12 +893,17 @@
         flex-direction: row;
       }
       .product-card .card-actions button {
-        min-height: 2.85rem;
-        height: 2.85rem;
+        min-height: 2.9rem;
+        height: 2.9rem;
         flex: 1 1 0;
+        width: 0;
         font-size: 0.8125rem;
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
+        padding-left: 0.45rem;
+        padding-right: 0.45rem;
+      }
+      .product-card .card-body {
+        padding-left: 0.95rem;
+        padding-right: 0.95rem;
       }
 
       /* Major section breathing room */
@@ -874,7 +973,7 @@
         max-height: 93dvh !important;
       }
       #product-modal .product-modal-footer {
-        padding-bottom: max(0.9rem, env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
       }
       #product-modal .product-modal-footer button {
         min-height: 3.25rem !important;
@@ -884,8 +983,16 @@
         max-height: 94vh !important;
         max-height: 94dvh !important;
       }
+      #cart-submit-modal .cart-submit-footer {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+      }
       #cart-submit-modal .cart-submit-footer button {
         min-height: 3.15rem !important;
+      }
+
+      /* Space for iOS home indicator inside any full-height sheet */
+      #reviews-modal .reviews-modal-scroll {
+        padding-bottom: 0.25rem;
       }
 
       /* Tappable targets */
@@ -1384,7 +1491,7 @@
           </div>
         </div>
         
-        <div class="p-5 sm:p-7 pb-6">
+        <div class="p-5 sm:p-7 pb-8">
           <div class="flex justify-between items-start gap-x-4">
             <div class="min-w-0">
               <div id="modal-name" class="heading-serif text-2xl sm:text-3xl tracking-tight"></div>
@@ -1444,7 +1551,7 @@
                 </div>
               </div>
 
-              <div class="mt-4">
+              <div class="mt-4 mb-1">
                 <label class="text-xs text-[#6B5B5F]" for="modal-notes">Special requests or notes (optional)</label>
                 <textarea id="modal-notes" rows="2" placeholder="Example: pink and gold theme, name on top, no nuts..." 
                           class="form-input mt-1 w-full resize-y border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm"></textarea>
@@ -1455,7 +1562,7 @@
       </div>
 
       <!-- Sticky action footer — always visible / tappable -->
-      <div class="product-modal-footer shrink-0 border-t border-[#EDE4DC] bg-white px-4 sm:px-7 pt-3 shadow-[0_-8px_24px_rgba(63,42,43,0.06)]">
+      <div class="product-modal-footer sheet-footer shrink-0 border-t border-[#EDE4DC] bg-white px-4 sm:px-7 pt-3">
         <!-- Select mode: Add to Order -->
         <div id="modal-order-footer" class="flex gap-x-2.5 sm:gap-x-3">
           <button type="button" onclick="addCurrentToCart()" 
@@ -1496,14 +1603,14 @@
         <!-- Populated dynamically -->
       </div>
 
-      <div class="p-7 border-t bg-[#FDF8F5]">
+      <div class="cart-drawer-footer p-7 pt-5 border-t bg-[#FDF8F5]">
         <div class="text-xs text-[#5C4A4B] mb-3 px-1 space-y-1.5 leading-snug">
           <p><strong class="text-[#3F2A2B]">Please note:</strong> We need 3–5 days for most orders. After you submit, we&apos;ll review your request and send your quote + 50% deposit link within 24 hours.</p>
           <p class="text-[#6B5B5F]">A <strong class="text-[#C9A9E8]">50% non-refundable deposit</strong> is required after we send your quote to confirm the order.</p>
         </div>
 
         <button type="button" id="submit-order-btn" onclick="openCartSubmitModal()"
-                class="w-full h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition active:scale-[0.985] disabled:opacity-50 disabled:pointer-events-none">
+                class="w-full min-h-[3.5rem] h-14 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold flex items-center justify-center gap-x-2 transition active:scale-[0.985] disabled:opacity-50 disabled:pointer-events-none">
           <span>Checkout</span>
           <i class="fa-solid fa-arrow-right text-sm"></i>
         </button>
@@ -1512,7 +1619,7 @@
           Your order is saved securely. We&apos;ll review everything and follow up with pricing and next steps.
         </p>
         
-        <button onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
+        <button type="button" onclick="toggleCart()" class="mt-2 w-full text-center text-xs py-2 text-[#8B6F6F] hover:text-[#3F2A2B]">Continue browsing</button>
       </div>
     </div>
   </div>
@@ -1993,7 +2100,7 @@
         const fetchPriorityAttr = isHighPriority ? 'high' : 'auto'
         const decodingAttr = isHighPriority ? 'async' : 'async'
         const selectBtn = `<button type="button" onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="btn-card-select flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985] px-3 sm:px-4">
+                      class="btn-card-select bg-[#C9A9E8] text-white hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>`
@@ -2018,14 +2125,14 @@
             </div>
           </div>
           
-          <div class="card-body p-4 sm:p-5">
+          <div class="card-body px-4 pt-4 sm:px-5 sm:pt-5">
             <div class="card-title font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px] leading-snug">${product.name}</div>
-            ${product.seasonal && product.seasonalNote ? `<p class="text-[11px] font-semibold text-[#7B4DB8] mt-1.5 leading-snug">${product.seasonalNote}</p>` : ''}
-            <p class="card-desc text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
+            <div class="card-seasonal">${product.seasonal && product.seasonalNote ? product.seasonalNote : ''}</div>
+            <p class="card-desc text-xs text-[#8B6F6F] line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal && product.seasonalNote ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
             
             <div class="card-actions">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="btn-liquid-glass flex-1 text-sm rounded-full px-3 sm:px-4">
+                      class="btn-liquid-glass">
                 <span>Details</span>
               </button>
               ${selectBtn}
@@ -2069,16 +2176,15 @@
             </div>
           </div>
           
-          <div class="card-body p-5">
-            <div class="card-title font-semibold text-lg tracking-[-0.2px] leading-tight mb-1">${product.name}</div>
-            
+          <div class="card-body px-5 pt-5">
+            <div class="card-title font-semibold text-lg tracking-[-0.2px] leading-tight">${product.name}</div>
             <div class="card-actions">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="btn-liquid-glass flex-1 text-sm rounded-full px-4">
+                      class="btn-liquid-glass">
                 <span>View Details</span>
               </button>
               <button type="button" onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="btn-card-select flex-1 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985] px-4">
+                      class="btn-card-select bg-[#C9A9E8] text-white hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>
