@@ -34,7 +34,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="icon" href="assets/images/opt/logo.png" type="image/png">
-  <!-- Above-the-fold image preloads (hero + first featured/menu products) -->
+  <!-- Above-the-fold image preloads (hero + first menu products) -->
   <link rel="preload" as="image" href="assets/images/opt/hero.jpg" fetchpriority="high">
   <link rel="preload" as="image" href="assets/images/opt/logo.png" fetchpriority="high">
   <link rel="preload" as="image" href="assets/images/opt/custom-cakes.jpg" fetchpriority="high">
@@ -54,7 +54,7 @@
         host === 'www.sweettoothcravings.shop' ||
         host.endsWith('.github.io');
       // Live shop always uses the production order API (Order Log + Drive forced server-side).
-      window.STC_DEPLOY_BUILD = '2026-07-28-site-polish-v1';
+      window.STC_DEPLOY_BUILD = '2026-08-01-website-feedback-v1';
       if (isLive) {
         window.STC_API_BASE = 'https://sweettooth-cravings-api.onrender.com';
       }
@@ -95,6 +95,24 @@
       padding-bottom: var(--safe-bottom);
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
+    }
+
+    /* Instagram chat FAB — clear of footer / home-indicator */
+    .ig-chat-fab {
+      position: fixed;
+      right: 1.25rem;
+      bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+      z-index: 60;
+    }
+
+    /* Extra footer space so © / links never sit under the FAB */
+    .site-footer {
+      padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+    }
+    @media (min-width: 640px) {
+      .site-footer {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+      }
     }
 
     img, video {
@@ -429,30 +447,6 @@
       animation: submitSpin 0.8s linear infinite;
     }
 
-    .showcase-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 1.35rem;
-      overflow: hidden;
-      box-shadow: 0 4px 14px rgba(63, 42, 43, 0.04);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    @media (hover: hover) {
-      .showcase-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 16px 32px -10px rgba(0, 0, 0, 0.1);
-      }
-    }
-    .showcase-scroll {
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .showcase-scroll::-webkit-scrollbar { display: none; }
-    .showcase-scroll > * {
-      scroll-snap-align: start;
-    }
-
     /* Mobile spacing rhythm */
     @media (max-width: 640px) {
       .section-pad {
@@ -478,7 +472,7 @@
     /* Reduce motion for accessibility */
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
-      .product-card, .showcase-card, .policy-card, .product-image-container {
+      .product-card, .policy-card, .product-image-container {
         transition: none !important;
       }
     }
@@ -499,22 +493,21 @@
     <div class="max-w-screen-2xl mx-auto">
       <div class="px-4 sm:px-6 md:px-8 py-3 sm:py-4 flex items-center justify-between gap-3">
         <!-- Logo -->
-        <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;" 
+        <a href="index.html" onclick="if (location.pathname.endsWith('index.html') || location.pathname.endsWith('/')) { window.scrollTo({top: 0, behavior: 'smooth'}); return false; }" 
            class="flex items-center gap-x-2 sm:gap-x-3 cursor-pointer hover:opacity-90 transition-opacity min-w-0">
           <img src="assets/images/opt/logo.png" alt="Sweet Tooth Cravings" class="h-9 sm:h-11 md:h-12 lg:h-14 w-auto shrink-0" width="128" height="128" loading="eager" fetchpriority="high" decoding="async" onerror="this.style.display='none'">
           <span class="font-semibold text-[13px] sm:text-base md:text-lg tracking-[-0.3px] leading-none whitespace-nowrap truncate">Sweettoothcravings</span>
         </a>
 
         <!-- Desktop Nav -->
-        <div class="hidden md:flex items-center gap-x-9 text-sm font-medium">
-          <a href="#showcase" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Showcase</a>
+        <div class="hidden md:flex items-center gap-x-7 lg:gap-x-8 text-sm font-medium">
           <a href="#menu" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Menu</a>
           <a href="#how" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">How it Works</a>
-          <a href="#policies" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Policies</a>
-          <a href="#faq" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">FAQ</a>
-          <a href="#contact" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Contact</a>
-          <button onclick="openReviewsModal()" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B] flex items-center gap-x-1">
-            <i class="fa-solid fa-star text-sm"></i>
+          <a href="policies.html" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Policies</a>
+          <a href="faq.html" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">FAQ</a>
+          <a href="contact.html" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B]">Contact</a>
+          <button type="button" onclick="openReviewsModal()" class="nav-link text-[#5C4A4B] hover:text-[#3F2A2B] flex items-center gap-x-1">
+            <i class="fa-solid fa-star text-sm text-[#C9A9E8]"></i>
             <span>Reviews</span>
           </button>
         </div>
@@ -549,17 +542,16 @@
     <!-- Mobile Menu -->
     <div id="mobile-menu" class="hidden md:hidden border-t border-[#EDE4DC] bg-[#FDF8F5]">
       <div class="px-8 py-6 flex flex-col gap-y-4 text-sm font-medium">
-        <a href="#showcase" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Showcase</a>
         <a href="#menu" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Menu</a>
         <a href="#how" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">How it Works</a>
-        <a href="#policies" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Policies</a>
-        <a href="#faq" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">FAQ</a>
-        <a href="#contact" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Contact</a>
-        <button onclick="openReviewsModal(); toggleMobileMenu()" class="py-1 text-left flex items-center gap-x-2 text-[#5C4A4B]">
-          <i class="fa-solid fa-star"></i> <span>Reviews</span>
+        <a href="policies.html" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Policies</a>
+        <a href="faq.html" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">FAQ</a>
+        <a href="contact.html" onclick="toggleMobileMenu()" class="py-1 text-[#5C4A4B]">Contact</a>
+        <button type="button" onclick="openReviewsModal(); toggleMobileMenu()" class="py-1 text-left flex items-center gap-x-2 text-[#5C4A4B]">
+          <i class="fa-solid fa-star text-[#C9A9E8]"></i> <span>Reviews</span>
         </button>
-        <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="py-1 flex items-center gap-x-2 text-[#5C4A4B]">
-          <i class="fa-brands fa-instagram"></i> <span>Instagram</span>
+        <a href="https://ig.me/m/sweettoothcravings__" target="_blank" rel="noopener" class="py-1 flex items-center gap-x-2 text-[#5C4A4B]">
+          <i class="fa-brands fa-instagram text-[#C9A9E8]"></i> <span>Message us</span>
         </a>
       </div>
     </div>
@@ -591,32 +583,32 @@
               Browse Menu
               <i class="fa-solid fa-arrow-right text-sm"></i>
             </a>
-            <a href="#showcase"
+            <a href="#how"
                class="inline-flex items-center justify-center gap-x-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold px-6 min-h-[3.15rem] rounded-full text-[15px] sm:text-base backdrop-blur-sm">
-              Featured treats
+              How it works
             </a>
           </div>
 
-          <div class="flex items-center gap-x-4 mt-8 sm:mt-10 text-sm">
+          <button type="button" onclick="openReviewsModal()" class="flex items-center gap-x-4 mt-8 sm:mt-10 text-sm text-left hover:opacity-90 transition cursor-pointer group" aria-label="Read customer reviews">
             <div class="flex items-center -space-x-1.5">
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/opt/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="Cupcakes" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/opt/cupcakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" fetchpriority="high" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CUPCAKES</div>
               </div>
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/opt/flan.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="Flan" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/opt/flan.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">FLAN</div>
               </div>
               <div class="w-8 h-8 bg-white rounded-full ring-2 ring-white/70 overflow-hidden relative shadow-sm">
-                <img src="assets/images/opt/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="Cakes" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="assets/images/opt/2-tier-cakes.jpg" class="object-cover w-full h-full" width="32" height="32" loading="eager" decoding="async" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                 <div class="absolute inset-0 bg-[#fdf8f5] text-[8px] flex items-center justify-center text-[#6b5b5f] font-medium rounded-full" style="display:none">CAKES</div>
               </div>
             </div>
             <div class="leading-tight">
-              <div class="font-semibold tracking-tight">5.0 ★</div>
-              <div class="text-white/80 text-xs sm:text-sm">23 reviews</div>
+              <div class="font-semibold tracking-tight group-hover:underline underline-offset-2">5.0 ★</div>
+              <div class="text-white/80 text-xs sm:text-sm group-hover:underline underline-offset-2">23 reviews</div>
             </div>
-          </div>
+          </button>
         </div>
 
         <!-- Trust badges floating — lead time + deposit -->
@@ -645,14 +637,14 @@
           <div class="text-[#8B6F6F]">Miami &amp; beyond</div>
         </div>
       </div>
-      <div class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4">
+      <button type="button" onclick="openReviewsModal()" class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4 text-left w-full hover:bg-[#FDF8F5] transition cursor-pointer" aria-label="Read customer reviews">
         <div>
           <div class="flex items-center gap-x-0.5 text-[#C9A9E8] text-sm">
             <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
           </div>
-          <div class="font-semibold mt-0.5 text-xs sm:text-sm">5.0 average rating</div>
+          <div class="font-semibold mt-0.5 text-xs sm:text-sm text-[#3F2A2B]">5.0 average rating</div>
         </div>
-      </div>
+      </button>
       <div class="bg-white px-4 sm:px-7 py-4 sm:py-5 flex items-center gap-x-3 sm:gap-x-4">
         <i class="fa-solid fa-calendar-check text-2xl sm:text-3xl text-[#C9A9E8]"></i>
         <div class="text-xs sm:text-sm leading-tight">
@@ -670,25 +662,8 @@
     </div>
   </div>
 
-  <!-- FEATURED SHOWCASE -->
-  <section id="showcase" class="max-w-screen-2xl mx-auto section-pad px-4 sm:px-8 pt-5 sm:pt-6 pb-2 sm:pb-4">
-    <div class="flex items-end justify-between mb-4 sm:mb-6 gap-3">
-      <div>
-        <div class="section-kicker">Customer Favorites</div>
-        <h2 class="section-title heading-serif text-[#3F2A2B] mt-1">Featured Treats</h2>
-      </div>
-      <a href="#menu" class="shrink-0 inline-flex items-center gap-x-1.5 text-sm font-semibold text-[#C9A9E8] hover:text-[#B48AE0] transition min-h-[2.5rem]">
-        Full menu <i class="fa-solid fa-arrow-right text-xs"></i>
-      </a>
-    </div>
-
-    <div id="featured-showcase" class="showcase-scroll flex gap-3 sm:gap-4 overflow-x-auto pb-3 -mx-1 px-1">
-      <!-- Populated by JavaScript -->
-    </div>
-  </section>
-
   <!-- MENU / PRODUCTS -->
-  <section id="menu" class="max-w-screen-2xl mx-auto section-pad px-4 sm:px-8 pt-6 sm:pt-8 pb-12 sm:pb-16">
+  <section id="menu" class="max-w-screen-2xl mx-auto section-pad px-4 sm:px-8 pt-8 sm:pt-10 pb-12 sm:pb-16">
     <div class="flex items-end justify-between mb-5 sm:mb-7 gap-3">
       <div>
         <div class="section-kicker">Signature Collection</div>
@@ -735,331 +710,154 @@
 
 
 
-  <!-- HOW IT WORKS -->
-  <section id="how" class="bg-white py-16 border-y border-[#EDE4DC]">
-    <div class="max-w-screen-2xl mx-auto px-8">
-      <div class="max-w-2xl mx-auto text-center mb-11">
-        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8] mb-2">Simple Process</div>
-        <h2 class="section-title heading-serif">How Ordering Works</h2>
-        <p class="text-[#6B5B5F] mt-2">We make it easy to get the desserts you love for any occasion.</p>
-      </div>
+  <!-- OUR STORY + HOW ORDERING WORKS (merged) -->
+  <section id="how" class="bg-white py-14 sm:py-16 border-y border-[#EDE4DC]">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-8">
+      <div class="max-w-5xl mx-auto">
+        <!-- Story intro -->
+        <div class="max-w-2xl mx-auto text-center mb-10 sm:mb-12">
+          <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8] mb-2">Our Story &amp; Process</div>
+          <h2 class="section-title heading-serif">Daily sweetness, made with care</h2>
+          <p class="text-[#5C4A4B] text-[15px] leading-relaxed mt-3">
+            Satisfy your cravings with handcrafted desserts — flan, tres leches, cakes &amp; more.
+            Every order is made with quality ingredients, whether you&apos;re celebrating or just treating yourself.
+          </p>
+          <p class="text-[#6B5B5F] text-sm mt-2">
+            Ordering is simple: choose treats, request with notice, confirm with a deposit, then pick up or get delivery.
+          </p>
+        </div>
 
-      <div class="grid md:grid-cols-4 gap-6 max-w-6xl mx-auto">
-        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
-          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
-            <i class="fa-solid fa-search"></i>
+        <!-- Steps -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+              <i class="fa-solid fa-search"></i>
+            </div>
+            <div class="font-semibold text-[1.05rem] mb-1.5">1. Choose your treats</div>
+            <p class="text-sm leading-relaxed text-[#6B5B5F]">Browse the menu and add items. Customize flavors, sizes, and decorations.</p>
           </div>
-          <div class="font-semibold text-lg mb-1.5">1. Choose your treats</div>
-          <p class="text-sm leading-relaxed text-[#6B5B5F]">Browse the menu and add items. Customize flavors, sizes, and decorations.</p>
-        </div>
-        
-        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
-          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
-            <i class="fa-solid fa-calendar"></i>
+          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+              <i class="fa-solid fa-calendar"></i>
+            </div>
+            <div class="font-semibold text-[1.05rem] mb-1.5">2. Request your date</div>
+            <p class="text-sm leading-relaxed text-[#6B5B5F]">Submit your request with the date you need and any special details.</p>
           </div>
-          <div class="font-semibold text-lg mb-1.5">2. Request with 3–5 days notice</div>
-          <p class="text-sm leading-relaxed text-[#6B5B5F]">Most orders need 3–5 days. Party packages require at least 1 week advance notice.</p>
-        </div>
-        
-        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
-          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
-            <i class="fa-solid fa-credit-card"></i>
+          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+              <i class="fa-solid fa-credit-card"></i>
+            </div>
+            <div class="font-semibold text-[1.05rem] mb-1.5">3. Review &amp; secure payment</div>
+            <p class="text-sm leading-relaxed text-[#6B5B5F]">We review your request, send your final price, then a secure Stripe link to confirm.</p>
           </div>
-          <div class="font-semibold text-lg mb-1.5">3. Review &amp; secure payment</div>
-          <p class="text-sm leading-relaxed text-[#6B5B5F]">We review your request, send your final price, then a secure Stripe link for the 50% non-refundable deposit to confirm your order.</p>
-        </div>
-        
-        <div class="policy-card bg-[#FDF8F5] rounded-3xl p-7 border border-[#EDE4DC]">
-          <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-6 text-xl">
-            <i class="fa-solid fa-heart"></i>
+          <div class="policy-card bg-[#FDF8F5] rounded-3xl p-6 sm:p-7 border border-[#EDE4DC]">
+            <div class="w-9 h-9 flex items-center justify-center rounded-2xl bg-[#C9A9E8] text-white mb-5 text-lg">
+              <i class="fa-solid fa-heart"></i>
+            </div>
+            <div class="font-semibold text-[1.05rem] mb-1.5">4. Pickup or Delivery</div>
+            <p class="text-sm leading-relaxed text-[#6B5B5F]">Fresh on your chosen date. Delivery available in the Miami area for a small additional fee.</p>
           </div>
-          <div class="font-semibold text-lg mb-1.5">4. Pickup or Delivery</div>
-          <p class="text-sm leading-relaxed text-[#6B5B5F]">Fresh on your chosen date. Delivery available in the Miami area for a small additional fee.</p>
         </div>
-      </div>
 
-      <div class="mt-9 max-w-2xl mx-auto space-y-3">
-        <div class="text-sm bg-[#FDF8F5] border border-[#EDE4DC] rounded-3xl px-6 py-4 text-[#5C4A4B] space-y-2">
-          <p class="flex items-start gap-2"><i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5 shrink-0"></i><span><strong class="text-[#3F2A2B]">Lead time:</strong> Most orders need 3–5 days notice. Party packages need at least 1 week.</span></p>
-          <p class="flex items-start gap-2"><i class="fa-solid fa-wallet text-[#C9A9E8] mt-0.5 shrink-0"></i><span><strong class="text-[#3F2A2B]">Deposit:</strong> A 50% non-refundable deposit is required after we send your quote to confirm the order.</span></p>
-        </div>
-        <div class="text-center text-sm bg-white border border-[#EDE4DC] rounded-3xl px-7 py-3.5 text-[#6B5B5F]">
-          <span class="font-semibold text-[#3F2A2B]">Please list any allergies</span> in the order form. We take dietary needs seriously.
+        <!-- Key info — once, clear, no repeat -->
+        <div class="mt-8 sm:mt-10 max-w-2xl mx-auto">
+          <div class="text-sm sm:text-[15px] bg-[#FDF8F5] border border-[#EDE4DC] rounded-3xl px-5 sm:px-7 py-5 text-[#5C4A4B] space-y-3 shadow-sm">
+            <p class="flex items-start gap-2.5">
+              <i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5 shrink-0"></i>
+              <span><strong class="text-[#3F2A2B]">Lead time:</strong> Most orders need 3–5 days notice. Party packages need at least 1 week.</span>
+            </p>
+            <p class="flex items-start gap-2.5">
+              <i class="fa-solid fa-wallet text-[#C9A9E8] mt-0.5 shrink-0"></i>
+              <span><strong class="text-[#3F2A2B]">Deposit:</strong> A 50% non-refundable deposit is required after we send your quote to confirm the order.</span>
+            </p>
+            <p class="flex items-start gap-2.5">
+              <i class="fa-solid fa-heart-pulse text-[#C9A9E8] mt-0.5 shrink-0"></i>
+              <span><strong class="text-[#3F2A2B]">Allergies:</strong> Please list any dietary needs in the order form.</span>
+            </p>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ABOUT -->
-  <section id="about" class="max-w-screen-2xl mx-auto px-8 py-16">
-    <div class="max-w-4xl mx-auto grid md:grid-cols-12 gap-x-12 items-center">
-      <div class="md:col-span-7">
-        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Our Story</div>
-        <h2 class="heading-serif section-title mt-1.5 mb-6">Daily sweetness delivered</h2>
-        
-        <div class="prose text-[#5C4A4B] text-[15px] leading-relaxed space-y-4">
-          <p>Satisfy your cravings with these delicious desserts. Flan, tres leches, cakes + more!</p>
-          <p>Every order is made with care using quality ingredients. Whether you're celebrating a birthday, wedding, or just treating yourself — we’ve got something sweet for you.</p>
-        </div>
-
-        <div class="mt-7 flex items-center gap-x-3">
-          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank"
-             class="inline-flex items-center gap-x-3 px-6 h-12 bg-[#3F2A2B] hover:bg-black transition text-white rounded-3xl text-sm font-semibold">
-            <i class="fa-brands fa-instagram text-lg"></i>
-            <span>Follow on Instagram</span>
-          </a>
-          <div class="text-xs text-[#8B6F6F] pl-1">🍓🎂🍮💜🍰</div>
-        </div>
-      </div>
-
-      <div class="md:col-span-5 mt-10 md:mt-0">
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-8 text-sm">
-          <div class="uppercase text-xs tracking-widest font-semibold text-[#C9A9E8] mb-4">CAPABILITIES &amp; PRICING</div>
-          <ul class="space-y-3 text-[#5C4A4B]">
-            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> All prices shown are <span class="font-semibold">starting prices</span></li>
-            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Most orders: <span class="font-semibold">3–5 days</span> notice</li>
-            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Party packages: <span class="font-semibold">at least 1 week</span></li>
-            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> Pickup or Delivery (+ fee)</li>
-            <li class="flex gap-x-3"><span class="font-bold text-[#C9A9E8] mt-px">•</span> 50% non-refundable deposit after we send your quote</li>
-          </ul>
-          <div class="mt-6 pt-5 border-t text-[#8B6F6F] text-xs">Final pricing depends on decoration, size, and custom requests.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- POLICIES & PAYMENTS -->
-  <section id="policies" class="max-w-screen-2xl mx-auto px-8 py-16 border-t border-[#EDE4DC] bg-white">
-    <div class="max-w-4xl mx-auto">
-      <div class="text-center mb-10">
-        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Important Information</div>
-        <h2 class="heading-serif section-title mt-1.5">Policies &amp; Payments</h2>
-      </div>
-
-      <!-- Lead time + deposit highlight -->
-      <div class="bg-[#FDF8F5] border border-[#EDE4DC] rounded-3xl p-6 sm:p-8 mb-6 space-y-3">
-        <div class="flex items-start gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-[#C9A9E8] text-white flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-clock"></i>
-          </div>
-          <div>
-            <h3 class="font-semibold text-lg text-[#3F2A2B]">Lead time</h3>
-            <p class="text-[#5C4A4B] text-sm sm:text-[15px] leading-relaxed mt-1">Most orders need <strong>3–5 days</strong> notice. Party packages need at least <strong>1 week</strong>.</p>
-          </div>
-        </div>
-        <div class="h-px bg-[#EDE4DC]"></div>
-        <div class="flex items-start gap-3">
-          <div class="w-10 h-10 rounded-2xl bg-[#C9A9E8] text-white flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-wallet"></i>
-          </div>
-          <div>
-            <h3 class="font-semibold text-lg text-[#3F2A2B]">Deposit</h3>
-            <p class="text-[#5C4A4B] text-sm sm:text-[15px] leading-relaxed mt-1">A <strong class="text-[#C9A9E8]">50% non-refundable deposit</strong> is required after we send your quote to confirm the order.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Payments -->
-      <div class="bg-white border border-[#EDE4DC] rounded-3xl p-8 mb-8">
-        <div class="flex items-center gap-x-3 mb-4">
-          <div class="w-10 h-10 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-xl">
-            <i class="fa-solid fa-credit-card"></i>
-          </div>
-          <h3 class="text-2xl font-semibold tracking-tight">Payments</h3>
-        </div>
-        <div class="text-[#5C4A4B] leading-relaxed space-y-3">
-          <p>After we review your request, we&apos;ll send your <strong>final price</strong> and a <strong>secure Stripe payment link</strong> for the 50% non-refundable deposit to confirm your order.</p>
-          <p>The remaining balance is due the day before pickup or delivery. We&apos;ll reach out via <strong>text or Instagram</strong> within 24 hours.</p>
-        </div>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-6">
-        <!-- Cancellations -->
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
-          <h4 class="font-semibold text-lg mb-2">Cancellations</h4>
-          <p class="text-[#5C4A4B] text-sm leading-relaxed">Deposits are non-refundable. Please give 48 hours&apos; notice to cancel or reschedule.</p>
-        </div>
-
-        <!-- Allergies & Delivery -->
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
-          <h4 class="font-semibold text-lg mb-2">Allergies &amp; Delivery</h4>
-          <p class="text-[#5C4A4B] text-sm leading-relaxed">Please list any food allergies before ordering. Delivery is available in the Miami area for a small additional fee; pickup is also available.</p>
-        </div>
-
-        <!-- Ordering Timeline -->
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
-          <h4 class="font-semibold text-lg mb-2">Ordering Timeline</h4>
-          <p class="text-[#5C4A4B] text-sm leading-relaxed">Most orders need 3–5 days notice. Party packages need at least 1 week. No same-day orders.</p>
-        </div>
-
-        <!-- Liability -->
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-7">
-          <h4 class="font-semibold text-lg mb-2">Liability</h4>
-          <p class="text-[#5C4A4B] text-sm leading-relaxed">Once your order is picked up or dropped off, all responsibility for its care transfers to you. We&apos;re not liable for any issues after that.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- FAQ -->
-  <section id="faq" class="max-w-screen-2xl mx-auto px-8 py-16 border-t border-[#EDE4DC]">
+  <!-- CAKE SIZE GUIDE -->
+  <section id="size-guide" class="max-w-screen-2xl mx-auto px-4 sm:px-8 py-14 sm:py-16 border-t border-[#EDE4DC] bg-white">
     <div class="max-w-3xl mx-auto">
-      <div class="text-center mb-10">
-        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Questions</div>
-        <h2 class="heading-serif section-title mt-1.5">Frequently Asked</h2>
-        <p class="text-[#6B5B5F] mt-2 max-w-lg mx-auto">Clear answers about timing, payment, and how we work with you.</p>
+      <div class="text-center mb-8">
+        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Helpful Reference</div>
+        <h2 class="heading-serif section-title mt-1.5">Cake Size Guide</h2>
+        <p class="text-[#6B5B5F] mt-2 text-sm sm:text-base">Approximate servings to help you plan — not a required choice.</p>
       </div>
 
-      <div class="space-y-3">
-        <details class="group bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 open:shadow-sm transition">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-[#3F2A2B] text-[15px]">
-            How far in advance do I need to order?
-            <i class="fa-solid fa-chevron-down text-[#C9A9E8] text-xs transition group-open:rotate-180 shrink-0"></i>
-          </summary>
-          <p class="mt-3 text-sm text-[#5C4A4B] leading-relaxed pr-6">Most orders need 3–5 days notice. Party packages and larger custom cakes need at least 1 week.</p>
-        </details>
-
-        <details class="group bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 open:shadow-sm transition">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-[#3F2A2B] text-[15px]">
-            When do I pay?
-            <i class="fa-solid fa-chevron-down text-[#C9A9E8] text-xs transition group-open:rotate-180 shrink-0"></i>
-          </summary>
-          <p class="mt-3 text-sm text-[#5C4A4B] leading-relaxed pr-6">After we review your request, we&apos;ll send you a quote. A 50% non-refundable deposit is required to confirm the order. The remaining balance is due the day before pickup or delivery.</p>
-        </details>
-
-        <details class="group bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 open:shadow-sm transition">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-[#3F2A2B] text-[15px]">
-            Can I change my order after paying the deposit?
-            <i class="fa-solid fa-chevron-down text-[#C9A9E8] text-xs transition group-open:rotate-180 shrink-0"></i>
-          </summary>
-          <p class="mt-3 text-sm text-[#5C4A4B] leading-relaxed pr-6">Minor changes may be possible if we still have time. Please contact us as soon as possible. Deposits are non-refundable.</p>
-        </details>
-
-        <details class="group bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 open:shadow-sm transition">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-[#3F2A2B] text-[15px]">
-            Do you deliver?
-            <i class="fa-solid fa-chevron-down text-[#C9A9E8] text-xs transition group-open:rotate-180 shrink-0"></i>
-          </summary>
-          <p class="mt-3 text-sm text-[#5C4A4B] leading-relaxed pr-6">Yes, delivery is available in the Miami area for a small additional fee. Pickup is also available.</p>
-        </details>
-
-        <details class="group bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 open:shadow-sm transition">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-[#3F2A2B] text-[15px]">
-            What about allergies?
-            <i class="fa-solid fa-chevron-down text-[#C9A9E8] text-xs transition group-open:rotate-180 shrink-0"></i>
-          </summary>
-          <p class="mt-3 text-sm text-[#5C4A4B] leading-relaxed pr-6">Please list any allergies or dietary needs in the order form. We take this very seriously and will confirm with you.</p>
-        </details>
-
-        <details class="group bg-white border border-[#EDE4DC] rounded-2xl sm:rounded-3xl px-5 sm:px-6 py-4 open:shadow-sm transition">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-[#3F2A2B] text-[15px]">
-            How will I know you received my order?
-            <i class="fa-solid fa-chevron-down text-[#C9A9E8] text-xs transition group-open:rotate-180 shrink-0"></i>
-          </summary>
-          <p class="mt-3 text-sm text-[#5C4A4B] leading-relaxed pr-6">You&apos;ll receive an automatic confirmation email right after submitting. We&apos;ll also follow up with your quote within 24 hours.</p>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- CONTACT & SCHEDULING -->
-  <section id="contact" class="max-w-screen-2xl mx-auto px-8 py-16 border-t border-[#EDE4DC]">
-    <div class="max-w-5xl mx-auto">
-      <div class="text-center mb-10">
-        <div class="uppercase tracking-[2px] text-xs font-semibold text-[#C9A9E8]">Get in Touch</div>
-        <h2 class="section-title heading-serif mt-1.5">Contact</h2>
-        <p class="text-[#6B5B5F] mt-2 max-w-lg mx-auto">Questions about a custom order? Reach out — we typically respond within 24 hours.</p>
-      </div>
-
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-6 flex items-start gap-x-4">
-          <div class="w-11 h-11 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-lg shrink-0">
-            <i class="fa-solid fa-envelope"></i>
-          </div>
-          <div>
-            <div class="font-semibold text-[#3F2A2B]">Email</div>
-            <a href="mailto:sweettoothcravingsorder@gmail.com" class="text-sm text-[#C9A9E8] hover:text-[#B48AE0] transition break-all">sweettoothcravingsorder@gmail.com</a>
-          </div>
-        </div>
-
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-6 flex items-start gap-x-4">
-          <div class="w-11 h-11 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-lg shrink-0">
-            <i class="fa-brands fa-instagram"></i>
-          </div>
-          <div>
-            <div class="font-semibold text-[#3F2A2B]">Instagram</div>
-            <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="text-sm text-[#C9A9E8] hover:text-[#B48AE0] transition">@sweettoothcravings__</a>
-            <p class="text-xs text-[#8B6F6F] mt-1">DM us for quick questions or inspiration photos.</p>
-          </div>
-        </div>
-
-        <div class="bg-white border border-[#EDE4DC] rounded-3xl p-6 flex items-start gap-x-4 sm:col-span-2 lg:col-span-1">
-          <div class="w-11 h-11 rounded-2xl bg-[#F5EEFC] text-[#C9A9E8] flex items-center justify-center text-lg shrink-0">
-            <i class="fa-solid fa-location-dot"></i>
-          </div>
-          <div>
-            <div class="font-semibold text-[#3F2A2B]">Location</div>
-            <p class="text-sm text-[#5C4A4B]">Miami, Florida</p>
-            <p class="text-xs text-[#8B6F6F] mt-1">Pickup or delivery available (+ small delivery fee).</p>
-          </div>
+      <div class="overflow-hidden rounded-2xl sm:rounded-3xl border border-[#EDE4DC] bg-[#FDF8F5] shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm min-w-[320px]">
+            <thead>
+              <tr class="border-b border-[#EDE4DC] bg-white/80">
+                <th class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">Cake Size</th>
+                <th class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">Serves (approx.)</th>
+                <th class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">Best for</th>
+              </tr>
+            </thead>
+            <tbody class="text-[#5C4A4B]">
+              <tr class="border-b border-[#EDE4DC]/80">
+                <td class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">6&quot;</td>
+                <td class="px-4 sm:px-6 py-3.5">8–12 people</td>
+                <td class="px-4 sm:px-6 py-3.5">Small celebrations</td>
+              </tr>
+              <tr class="border-b border-[#EDE4DC]/80 bg-white/40">
+                <td class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">8&quot;</td>
+                <td class="px-4 sm:px-6 py-3.5">12–20 people</td>
+                <td class="px-4 sm:px-6 py-3.5">Standard birthday parties</td>
+              </tr>
+              <tr class="border-b border-[#EDE4DC]/80">
+                <td class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">10&quot;</td>
+                <td class="px-4 sm:px-6 py-3.5">20–30 people</td>
+                <td class="px-4 sm:px-6 py-3.5">Most common party size</td>
+              </tr>
+              <tr class="bg-white/40">
+                <td class="px-4 sm:px-6 py-3.5 font-semibold text-[#3F2A2B]">Tiered</td>
+                <td class="px-4 sm:px-6 py-3.5">Custom</td>
+                <td class="px-4 sm:px-6 py-3.5">Based on your guest count</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <p class="mt-8 text-center text-sm text-[#6B5B5F] max-w-xl mx-auto">
-        <i class="fa-solid fa-clock text-[#C9A9E8] mr-1"></i>
-        To place an order, add items to your cart and tap <strong class="text-[#3F2A2B]">Submit Request</strong>.
-        Most orders need <strong>3–5 days</strong> notice; party packages require <strong>at least 1 week</strong>.
+      <p class="mt-5 text-sm text-[#6B5B5F] leading-relaxed text-center max-w-2xl mx-auto">
+        This is just a general guide to give you an idea. You don&apos;t have to choose an exact size here —
+        feel free to <a href="https://ig.me/m/sweettoothcravings__" target="_blank" rel="noopener" class="font-semibold text-[#C9A9E8] hover:text-[#B48AE0] underline-offset-2 hover:underline">message us on Instagram</a>
+        and we&apos;ll help you pick the perfect size for your event.
       </p>
     </div>
   </section>
 
-  <!-- INSTAGRAM GALLERY -->
+  <!-- INSTAGRAM GALLERY — three large photos only -->
   <section class="max-w-screen-2xl mx-auto px-8 py-16 bg-white border-t border-[#EDE4DC]">
-    <div class="text-center mb-8">
-      <h2 class="text-2xl md:text-3xl font-medium text-[#3F2A2B] tracking-tight">Follow our daily bakes on Instagram for behind-the-scenes magic.</h2>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" 
+    <div class="text-center mb-10">
+      <h2 class="heading-serif text-2xl md:text-3xl text-[#3F2A2B] tracking-tight">A few of our favorites</h2>
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener"
          class="inline-flex items-center gap-x-1.5 mt-2 text-sm text-[#C9A9E8] hover:text-[#B48AE0] transition">
         <i class="fa-brands fa-instagram text-lg"></i>
         <span>@sweettoothcravings__</span>
       </a>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-      <!-- Instagram gallery — below the fold: lazy-load to keep first paint fast -->
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/cupcakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Cupcakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-5xl mx-auto">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="block aspect-[4/5] sm:aspect-square overflow-hidden rounded-2xl sm:rounded-3xl group bg-[#F9F1EB] shadow-sm">
+        <img src="assets/images/opt/2-tier-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Custom tiered cake from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/chocoflan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Chocoflan from Sweet Tooth Cravings" loading="lazy" decoding="async">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="block aspect-[4/5] sm:aspect-square overflow-hidden rounded-2xl sm:rounded-3xl group bg-[#F9F1EB] shadow-sm">
+        <img src="assets/images/opt/chocoflan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Chocoflan from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/coquito.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Coquito from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/churro-cheesecake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Churro Cheesecake from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/2-tier-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="2 Tier Cakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/custom-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Custom Cakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/bento-cake.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Bento Cake from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/flan.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Flan from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/breakable-heart.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Breakable Heart from Sweet Tooth Cravings" loading="lazy" decoding="async">
-      </a>
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" class="block aspect-square overflow-hidden rounded-xl group bg-[#F9F1EB]">
-        <img src="assets/images/opt/mini-cakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt="Mini Cakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="block aspect-[4/5] sm:aspect-square overflow-hidden rounded-2xl sm:rounded-3xl group bg-[#F9F1EB] shadow-sm">
+        <img src="assets/images/opt/cupcakes.jpg" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Cupcakes from Sweet Tooth Cravings" loading="lazy" decoding="async">
       </a>
     </div>
 
-    <div class="mt-8 text-center">
-      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" 
+    <div class="mt-10 text-center">
+      <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener"
          class="inline-flex items-center justify-center gap-x-2 px-8 h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] text-white rounded-3xl font-semibold transition">
         <i class="fa-brands fa-instagram"></i>
         <span>Follow on Instagram</span>
@@ -1085,39 +883,43 @@
 
 
 
-  <!-- Floating Action Button - Mobile only -->
-  <div class="md:hidden fixed bottom-5 right-5 z-[60]">
-    <button onclick="document.getElementById('menu').scrollIntoView({ behavior: 'smooth' })" 
-            class="flex items-center gap-x-2 bg-[#C9A9E8] text-white px-5 h-14 rounded-3xl shadow-xl font-semibold text-sm active:scale-[0.985] transition">
-      <i class="fa-solid fa-shopping-bag"></i>
-      <span>Browse &amp; Order</span>
-    </button>
-  </div>
+  <!-- Floating Instagram DM chat button (clears footer via .site-footer padding) -->
+  <a href="https://ig.me/m/sweettoothcravings__"
+     target="_blank"
+     rel="noopener"
+     class="ig-chat-fab flex items-center gap-x-2.5 bg-white/95 backdrop-blur border border-[#EDE4DC] text-[#3F2A2B] pl-3.5 pr-5 h-14 rounded-full shadow-xl font-semibold text-sm hover:border-[#C9A9E8]/50 hover:shadow-2xl active:scale-[0.98] transition"
+     aria-label="Message us on Instagram">
+    <span class="w-9 h-9 rounded-full bg-gradient-to-br from-[#C9A9E8] to-[#B48AE0] text-white flex items-center justify-center shrink-0">
+      <i class="fa-brands fa-instagram text-lg"></i>
+    </span>
+    <span class="hidden sm:inline">Chat with us</span>
+    <span class="sm:hidden">Chat</span>
+  </a>
 
   <!-- FOOTER -->
-  <footer class="border-t border-[#EDE4DC] bg-white">
-    <div class="max-w-screen-2xl mx-auto px-8 pt-9 pb-10 text-sm">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-y-6">
-        <div>
+  <footer class="site-footer border-t border-[#EDE4DC] bg-white">
+    <div class="max-w-screen-2xl mx-auto px-8 pt-9 text-sm">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-y-6 gap-x-8">
+        <div class="min-w-0">
           <div class="flex items-center gap-x-2.5">
             <img src="assets/images/opt/logo.png" alt="Sweet Tooth Cravings" class="h-9 w-auto" onerror="this.style.display='none'">
           </div>
           <div class="text-[#8B6F6F] text-xs mt-1">Miami, Florida • Est. 2022</div>
         </div>
 
-        <div class="flex flex-wrap gap-x-8 gap-y-2 text-[#6B5B5F]">
-          <a href="https://www.instagram.com/sweettoothcravings__" target="_blank" rel="noopener" class="hover:text-[#C9A9E8] transition flex items-center gap-x-1.5">
+        <div class="flex flex-wrap gap-x-8 gap-y-2 text-[#6B5B5F] md:justify-end md:pr-36 lg:pr-40">
+          <a href="https://ig.me/m/sweettoothcravings__" target="_blank" rel="noopener" class="hover:text-[#C9A9E8] transition flex items-center gap-x-1.5">
             <i class="fa-brands fa-instagram"></i> <span>@sweettoothcravings__</span>
           </a>
           <a href="mailto:sweettoothcravingsorder@gmail.com" class="hover:text-[#C9A9E8] transition">Email us</a>
-          <button onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">Contact</button>
-          <button onclick="document.getElementById('policies').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">Policies</button>
-          <button onclick="document.getElementById('faq').scrollIntoView({behavior:'smooth'})" class="hover:text-[#C9A9E8] transition">FAQ</button>
+          <a href="contact.html" class="hover:text-[#C9A9E8] transition">Contact</a>
+          <a href="policies.html" class="hover:text-[#C9A9E8] transition">Policies</a>
+          <a href="faq.html" class="hover:text-[#C9A9E8] transition">FAQ</a>
+          <button type="button" onclick="openReviewsModal()" class="hover:text-[#C9A9E8] transition">Reviews</button>
         </div>
-
-        <div class="text-xs text-[#8B6F6F]">
-          © Sweet Tooth Cravings. All rights reserved.
-        </div>
+      </div>
+      <div class="mt-6 text-xs text-[#8B6F6F] pr-28 sm:pr-36">
+        © Sweet Tooth Cravings. All rights reserved.
       </div>
     </div>
   </footer>
@@ -1294,75 +1096,98 @@
     </div>
   </div>
 
-  <!-- REVIEWS MODAL -->
+  <!-- REVIEWS MODAL — reviews first, compact form -->
   <div id="reviews-modal" onclick="if (event.target.id === 'reviews-modal') closeReviewsModal()" class="hidden fixed inset-0 z-[95] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
     <div onclick="event.stopImmediatePropagation()" class="modal bg-white w-full max-w-3xl md:rounded-3xl rounded-t-3xl shadow-2xl max-h-[92vh] md:max-h-[90vh] flex flex-col overflow-hidden">
-      <!-- Mobile drag handle -->
-      <div class="md:hidden flex justify-center pt-2 pb-1 bg-white">
+      <div class="md:hidden flex justify-center pt-2 pb-1 bg-white shrink-0">
         <div class="w-10 h-1 bg-[#EDE4DC] rounded-full"></div>
       </div>
-      
-      <!-- Header -->
-      <div class="px-8 pt-7 pb-4 border-b flex items-center justify-between bg-white">
+
+      <div class="px-5 sm:px-7 pt-5 sm:pt-6 pb-3 border-b border-[#EDE4DC] flex items-start justify-between gap-3 bg-white shrink-0">
         <div>
-          <div class="flex items-center gap-x-3">
-            <div class="heading-serif text-3xl">Customer Reviews</div>
-            <div class="flex items-center bg-[#FDF8F5] px-3 py-1 rounded-2xl text-sm">
-              <div class="flex text-[#C9A9E8]">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div class="heading-serif text-2xl sm:text-3xl tracking-tight">Customer Reviews</div>
+            <div class="flex items-center bg-[#FDF8F5] px-2.5 py-1 rounded-full text-xs sm:text-sm border border-[#EDE4DC]">
+              <div class="flex text-[#C9A9E8] text-[11px] gap-px">
                 <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
               </div>
-              <span id="reviews-average" class="ml-2 font-semibold">5.0</span>
+              <span id="reviews-average" class="ml-1.5 font-semibold text-[#3F2A2B]">5.0</span>
             </div>
           </div>
-          <div id="reviews-count" class="text-[#8B6F6F] text-sm mt-0.5">Based on 17+ reviews</div>
+          <div id="reviews-count" class="text-[#8B6F6F] text-xs sm:text-sm mt-0.5">Based on 17+ reviews</div>
         </div>
-        <button onclick="closeReviewsModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B]">×</button>
+        <button type="button" onclick="closeReviewsModal()" class="text-3xl leading-none text-[#8B6F6F] hover:text-[#3F2A2B] shrink-0" aria-label="Close">×</button>
       </div>
 
-      <!-- Reviews List -->
-      <div id="reviews-list" class="flex-1 overflow-y-auto p-8 space-y-6 bg-[#FDF8F5]">
+      <!-- Reviews take most of the space -->
+      <div id="reviews-list" class="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 space-y-3 bg-[#FDF8F5]">
         <!-- Populated by JS -->
       </div>
 
-      <!-- Leave a Review Form -->
-      <div class="border-t p-8 bg-white">
-        <div class="font-semibold text-lg mb-4">Leave a Review</div>
-        
-        <form id="review-form" onsubmit="submitReview(event)">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F] block mb-1">YOUR NAME</label>
-              <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 h-11 text-sm" placeholder="Your name">
-            </div>
-            <div>
-              <label class="text-xs font-semibold tracking-wider text-[#8B6F6F] block mb-1">YOUR RATING</label>
-              <div id="star-rating" class="flex gap-x-1 text-2xl text-[#EDE4DC] cursor-pointer">
-                <span data-rating="1">★</span>
-                <span data-rating="2">★</span>
-                <span data-rating="3">★</span>
-                <span data-rating="4">★</span>
-                <span data-rating="5">★</span>
+      <!-- Compact leave-a-review + website feedback -->
+      <div class="border-t border-[#EDE4DC] bg-white shrink-0 max-h-[42%] overflow-y-auto">
+        <div class="px-4 sm:px-6 pt-3 pb-2">
+          <button type="button" id="review-form-toggle" onclick="toggleReviewFormPanel()"
+                  class="w-full flex items-center justify-between text-left text-sm font-semibold text-[#3F2A2B] py-1">
+            <span><i class="fa-solid fa-pen-to-square text-[#C9A9E8] mr-1.5"></i>Leave a Review</span>
+            <i id="review-form-chevron" class="fa-solid fa-chevron-up text-[#C9A9E8] text-xs transition"></i>
+          </button>
+        </div>
+
+        <div id="review-form-panel" class="px-4 sm:px-6 pb-3">
+          <form id="review-form" onsubmit="submitReview(event)" class="space-y-2.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-name">NAME</label>
+                <input type="text" id="review-name" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-9 text-sm" placeholder="Your name">
               </div>
-              <input type="hidden" id="review-rating" value="5">
+              <div>
+                <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5">RATING</label>
+                <div id="star-rating" class="flex gap-x-0.5 text-xl text-[#EDE4DC] cursor-pointer h-9 items-center">
+                  <span data-rating="1">★</span>
+                  <span data-rating="2">★</span>
+                  <span data-rating="3">★</span>
+                  <span data-rating="4">★</span>
+                  <span data-rating="5">★</span>
+                </div>
+                <input type="hidden" id="review-rating" value="5">
+              </div>
             </div>
-          </div>
-
-          <div class="mb-4">
-            <label class="text-xs font-semibold tracking-wider text-[#8B6F6F] block mb-1">YOUR REVIEW</label>
-            <textarea id="review-text" rows="3" required class="form-input w-full border border-[#EDE4DC] rounded-2xl px-4 py-3 text-sm" placeholder="Tell others about your experience..."></textarea>
-          </div>
-
-          <div class="flex gap-x-3">
-            <button type="submit" 
-                    class="flex-1 h-12 bg-[#C9A9E8] hover:bg-[#B48AE0] active:bg-[#A078D4] transition text-white rounded-3xl font-semibold">
+            <div>
+              <label class="text-[10px] font-semibold tracking-wider text-[#8B6F6F] block mb-0.5" for="review-text">REVIEW</label>
+              <textarea id="review-text" rows="2" required class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none" placeholder="Tell others about your experience..."></textarea>
+            </div>
+            <button type="submit"
+                    class="w-full h-10 bg-[#C9A9E8] hover:bg-[#B48AE0] transition text-white rounded-2xl font-semibold text-sm">
               Submit Review
             </button>
-            <button type="button" onclick="closeReviewsModal()" 
-                    class="px-8 rounded-3xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium">Cancel</button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
 
+        <div class="px-4 sm:px-6 pb-4 pt-1 border-t border-[#EDE4DC]/80">
+          <div class="rounded-2xl bg-[#FDF8F5] border border-[#EDE4DC] px-3.5 py-3">
+            <div class="text-xs font-semibold text-[#3F2A2B] mb-1">
+              <i class="fa-solid fa-lightbulb text-[#C9A9E8] mr-1"></i>Website Feedback
+            </div>
+            <p class="text-[11px] text-[#6B5B5F] leading-snug mb-2.5">
+              Ideas to improve the site? Sent privately to Sweet Tooth Cravings — not posted as a review.
+            </p>
+            <form id="website-feedback-form" onsubmit="submitWebsiteFeedback(event)" class="space-y-2">
+              <input type="text" id="feedback-name" autocomplete="name"
+                     class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 h-9 text-sm bg-white"
+                     placeholder="Name (optional)">
+              <textarea id="feedback-text" rows="2" required
+                        class="form-input w-full border border-[#EDE4DC] rounded-xl px-3 py-2 text-sm resize-none bg-white"
+                        placeholder="Your suggestion…"></textarea>
+              <button type="submit" id="feedback-submit-btn"
+                      class="w-full h-9 bg-white border border-[#EDE4DC] hover:border-[#C9A9E8]/50 text-[#3F2A2B] rounded-xl font-semibold text-xs transition">
+                Submit feedback
+              </button>
+              <p id="feedback-status" class="hidden text-[11px] text-center leading-snug"></p>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1814,49 +1639,6 @@
     
     // Main menu items (excludes Party Packages which has its own dedicated section)
     const mainDesserts = products.filter(p => p.category !== 'party')
-
-    const featuredProductIds = [13, 12, 16, 4, 6, 7]
-
-    function renderFeaturedShowcase() {
-      const container = document.getElementById('featured-showcase')
-      if (!container) return
-      container.innerHTML = ''
-
-      // Featured treats sit above the fold — never lazy-load (avoids empty card gaps)
-      featuredProductIds.forEach((id, index) => {
-        const product = products.find(p => p.id === id)
-        if (!product) return
-
-        const priceLabel = product.startingAt ? `From $${product.price}` : `$${product.price}`
-        const isHighPriority = index < 4
-        const card = document.createElement('article')
-        card.className = 'showcase-card shrink-0 w-[200px] sm:w-[230px] flex flex-col'
-        card.innerHTML = `
-          <div class="relative aspect-[4/3] bg-[#F9F1EB] overflow-hidden product-image-container">
-            <img src="${product.img}"
-                 alt="${product.name}"
-                 class="product-img absolute inset-0 w-full h-full object-cover"
-                 width="480"
-                 height="360"
-                 loading="eager"
-                 fetchpriority="${isHighPriority ? 'high' : 'auto'}"
-                 decoding="async">
-          </div>
-          <div class="p-3.5 sm:p-4 flex flex-col flex-1">
-            <h3 class="font-semibold text-[#3F2A2B] leading-snug text-[0.95rem]">${product.name}</h3>
-            <p class="text-xs text-[#8B6F6F] mt-1 line-clamp-2 leading-relaxed">${product.shortDesc}</p>
-            <div class="mt-auto pt-3 flex items-center justify-between gap-2">
-              <span class="text-sm font-semibold text-[#C9A9E8]">${priceLabel}</span>
-              <button type="button" onclick="openProductModal(${product.id}, 'select')"
-                      class="min-h-[2.4rem] px-3.5 rounded-full bg-[#C9A9E8] hover:bg-[#B48AE0] text-white text-xs font-semibold transition active:scale-[0.98]">
-                Select
-              </button>
-            </div>
-          </div>
-        `
-        container.appendChild(card)
-      })
-    }
 
     function filterProducts(category) {
       currentFilter = category
@@ -2697,11 +2479,6 @@
 
     const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
-    function stcApiUrl(path) {
-      const base = (stcResolveApiBase() || '').replace(/\/$/, '')
-      return base ? base + path : path
-    }
-
     // Live shop always posts to this API (Order Log + Drive are forced on the server).
     // deployBuild must match serve.js DEPLOY_BUILD after a full redeploy.
     const STC_DEPLOY_BUILD = window.STC_DEPLOY_BUILD || '2026-07-27-insert-top-v5'
@@ -2718,14 +2495,31 @@
       )
     }
 
+    function stcIsLocalHost() {
+      const host = location.hostname
+      return host === 'localhost' || host === '127.0.0.1' || host === ''
+    }
+
     function stcResolveApiBase() {
       // Live shop: always the production API (ignore stale config.js).
       if (stcIsLiveShopHost()) {
         window.STC_API_BASE = STC_PRODUCTION_API
         return STC_PRODUCTION_API
       }
-      if (window.STC_API_BASE) return window.STC_API_BASE
-      return ''
+      // Explicit config (e.g. testing against Render from a preview host)
+      if (window.STC_API_BASE) return String(window.STC_API_BASE).replace(/\/$/, '')
+      // Local node serve.js → same origin (empty base → relative /api/… paths)
+      if (stcIsLocalHost()) return ''
+      // Any other host: fall back to production so forms still work
+      return STC_PRODUCTION_API
+    }
+
+    function stcApiUrl(path) {
+      const p = path.startsWith('/') ? path : '/' + path
+      const base = (stcResolveApiBase() || '').replace(/\/$/, '')
+      // Local with empty base → same-origin relative URL
+      if (!base) return p
+      return base + p
     }
 
     let stcApiWarmPromise = null
@@ -3663,8 +3457,7 @@
       removeLegacyCustomCakesCTAs()
       initializeTailwind()
       
-      // Featured showcase + full menu
-      renderFeaturedShowcase()
+      // Full menu
       renderProducts(mainDesserts)
       
       // Dedicated Party Packages section (separate from main tabs)
@@ -3697,6 +3490,16 @@
       if (params.get('payment') === 'success') {
         showToast('Payment received — thank you!')
         window.history.replaceState({}, '', window.location.pathname)
+      }
+      // Open reviews from subpages (?open=reviews or #reviews)
+      if (params.get('open') === 'reviews' || window.location.hash === '#reviews') {
+        setTimeout(() => openReviewsModal(), 200)
+        try {
+          const clean = new URL(window.location.href)
+          clean.searchParams.delete('open')
+          clean.hash = ''
+          window.history.replaceState({}, '', clean.pathname + (clean.search || ''))
+        } catch (_) { /* ignore */ }
       }
     }
 
@@ -3779,16 +3582,16 @@
           `<span class="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Verified Order</span>` : '';
 
         const card = document.createElement('div');
-        card.className = 'bg-white border border-[#EDE4DC] rounded-3xl p-6';
+        card.className = 'bg-white border border-[#EDE4DC] rounded-2xl px-4 py-3.5 sm:px-5 sm:py-4';
         card.innerHTML = `
-          <div class="flex justify-between items-start">
-            <div>
-              <div class="font-semibold text-lg">${review.name}</div>
-              <div class="text-xs text-[#8B6F6F] mt-0.5">${review.date} ${verifiedBadge}</div>
+          <div class="flex justify-between items-start gap-3">
+            <div class="min-w-0">
+              <div class="font-semibold text-[15px] text-[#3F2A2B]">${review.name}</div>
+              <div class="text-[11px] text-[#8B6F6F] mt-0.5">${review.date} ${verifiedBadge}</div>
             </div>
-            <div class="text-[#C9A9E8] text-xl tracking-[-1px]">${stars}</div>
+            <div class="text-[#C9A9E8] text-sm tracking-[-1px] shrink-0">${stars}</div>
           </div>
-          <p class="mt-4 text-[#3F2A2B] leading-relaxed">${review.text}</p>
+          <p class="mt-2 text-sm text-[#3F2A2B] leading-relaxed">${review.text}</p>
         `;
         container.appendChild(card);
       });
@@ -3858,15 +3661,117 @@
 
       // Success message
       const successMsg = document.createElement('div');
-      successMsg.className = 'mt-4 text-center text-sm bg-emerald-50 text-emerald-700 py-3 rounded-2xl';
+      successMsg.className = 'mt-2 text-center text-xs bg-emerald-50 text-emerald-700 py-2 rounded-xl';
       successMsg.textContent = 'Thank you! Your review has been added.';
-      const formContainer = document.querySelector('#reviews-modal .border-t');
-      formContainer.appendChild(successMsg);
+      const formContainer = document.getElementById('review-form-panel') || document.querySelector('#reviews-modal .border-t');
+      if (formContainer) formContainer.appendChild(successMsg);
 
       setTimeout(() => {
         successMsg.remove();
       }, 2800);
     }
+
+    function toggleReviewFormPanel() {
+      const panel = document.getElementById('review-form-panel');
+      const chevron = document.getElementById('review-form-chevron');
+      if (!panel) return;
+      const hidden = panel.classList.toggle('hidden');
+      if (chevron) {
+        chevron.classList.toggle('fa-chevron-up', !hidden);
+        chevron.classList.toggle('fa-chevron-down', hidden);
+      }
+    }
+    window.toggleReviewFormPanel = toggleReviewFormPanel;
+
+    /**
+     * Website feedback → Admin only (POST /api/feedback).
+     * Stored privately for the bakery — never posted as a public review, never emailed to the customer.
+     */
+    async function submitWebsiteFeedback(e) {
+      e.preventDefault();
+      const nameEl = document.getElementById('feedback-name');
+      const textEl = document.getElementById('feedback-text');
+      const statusEl = document.getElementById('feedback-status');
+      const btn = document.getElementById('feedback-submit-btn');
+      const message = (textEl && textEl.value || '').trim();
+      const name = (nameEl && nameEl.value || '').trim();
+      if (!message) {
+        if (statusEl) {
+          statusEl.textContent = 'Please enter your feedback.';
+          statusEl.className = 'text-[11px] text-center leading-snug text-red-600';
+          statusEl.classList.remove('hidden');
+        }
+        return;
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+      }
+      if (statusEl) statusEl.classList.add('hidden');
+
+      // Always resolve a usable API URL (production on live shop; same-origin locally)
+      let url = '';
+      try {
+        url = typeof stcApiUrl === 'function'
+          ? stcApiUrl('/api/feedback')
+          : ((window.STC_API_BASE || STC_PRODUCTION_API || '').replace(/\/$/, '') + '/api/feedback');
+      } catch (_) {
+        url = 'https://sweettooth-cravings-api.onrender.com/api/feedback';
+      }
+      // Relative path with no base (local serve.js)
+      if (url === '/api/feedback' || url.startsWith('/api/')) {
+        url = (location.origin || '') + (url.startsWith('/') ? url : '/' + url);
+      }
+      if (!url || url.indexOf('/api/feedback') < 0) {
+        url = 'https://sweettooth-cravings-api.onrender.com/api/feedback';
+      }
+
+      try {
+        if (typeof stcWarmApiIfLive === 'function') {
+          try { await stcWarmApiIfLive(); } catch (_) { /* ignore cold-start warm */ }
+        }
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timer = controller ? setTimeout(function () { controller.abort(); }, 45000) : null;
+        const res = await fetch(url, {
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name || '', message: message }),
+          signal: controller ? controller.signal : undefined,
+        }).finally(function () { if (timer) clearTimeout(timer); });
+        let data = {};
+        try { data = await res.json(); } catch (_) { /* ignore */ }
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error('Feedback is not available yet on the server. Please try again in a few minutes.');
+          }
+          throw new Error((data && data.error) || 'Could not send feedback.');
+        }
+        if (textEl) textEl.value = '';
+        if (nameEl) nameEl.value = '';
+        if (statusEl) {
+          statusEl.textContent = 'Thank you — your feedback was sent to Sweet Tooth Cravings.';
+          statusEl.className = 'text-[11px] text-center leading-snug text-emerald-700';
+          statusEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        var msg = (err && err.name === 'AbortError')
+          ? 'That took too long. Please try again in a moment.'
+          : ((err && err.message) || 'Something went wrong. Please try again.');
+        if (statusEl) {
+          statusEl.textContent = msg;
+          statusEl.className = 'text-[11px] text-center leading-snug text-red-600';
+          statusEl.classList.remove('hidden');
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Submit feedback';
+        }
+      }
+    }
+    window.submitWebsiteFeedback = submitWebsiteFeedback;
 
     // ==================== MOBILE ENHANCEMENTS ====================
 

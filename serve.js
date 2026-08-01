@@ -20,6 +20,7 @@ const PREFERRED_PORT = Number(process.env.PORT) || 8080;
 const UPLOADS = path.join(ROOT, "uploads");
 const DATA = path.join(ROOT, "data");
 const ORDERS = path.join(DATA, "orders.json");
+const FEEDBACK = path.join(DATA, "feedback.json");
 
 loadEnv(path.join(ROOT, ".env"));
 
@@ -29,7 +30,7 @@ if (typeof google.forceProductionTargets === "function") {
 }
 
 /** Bump on every force-redeploy so health/cart-submit prove the new binary is live. */
-const DEPLOY_BUILD = "2026-07-28-new-order-notify-v22";
+const DEPLOY_BUILD = "2026-08-01-website-feedback-v1";
 const EXPECTED_SHEET_ID = "13ch_g0giBozxwFqh1OVV-gTEqttmfC23xU9pNYFVxRs";
 const EXPECTED_DRIVE_ID = "1r-3-RrGjLbE4JHO32bMCDbId4O0jwKPE";
 
@@ -76,6 +77,7 @@ function ensureDirs() {
     if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
   }
   if (!fs.existsSync(ORDERS)) fs.writeFileSync(ORDERS, "[]\n");
+  if (!fs.existsSync(FEEDBACK)) fs.writeFileSync(FEEDBACK, "[]\n");
 }
 
 function loadOrders() {
@@ -88,6 +90,19 @@ function loadOrders() {
 
 function saveOrders(list) {
   fs.writeFileSync(ORDERS, JSON.stringify(list, null, 2) + "\n");
+}
+
+function loadFeedback() {
+  try {
+    const list = JSON.parse(fs.readFileSync(FEEDBACK, "utf8"));
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFeedback(list) {
+  fs.writeFileSync(FEEDBACK, JSON.stringify(list, null, 2) + "\n");
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -1303,6 +1318,90 @@ async function api(req, res, pathname, baseUrl) {
 
   if (method === "GET" && pathname === "/api/admin/session") {
     return json(res, 200, { authenticated: isAdmin(req) });
+  }
+
+  /**
+   * Public website feedback — stored for admin only (not emailed to the customer).
+   * POST /api/feedback  { name?: string, message: string }
+   */
+  if (method === "POST" && pathname === "/api/feedback") {
+    let body = {};
+    try {
+      body = JSON.parse((await readBody(req, 64 * 1024)).toString() || "{}");
+    } catch {
+      return json(res, 400, { error: "Invalid JSON" });
+    }
+    const message = String(body.message || body.feedback || body.text || "").trim();
+    const name = String(body.name || "").trim().slice(0, 80);
+    if (!message || message.length < 3) {
+      return json(res, 400, { error: "Please enter your feedback (at least a few characters)." });
+    }
+    if (message.length > 4000) {
+      return json(res, 400, { error: "Feedback is too long (max 4000 characters)." });
+    }
+    const entry = {
+      id: `fb_${Date.now().toString(36)}_${crypto.randomBytes(3).toString("hex")}`,
+      name: name || "Anonymous",
+      message,
+      createdAt: new Date().toISOString(),
+      userAgent: String(req.headers["user-agent"] || "").slice(0, 200),
+    };
+    try {
+      const list = loadFeedback();
+      list.unshift(entry);
+      // Keep last 500 entries
+      if (list.length > 500) list.length = 500;
+      saveFeedback(list);
+      console.log("[feedback] saved", entry.id, "from", entry.name);
+
+      // Optional private alert to bakery inbox only (never to the customer)
+      try {
+        if (notify.notifyEnabled && notify.notifyEnabled() && notify.sendEmail) {
+          const to = (notify.notifyTo && notify.notifyTo()) || "sweettoothcravingsorder@gmail.com";
+          notify
+            .sendEmail({
+              to,
+              subject: `Website Feedback — ${entry.name}`,
+              text: [
+                "New website feedback (private — Admin only).",
+                "",
+                `From: ${entry.name}`,
+                `When: ${entry.createdAt}`,
+                `Id: ${entry.id}`,
+                "",
+                "— Message —",
+                entry.message,
+                "",
+                "View all feedback in Admin → Feedback.",
+              ].join("\n"),
+            })
+            .then((r) => {
+              if (r && r.ok) console.log("[feedback] owner email ok");
+              else console.warn("[feedback] owner email:", r && (r.error || r.reason));
+            })
+            .catch((e) => console.warn("[feedback] owner email failed:", e.message));
+        }
+      } catch (mailErr) {
+        console.warn("[feedback] owner email skipped:", mailErr.message);
+      }
+
+      return json(res, 200, { ok: true, id: entry.id });
+    } catch (e) {
+      console.error("[feedback] save failed:", e.message);
+      return json(res, 500, { error: "Could not save feedback. Please try again." });
+    }
+  }
+
+  /**
+   * Admin-only: list website feedback (newest first).
+   * GET /api/admin/feedback
+   */
+  if (method === "GET" && pathname === "/api/admin/feedback") {
+    if (!isAdmin(req) && !isSheetActionAuthorized(req)) {
+      return json(res, 401, { error: "Unauthorized" });
+    }
+    const list = loadFeedback();
+    return json(res, 200, { ok: true, count: list.length, feedback: list });
   }
 
   /**

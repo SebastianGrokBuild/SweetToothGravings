@@ -17,6 +17,7 @@ index.html.pre-*
 *.log
 node_modules/
 data/orders.json
+data/feedback.json
 .server-url
 uploads/
 .env
