@@ -324,38 +324,47 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
-      /* Shared vertical rhythm so action rows share one baseline */
-      padding-bottom: 1rem;
+      /* Tight text block; actions still pin to card bottom */
+      padding-bottom: 0.85rem;
     }
-    /* Reserved slots keep every card’s action row at the same height */
     .product-card .card-title {
-      min-height: 2.6rem;
+      min-height: 0;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      line-height: 1.25;
+      margin: 0;
     }
+    /* Seasonal note — wrap fully (no single-line cut-off) */
     .product-card .card-seasonal {
-      min-height: 1.15rem;
-      margin-top: 0.35rem;
+      margin-top: 0.3rem;
       font-size: 0.6875rem;
       font-weight: 600;
-      line-height: 1.25;
+      line-height: 1.35;
       color: #7B4DB8;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      white-space: normal;
+      overflow: visible;
+      display: block;
+    }
+    .product-card .card-seasonal:empty {
+      display: none;
+      margin: 0;
     }
     .product-card .card-desc {
-      min-height: 2.35rem;
-      margin-top: 0.35rem;
+      margin-top: 0.3rem;
+      margin-bottom: 0;
       flex: 0 0 auto;
+      line-height: 1.35;
+      min-height: 0;
+    }
+    .product-card .card-desc.line-clamp-2 {
+      -webkit-line-clamp: 2;
     }
     /* Pin action row to card bottom so Details / Select line up across the grid */
     .product-card .card-actions {
       margin-top: auto !important;
-      padding-top: 0.9rem;
+      padding-top: 0.7rem;
       display: flex;
       flex-direction: row;
       align-items: stretch;
@@ -2104,9 +2113,9 @@
       { 
         id: 11, name: "Coquito", price: 25, startingAt: true, category: "desserts", img: "assets/images/coquito.jpg",
         seasonal: true,
-        seasonalNote: "Seasonal item – Available only around Thanksgiving and Christmas.",
-        shortDesc: "Seasonal item – Available only around Thanksgiving and Christmas. Creamy coconut drink. Choose from Pistachio, Almond, or Regular.",
-        description: "Homemade Puerto Rican coquito (coconut eggnog). Available with or without alcohol. Bottled for easy serving. Seasonal item – Available only around Thanksgiving and Christmas.",
+        seasonalNote: "Available only around Thanksgiving and Christmas.",
+        shortDesc: "Creamy coconut drink. Choose Pistachio, Almond, or Regular.",
+        description: "Homemade Puerto Rican coquito (coconut eggnog). Available with or without alcohol. Bottled for easy serving. Seasonal item – available only around Thanksgiving and Christmas.",
         flavors: ["Pistachio", "Almond", "Regular"],
         tiers: [
           { label: "17 oz bottle", price: 25, serves: "With or without alcohol" },
@@ -2227,10 +2236,12 @@
             </div>
           </div>
           
-          <div class="card-body px-4 pt-4 sm:px-5 sm:pt-5">
-            <div class="card-title font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px] leading-snug">${product.name}</div>
-            <div class="card-seasonal">${product.seasonal && product.seasonalNote ? product.seasonalNote : ''}</div>
-            <p class="card-desc text-xs text-[#8B6F6F] line-clamp-2 leading-relaxed">${product.shortDesc && product.seasonal && product.seasonalNote ? product.shortDesc.replace(product.seasonalNote + ' ', '') : (product.shortDesc || '')}</p>
+          <div class="card-body px-3.5 pt-3 sm:px-4 sm:pt-3.5">
+            <div class="card-title font-semibold text-[1.05rem] sm:text-lg tracking-[-0.2px]">${product.name}</div>
+            ${product.seasonal && product.seasonalNote
+              ? `<div class="card-seasonal">${product.seasonalNote}</div>`
+              : ''}
+            <p class="card-desc text-xs text-[#8B6F6F] line-clamp-2">${product.shortDesc || ''}</p>
             
             <div class="card-actions">
               <button type="button" onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
