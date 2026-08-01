@@ -376,7 +376,7 @@
         width: 100%;
         max-width: 20rem;
       }
-      /* Lead time / deposit: in-flow under reviews on mobile */
+      /* Lead time / deposit: in-flow under reviews on mobile — solid white, dark text */
       .hero-trust-badge {
         position: relative !important;
         left: auto !important;
@@ -385,13 +385,80 @@
         margin: 0.65rem 1rem 0.15rem !important;
         max-width: none !important;
         width: auto !important;
+        background: #ffffff !important;
+        border: 1px solid #EDE4DC !important;
+        box-shadow: 0 8px 28px rgba(63, 42, 43, 0.1) !important;
+      }
+      .hero-trust-badge,
+      .hero-trust-badge span,
+      .hero-trust-badge strong {
+        color: #3F2A2B !important;
+      }
+      .hero-trust-badge .trust-muted {
+        color: #4A3839 !important;
+      }
+      .hero-trust-badge .trust-accent {
+        color: #9B6FD4 !important;
+      }
+      .hero-trust-badge i {
+        color: #9B6FD4 !important;
       }
     }
 
+    /* Desktop / tablet: solid white badge, pinned lower-right (not mid-image) */
+    @media (min-width: 641px) {
+      .hero-trust-badge {
+        left: auto !important;
+        right: 1.75rem !important;
+        bottom: 1.5rem !important;
+        max-width: 17.5rem !important;
+        background: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.95) !important;
+        box-shadow: 0 12px 36px rgba(20, 12, 14, 0.18) !important;
+      }
+    }
     @media (min-width: 1024px) {
       .dessert-bg {
         background-position: center center;
       }
+      .hero-trust-badge {
+        right: 2.25rem !important;
+        bottom: 2rem !important;
+        max-width: 18rem !important;
+      }
+    }
+
+    /* Liquid glass — Details buttons (soft glass on cream cards) */
+    .btn-liquid-glass {
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(253, 248, 245, 0.55) 100%
+      );
+      backdrop-filter: blur(14px) saturate(1.2);
+      -webkit-backdrop-filter: blur(14px) saturate(1.2);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 4px 14px rgba(63, 42, 43, 0.06),
+        0 0 0 1px rgba(237, 228, 220, 0.65);
+      color: #3F2A2B;
+      font-weight: 600;
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    }
+    .btn-liquid-glass:hover {
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.88) 0%,
+        rgba(253, 248, 245, 0.7) 100%
+      );
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 1) inset,
+        0 6px 18px rgba(63, 42, 43, 0.08),
+        0 0 0 1px rgba(201, 169, 232, 0.35);
+    }
+    .btn-liquid-glass:active {
+      transform: scale(0.985);
     }
 
     .modal {
@@ -829,16 +896,16 @@
           </button>
         </div>
 
-        <!-- Lead time + deposit: stacks under reviews on mobile; floats bottom-right on larger screens -->
-        <div class="hero-trust-badge relative z-10 absolute bottom-5 right-5 left-5 sm:left-auto sm:bottom-9 sm:right-9 bg-white/96 backdrop-blur-md px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-white/90 max-w-md sm:max-w-sm">
-          <div class="flex items-start gap-x-2 text-[#3F2A2B] text-[11px] sm:text-xs leading-snug">
-            <i class="fa-solid fa-clock text-[#C9A9E8] mt-0.5 shrink-0"></i>
-            <span class="font-medium">Most orders need <strong class="text-[#3F2A2B]">3–5 days</strong> notice. Party packages need at least <strong class="text-[#3F2A2B]">1 week</strong>.</span>
+        <!-- Lead time + deposit: solid white, dark text; stacks on mobile, lower-right on desktop -->
+        <div class="hero-trust-badge relative z-10 absolute bottom-6 right-6 left-5 sm:left-auto bg-white px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl shadow-xl border border-[#EDE4DC] max-w-md sm:max-w-[17.5rem]">
+          <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
+            <i class="fa-solid fa-clock text-[#9B6FD4] mt-0.5 shrink-0"></i>
+            <span class="font-semibold text-[#3F2A2B]">Most orders need <strong class="font-bold">3–5 days</strong> notice. Party packages need at least <strong class="font-bold">1 week</strong>.</span>
           </div>
           <div class="h-px bg-[#EDE4DC] my-2.5"></div>
-          <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug text-[#5C4A4B]">
-            <i class="fa-solid fa-wallet text-[#C9A9E8] mt-0.5 shrink-0"></i>
-            <span>A <strong class="text-[#C9A9E8]">50% non-refundable deposit</strong> is required after we send your quote to confirm the order.</span>
+          <div class="flex items-start gap-x-2 text-[11px] sm:text-xs leading-snug">
+            <i class="fa-solid fa-wallet text-[#9B6FD4] mt-0.5 shrink-0"></i>
+            <span class="trust-muted font-medium text-[#3F2A2B]">A <strong class="trust-accent font-bold text-[#9B6FD4]">50% non-refundable deposit</strong> is required after we send your quote to confirm the order.</span>
           </div>
         </div>
       </div>
@@ -1804,7 +1871,7 @@
             
             <div class="card-actions flex flex-col sm:flex-row gap-2 mt-4 sm:mt-5">
               <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="flex-1 min-h-[2.85rem] text-sm rounded-full border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium transition active:scale-[0.985]">
+                      class="btn-liquid-glass flex-1 min-h-[2.85rem] text-sm rounded-full font-semibold">
                 Details
               </button>
               ${selectBtn}
@@ -1853,11 +1920,11 @@
             
             <div class="flex flex-col sm:flex-row gap-2 mt-5">
               <button onclick="openProductModal(${product.id}, 'details'); event.stopImmediatePropagation()" 
-                      class="flex-1 h-11 text-sm rounded-2xl border border-[#EDE4DC] hover:bg-[#FDF8F5] font-medium transition active:scale-[0.985]">
+                      class="btn-liquid-glass flex-1 min-h-[2.85rem] h-11 text-sm rounded-full font-semibold">
                 View Details
               </button>
               <button onclick="openProductModal(${product.id}, 'select'); event.stopImmediatePropagation()" 
-                      class="flex-1 h-11 text-sm rounded-2xl bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
+                      class="flex-1 min-h-[2.85rem] h-11 text-sm rounded-full bg-[#C9A9E8] text-white font-semibold hover:bg-[#B48AE0] active:bg-[#A078D4] transition flex items-center justify-center gap-x-1.5 active:scale-[0.985]">
                 <i class="fa-solid fa-plus text-xs"></i>
                 <span>Select</span>
               </button>
